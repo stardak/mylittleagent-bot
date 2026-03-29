@@ -417,16 +417,11 @@
       }
 
       if (scalper && scalper.signals) {
-        updateSignalCard('btc', scalper.signals.btcusdt, scalper.positions?.btcusdt);
         updateSignalCard('eth', scalper.signals.ethusdt, scalper.positions?.ethusdt);
-        updateSignalCard('sol', scalper.signals.solusdt, scalper.positions?.solusdt);
-
 
         const posDiv = $('scalperPositions'), posList = $('positionsList');
         const allPos = [
-          ['BTC', scalper.positions?.btcusdt, scalper.signals.btcusdt],
           ['ETH', scalper.positions?.ethusdt, scalper.signals.ethusdt],
-          ['SOL', scalper.positions?.solusdt, scalper.signals.solusdt],
 
         ];
         const hasPos = allPos.some(([,p]) => p);

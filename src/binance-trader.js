@@ -7,7 +7,11 @@
 // ══════════════════════════════════════════════════════════════════════════════
 
 import crypto from 'crypto';
+import Database from 'better-sqlite3';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const BINANCE_API = 'https://api.binance.com';
 
 export class BinanceTrader {
@@ -26,6 +30,82 @@ export class BinanceTrader {
       wins: 0,
       losses: 0,
     };
+
+    // SQLite persistence
+    this.db = new Database(path.join(__dirname, '..', 'trades.db'));
+    this._initScalperTable();
+    this._loadScalperState();
+  }
+
+  _initScalperTable() {
+    this.db.pragma('journal_mode = WAL');
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS scalper_trades (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        timestamp INTEGER NOT NULL,
+        type TEXT NOT NULL,
+        symbol TEXT NOT NULL,
+        price REAL NOT NULL,
+        quantity REAL NOT NULL,
+        cost REAL,
+        revenue REAL,
+        pnl REAL,
+        pnl_pct REAL,
+        entry_price REAL,
+        mode TEXT NOT NULL DEFAULT 'PAPER'
+      );
+    `);
+  }
+
+  _loadScalperState() {
+    // Restore wins/losses/totalPnl from database
+    const stats = this.db.prepare(`
+      SELECT
+        COALESCE(SUM(CASE WHEN type='SELL' AND pnl > 0 THEN 1 ELSE 0 END), 0) as wins,
+        COALESCE(SUM(CASE WHEN type='SELL' AND pnl <= 0 THEN 1 ELSE 0 END), 0) as losses,
+        COALESCE(SUM(CASE WHEN type='SELL' THEN pnl ELSE 0 END), 0) as totalPnl
+      FROM scalper_trades
+    `).get();
+
+    if (stats) {
+      this.portfolio.wins = stats.wins;
+      this.portfolio.losses = stats.losses;
+      this.portfolio.totalPnl = stats.totalPnl;
+      this.portfolio.balance = this.portfolio.startingBalance + stats.totalPnl;
+    }
+
+    // Load recent trades for dashboard display
+    const recentRows = this.db.prepare(
+      'SELECT * FROM scalper_trades ORDER BY id DESC LIMIT 40'
+    ).all();
+
+    this.portfolio.trades = recentRows.reverse().map(r => ({
+      id: `paper-${r.id}`,
+      type: r.type,
+      symbol: r.symbol,
+      price: r.price,
+      quantity: r.quantity,
+      cost: r.cost,
+      revenue: r.revenue,
+      pnl: r.pnl,
+      pnlPct: r.pnl_pct,
+      entryPrice: r.entry_price,
+      timestamp: r.timestamp,
+      mode: r.mode,
+    }));
+
+    console.log(`📊 Scalper state restored: ${this.portfolio.wins}W/${this.portfolio.losses}L, P&L: $${this.portfolio.totalPnl.toFixed(2)}, Balance: $${this.portfolio.balance.toFixed(2)}`);
+  }
+
+  _persistTrade(trade) {
+    this.db.prepare(`
+      INSERT INTO scalper_trades (timestamp, type, symbol, price, quantity, cost, revenue, pnl, pnl_pct, entry_price, mode)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      trade.timestamp, trade.type, trade.symbol, trade.price, trade.quantity,
+      trade.cost || null, trade.revenue || null, trade.pnl || null,
+      trade.pnlPct || null, trade.entryPrice || null, trade.mode
+    );
   }
 
   // ── Execute a BUY ───────────────────────────────────────────────────────
@@ -74,6 +154,7 @@ export class BinanceTrader {
     };
 
     this.portfolio.trades.push(trade);
+    this._persistTrade(trade);
     console.log(`📝 PAPER BUY: ${quantity.toFixed(6)} ${symbol.toUpperCase()} @ $${fillPrice.toFixed(2)} ($${cost.toFixed(2)})`);
 
     if (this.alerts) {
@@ -117,6 +198,7 @@ export class BinanceTrader {
     };
 
     this.portfolio.trades.push(trade);
+    this._persistTrade(trade);
 
     const emoji = pnl >= 0 ? '✅' : '❌';
     console.log(`📝 PAPER SELL: ${quantity.toFixed(6)} ${symbol.toUpperCase()} @ $${fillPrice.toFixed(2)} | P&L: ${emoji} $${pnl.toFixed(2)} (${pnlPct.toFixed(2)}%)`);
@@ -154,6 +236,7 @@ export class BinanceTrader {
       };
 
       this.portfolio.trades.push(trade);
+      this._persistTrade(trade);
       console.log(`🔴 LIVE BUY: ${quantity.toFixed(6)} ${symbol.toUpperCase()} @ $${fillPrice.toFixed(2)}`);
 
       if (this.alerts) {
@@ -202,6 +285,7 @@ export class BinanceTrader {
       };
 
       this.portfolio.trades.push(trade);
+      this._persistTrade(trade);
       const emoji = pnl >= 0 ? '✅' : '❌';
       console.log(`🔴 LIVE SELL: ${quantity.toFixed(6)} ${symbol.toUpperCase()} @ $${fillPrice.toFixed(2)} | P&L: ${emoji} $${pnl.toFixed(2)}`);
 
