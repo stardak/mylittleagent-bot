@@ -209,20 +209,49 @@
     <!-- ── How It Works ──────────────────────────────────────────── -->
     <div class="divider"></div>
     <div class="about-section">
-      <h2 class="about-title">How This Bot Works</h2>
-      <p>This is an automated trading bot that watches the price of Ethereum (ETH) — one of the largest cryptocurrencies — every single minute, 24 hours a day.</p>
-      <p>Instead of buying and hoping the price goes up, it uses a set of mathematical rules to decide <em>exactly</em> when to buy and when to sell. Think of it like a very patient fisherman who only casts the line when conditions are perfect — the right water temperature, the right time of day, the right bait.</p>
-      <p>The bot checks <strong>8 different conditions</strong> before every trade:</p>
+      <h2 class="about-title">How I Built This Bot</h2>
+
+      <p>This is a <strong>scalping bot</strong> — a type of automated trading program that makes very short-term trades, typically lasting minutes to hours. The idea is simple: buy when a set of mathematical conditions say the price is about to move up, sell quickly once it does, and repeat. No guessing, no gut feelings, no emotions.</p>
+
+      <p>The bot watches the price of Ethereum (ETH) every single minute, 24 hours a day, and checks <strong>8 different conditions</strong> before every trade:</p>
       <ul>
         <li>Is the short-term trend crossing above the long-term trend? (like a car accelerating past another)</li>
         <li>Is the momentum in the right range — not too hot, not too cold?</li>
         <li>Is trading volume higher than normal? (more people trading = more confidence in the move)</li>
-        <li>Is the bigger picture also pointing up? (checking the 5-minute trend, not just the 1-minute)</li>
-        <li>Is it the right time of day? (we only trade during the two windows where this strategy performs best: morning London and late New York sessions)</li>
+        <li>Is the bigger picture also pointing up? (checking the 5-minute chart, not just the 1-minute)</li>
+        <li>Is it the right time of day?</li>
       </ul>
-      <p>All 8 conditions must be true at the same time before the bot will buy. If even one fails, it waits. This means it skips the vast majority of opportunities — but the ones it takes have a historically high success rate.</p>
-      <p>Once in a trade, the bot has automatic safety nets: a stop-loss that limits how much it can lose, a take-profit that locks in gains, and a breakeven trigger that protects profits once the trade moves in the right direction.</p>
-      <p>Everything you see on this dashboard is happening in real time. The bot never sleeps, never panics, and never makes emotional decisions.</p>
+      <p>All 8 must be true at the same time. If even one fails, it waits. This means it skips most opportunities — but the ones it takes have a historically high success rate.</p>
+
+      <h2 class="about-title" style="margin-top:32px">The Testing Process</h2>
+
+      <p>I didn't just pick ETH randomly. I built a <strong>backtesting engine</strong> that replays the strategy against 30 days of real historical price data — over 43,000 one-minute candles — to see exactly how it would have performed.</p>
+
+      <p>I tested <strong>6 different versions</strong> across 4 assets:</p>
+      <ul>
+        <li><strong>v1</strong> — BTC, ETH, SOL, BNB with a wide trading window. Result: 48.8% win rate, 80 trades. Profitable but inconsistent.</li>
+        <li><strong>v2</strong> — Added a strict 5-minute trend filter. Too aggressive — blocked good trades along with bad ones. Win rate dropped to 42.9%.</li>
+        <li><strong>v3</strong> — Loosened the filter to only block trades during strong downtrends. Better: 47.8% win rate.</li>
+        <li><strong>v4</strong> — Dropped BNB and BTC (worst performers). ETH and SOL only. Win rate: 45.5%.</li>
+        <li><strong>v5</strong> — ETH only. Win rate climbed to 50%, and I discovered something interesting in the data…</li>
+        <li><strong>v6</strong> — Added session-specific trading windows based on the hourly analysis. <em>Win rate: 85.7%.</em></li>
+      </ul>
+
+      <p>The data showed that ETH's winning trades cluster heavily in two specific time windows: <strong>09:00–11:00 UTC</strong> (after the London stock market opens and the initial chaos settles) and <strong>18:00–21:00 UTC</strong> (the late New York session). The 20:00 UTC hour alone was 100% wins over 30 days of data.</p>
+
+      <p>Meanwhile, the 08:00 London open and 14:00 New York open were responsible for nearly all losses — the price whips around too unpredictably during those periods.</p>
+
+      <h2 class="about-title" style="margin-top:32px">Safety Nets</h2>
+
+      <p>Once in a trade, the bot has three automatic protections:</p>
+      <ul>
+        <li><strong>Stop-loss</strong> — limits the maximum loss on any single trade</li>
+        <li><strong>Take-profit</strong> — locks in gains at 3% automatically</li>
+        <li><strong>Breakeven trigger</strong> — once a trade moves 1.2% in the right direction, the stop-loss moves up to the entry price, making it a risk-free trade</li>
+      </ul>
+
+      <p>Everything you see on this dashboard is happening in real time. The bot never sleeps, never panics, and never makes emotional decisions. It's currently running in paper trading mode — simulating trades without real money — while I validate that the backtest results hold up in live market conditions.</p>
+
       <div class="about-signature">— Stef Michalak</div>
     </div>
 
