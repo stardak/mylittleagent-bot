@@ -494,6 +494,34 @@ body {
   margin: 32px 0;
 }
 
+/* ── Charts ─────────────────────────────────────────────────────────────────── */
+.charts-grid {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.chart-container {
+  flex: 1;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.chart-label {
+  padding: 10px 16px 0;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-tertiary);
+}
+
+.tv-chart {
+  height: 300px;
+}
+
 /* ── Responsive ─────────────────────────────────────────────────────────────── */
 @media (max-width: 768px) {
   .app { padding: 0 16px 40px; }
