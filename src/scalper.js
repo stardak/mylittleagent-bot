@@ -61,7 +61,7 @@ export class Scalper extends EventEmitter {
         emaFast: 0, emaSlow: 0, rsi: 50, macdHist: 0,
         volumeRatio: 0, atr: 0, signal: 'WAIT', price: 0,
         candleCount: 0, lastSkipReason: 'Collecting data...',
-        mtfTrendUp: false,
+        mtfBlocked: false,
       };
       this.positions[sym] = null;
       this.lastTradeTime[sym] = 0;
@@ -149,12 +149,17 @@ export class Scalper extends EventEmitter {
           this.candles5m[symbol] = this.candles5m[symbol].slice(-30);
         }
 
-        // Update 5m trend
+        // Update 5m trend data (loose filter)
         const closes5m = this.candles5m[symbol].map(c => c.close);
-        if (closes5m.length >= this.slowPeriod) {
+        if (closes5m.length >= this.slowPeriod + 3) {
           const ema9_5m = this._ema(closes5m, this.fastPeriod);
           const ema21_5m = this._ema(closes5m, this.slowPeriod);
-          this.signals[symbol].mtfTrendUp = ema9_5m > ema21_5m;
+          const ema21_3ago = this._ema(closes5m.slice(0, -3), this.slowPeriod);
+          const price5m = closes5m[closes5m.length - 1];
+
+          // Only block if ALL THREE downtrend conditions are true
+          const strongDowntrend = (ema9_5m < ema21_5m) && (ema21_5m < ema21_3ago) && (price5m < ema9_5m);
+          this.signals[symbol].mtfBlocked = strongDowntrend;
         }
       } catch (err) { /* ignore */ }
     });
@@ -334,8 +339,8 @@ export class Scalper extends EventEmitter {
     const volumeOk = volumeRatio >= this.volumeMultiplier;
     const cooldownOk = (Date.now() - (this.lastTradeTime[symbol] || 0)) > this.cooldownMs;
 
-    // Multi-timeframe check: 5m EMA9 > EMA21
-    const mtfOk = this.signals[symbol].mtfTrendUp;
+    // Multi-timeframe check: only block if strong 5m downtrend
+    const mtfOk = !this.signals[symbol].mtfBlocked;
 
     // Build skip reason log
     const checks = [];
@@ -346,7 +351,7 @@ export class Scalper extends EventEmitter {
     if (!macdCrossedZero) checks.push('MACD no zero cross');
     if (!inTradingWindow) checks.push(`Hour ${utcHour} outside 08-22`);
     if (!cooldownOk) checks.push('Cooldown active');
-    if (!mtfOk) checks.push('5m trend down');
+    if (!mtfOk) checks.push('5m strong downtrend');
 
     if (emaCrossUp && rsiInRange && rsiRising && volumeOk && macdCrossedZero && inTradingWindow && cooldownOk && mtfOk) {
       this.signals[symbol].signal = 'BUY';

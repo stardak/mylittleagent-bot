@@ -149,7 +149,7 @@ function backtestSymbol(candles, symbol, startingBalance) {
   const buffer5m = [];  // 5m candles built from 1m
   let candle5mAccum = [];  // accumulator for building 5m candles
   const maxBuffer = 60;
-  let mtfTrendUp = false;
+  let mtfBlocked = false;
 
   for (let i = 0; i < candles.length; i++) {
     const candle = candles[i];
@@ -169,12 +169,16 @@ function backtestSymbol(candles, symbol, startingBalance) {
       if (buffer5m.length > 30) buffer5m.shift();
       candle5mAccum = [];
 
-      // Update 5m trend
+      // Update 5m trend (loose filter)
       const closes5m = buffer5m.map(c => c.close);
-      if (closes5m.length >= SLOW_PERIOD) {
+      if (closes5m.length >= SLOW_PERIOD + 3) {
         const ema9_5m = ema(closes5m, FAST_PERIOD);
         const ema21_5m = ema(closes5m, SLOW_PERIOD);
-        mtfTrendUp = ema9_5m > ema21_5m;
+        const ema21_3ago = ema(closes5m.slice(0, -3), SLOW_PERIOD);
+        const price5m = closes5m[closes5m.length - 1];
+
+        // Only block if ALL THREE downtrend conditions are true
+        mtfBlocked = (ema9_5m < ema21_5m) && (ema21_5m < ema21_3ago) && (price5m < ema9_5m);
       }
     }
 
@@ -269,7 +273,7 @@ function backtestSymbol(candles, symbol, startingBalance) {
     const volumeOk = volumeRatio >= VOL_MULTIPLIER;
     const cooldownOk = (candle.openTime - lastTradeTime) > COOLDOWN_MS;
 
-    if (emaCrossUp && rsiInRange && rsiRising && volumeOk && macdCrossedZero && inTradingWindow && cooldownOk && mtfTrendUp) {
+    if (emaCrossUp && rsiInRange && rsiRising && volumeOk && macdCrossedZero && inTradingWindow && cooldownOk && !mtfBlocked) {
       // Position sizing: risk 1% of balance / (ATR * 1.5)
       const riskAmount = startingBalance * 0.01;
       const stopDistance = atrVal ? atrVal * 1.5 : candle.close * 0.015;
