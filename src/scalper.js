@@ -29,7 +29,7 @@ export class Scalper extends EventEmitter {
   constructor(options = {}) {
     super();
 
-    this.symbols = options.symbols || ['btcusdt', 'ethusdt', 'solusdt'];
+    this.symbols = options.symbols || ['ethusdt'];
     this.interval = options.interval || '1m';
 
     // Strategy parameters

@@ -260,7 +260,7 @@ async function main() {
   // ── Binance Scalper ─────────────────────────────────────────
 
   const scalper = new Scalper({
-    symbols: ['btcusdt', 'ethusdt', 'solusdt'],
+    symbols: ['ethusdt'],
     interval: '1m',
     stopLossPct: 1.5,
     takeProfitPct: 3.0,

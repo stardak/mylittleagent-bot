@@ -9,7 +9,7 @@
 //   const results = await runBacktest({ startingBalance: 10000 });
 // ══════════════════════════════════════════════════════════════════════════════
 
-const SYMBOLS = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT'];
+const SYMBOLS = ['ETHUSDT'];
 const INTERVAL = '1m';
 const DAYS = 30;
 const KLINE_LIMIT = 1000; // Binance max per request

@@ -77,9 +77,7 @@ export class Dashboard {
     const scalperData = this.scalper ? {
       signals: this.scalper.getSignals(),
       positions: {
-        btcusdt: this.scalper.getPosition('btcusdt'),
         ethusdt: this.scalper.getPosition('ethusdt'),
-        solusdt: this.scalper.getPosition('solusdt'),
       },
     } : null;
 
