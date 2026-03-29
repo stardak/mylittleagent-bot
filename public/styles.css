@@ -126,19 +126,19 @@ body {
 .session-pill-wrap {
   display: flex;
   justify-content: center;
-  padding: 24px 0 8px;
+  padding: 28px 0 0;
 }
 
 .session-pill {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 20px;
-  background: var(--bg-card);
+  gap: 12px;
+  padding: 10px 24px;
+  background: rgba(255, 255, 255, 0.06);
   backdrop-filter: var(--glass-blur);
-  border: 1px solid var(--border);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: var(--radius-pill);
-  box-shadow: var(--shadow-card);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3), var(--inset-highlight);
 }
 
 .session-dot {
@@ -166,10 +166,10 @@ body {
 }
 
 .session-text {
-  font-size: 0.7rem;
-  font-weight: 600;
+  font-size: 0.72rem;
+  font-weight: 500;
   color: var(--text-secondary);
-  letter-spacing: 0.02em;
+  letter-spacing: 0.01em;
 }
 .session-text .badge {
   display: inline-block;
@@ -244,23 +244,23 @@ body {
 /* ── Hero Balance ──────────────────────────────────────────────────────────── */
 .hero-balance {
   text-align: center;
-  padding: 36px 0 36px;
+  padding: 28px 0 40px;
 }
 .hero-label {
-  font-size: 0.6rem;
+  font-size: 0.58rem;
   text-transform: uppercase;
-  letter-spacing: 0.15em;
-  color: var(--text-tertiary);
+  letter-spacing: 0.18em;
+  color: var(--text-muted);
   font-weight: 600;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 .hero-value {
-  font-size: 4rem;
+  font-size: 4.5rem;
   font-weight: 700;
   letter-spacing: -0.04em;
   line-height: 1;
   color: var(--text-primary);
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 .hero-sub {
   font-size: 0.72rem;
