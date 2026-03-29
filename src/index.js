@@ -352,7 +352,7 @@ async function main() {
   });
 
   // Start the scalper
-  scalper.start();
+  await scalper.start();
 
   // ── Main scanning loop ──────────────────────────────────────
 

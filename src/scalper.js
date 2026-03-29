@@ -69,12 +69,70 @@ export class Scalper extends EventEmitter {
   }
 
   // ── Connect to Binance kline WebSocket ──────────────────────────────────
-  start() {
+  async start() {
+    // Pre-seed candles from Binance REST API so indicators are ready instantly
+    for (const symbol of this.symbols) {
+      await this._preseedCandles(symbol);
+    }
+
     for (const symbol of this.symbols) {
       this._connectKline(symbol);
       this._connectKline5m(symbol);
     }
     console.log(`📈 Scalper v2 started: ${this.symbols.join(', ').toUpperCase()} @ ${this.interval} + 5m MTF`);
+  }
+
+  // ── Pre-seed historical candles from REST API ───────────────────────────
+  async _preseedCandles(symbol) {
+    try {
+      // Fetch 50 x 1m candles
+      const url1m = `https://api.binance.com/api/v3/klines?symbol=${symbol.toUpperCase()}&interval=1m&limit=50`;
+      const res1m = await fetch(url1m);
+      const data1m = await res1m.json();
+
+      if (Array.isArray(data1m)) {
+        this.candles[symbol] = data1m.map(k => ({
+          close: parseFloat(k[4]),
+          high: parseFloat(k[2]),
+          low: parseFloat(k[3]),
+          volume: parseFloat(k[5]),
+        }));
+        // Run initial evaluation
+        this._evaluate(symbol);
+        console.log(`📊 ${symbol.toUpperCase()} pre-seeded: ${this.candles[symbol].length} x 1m candles — indicators ready`);
+      }
+
+      // Fetch 30 x 5m candles for MTF
+      const url5m = `https://api.binance.com/api/v3/klines?symbol=${symbol.toUpperCase()}&interval=5m&limit=30`;
+      const res5m = await fetch(url5m);
+      const data5m = await res5m.json();
+
+      if (Array.isArray(data5m)) {
+        this.candles5m[symbol] = data5m.map(k => ({
+          close: parseFloat(k[4]),
+          high: parseFloat(k[2]),
+          low: parseFloat(k[3]),
+          volume: parseFloat(k[5]),
+        }));
+
+        // Compute initial 5m trend
+        const closes5m = this.candles5m[symbol].map(c => c.close);
+        if (closes5m.length >= this.slowPeriod + 3) {
+          const ema9_5m = this._ema(closes5m, this.fastPeriod);
+          const ema21_5m = this._ema(closes5m, this.slowPeriod);
+          const ema21_3ago = this._ema(closes5m.slice(0, -3), this.slowPeriod);
+          const price5m = closes5m[closes5m.length - 1];
+
+          const isBelow9 = price5m < ema9_5m;
+          const isBelow21 = price5m < ema21_5m;
+          const ema21Falling = ema21_5m < ema21_3ago;
+          this.signals[symbol].mtfBlocked = isBelow9 && isBelow21 && ema21Falling;
+        }
+        console.log(`📊 ${symbol.toUpperCase()} pre-seeded: ${this.candles5m[symbol].length} x 5m candles — MTF ready`);
+      }
+    } catch (err) {
+      console.error(`⚠️ ${symbol.toUpperCase()} pre-seed failed: ${err.message} — falling back to live warmup`);
+    }
   }
 
   _connectKline(symbol) {
