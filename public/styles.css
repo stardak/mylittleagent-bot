@@ -262,8 +262,6 @@ body {
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: 18px 20px;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
   transition: var(--transition);
 }
 
@@ -323,7 +321,6 @@ body {
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  backdrop-filter: blur(8px);
   transition: var(--transition);
 }
 
@@ -400,8 +397,6 @@ body {
   border-radius: var(--radius-lg);
   overflow: hidden;
   margin-bottom: 24px;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
 }
 
 .trade-item {
@@ -547,10 +542,6 @@ body {
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   font-size: 0.78rem;
-  font-family: 'SF Mono', 'Fira Code', monospace;
-  color: var(--text-secondary);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
   overflow: hidden;
   white-space: nowrap;
 }

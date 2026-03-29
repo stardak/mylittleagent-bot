@@ -129,11 +129,6 @@
         <div class="stat-value neutral" id="solSignal">WAIT</div>
         <div class="stat-sub" id="solIndicators">Collecting candles...</div>
       </div>
-      <div class="stat-card">
-        <div class="stat-label">BNB Signal</div>
-        <div class="stat-value neutral" id="bnbSignal">WAIT</div>
-        <div class="stat-sub" id="bnbIndicators">Collecting candles...</div>
-      </div>
     </div>
 
     <!-- Open Positions -->
@@ -357,14 +352,14 @@
         updateSignalCard('btc', scalper.signals.btcusdt, scalper.positions?.btcusdt);
         updateSignalCard('eth', scalper.signals.ethusdt, scalper.positions?.ethusdt);
         updateSignalCard('sol', scalper.signals.solusdt, scalper.positions?.solusdt);
-        updateSignalCard('bnb', scalper.signals.bnbusdt, scalper.positions?.bnbusdt);
+
 
         const posDiv = $('scalperPositions'), posList = $('positionsList');
         const allPos = [
           ['BTC', scalper.positions?.btcusdt, scalper.signals.btcusdt],
           ['ETH', scalper.positions?.ethusdt, scalper.signals.ethusdt],
           ['SOL', scalper.positions?.solusdt, scalper.signals.solusdt],
-          ['BNB', scalper.positions?.bnbusdt, scalper.signals.bnbusdt],
+
         ];
         const hasPos = allPos.some(([,p]) => p);
         if (posDiv) posDiv.style.display = hasPos ? 'block' : 'none';

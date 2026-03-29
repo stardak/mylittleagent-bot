@@ -29,7 +29,7 @@ export class Scalper extends EventEmitter {
   constructor(options = {}) {
     super();
 
-    this.symbols = options.symbols || ['btcusdt', 'ethusdt'];
+    this.symbols = options.symbols || ['btcusdt', 'ethusdt', 'solusdt'];
     this.interval = options.interval || '1m';
 
     // Strategy parameters
@@ -42,12 +42,13 @@ export class Scalper extends EventEmitter {
     this.atrPeriod = 14;
     this.volumeAvgPeriod = 20;
     this.volumeMultiplier = 1.5;
-    this.takeProfitPct = 2.5;
+    this.takeProfitPct = 3.0;
     this.breakevenTriggerPct = 1.2;
     this.cooldownMs = 4 * 60 * 60 * 1000;  // 4 hours between trades per coin
 
     // State per symbol
     this.candles = {};       // { symbol: [{ close, high, low, volume }] }
+    this.candles5m = {};     // { symbol: [{ close, high, low, volume }] } — 5m for MTF
     this.signals = {};       // { symbol: { emaFast, emaSlow, rsi, macdHist, signal, ... } }
     this.positions = {};     // { symbol: { side, entryPrice, quantity, timestamp, breakevenStop } }
     this.lastTradeTime = {}; // { symbol: timestamp }
@@ -55,10 +56,12 @@ export class Scalper extends EventEmitter {
 
     for (const sym of this.symbols) {
       this.candles[sym] = [];
+      this.candles5m[sym] = [];
       this.signals[sym] = {
         emaFast: 0, emaSlow: 0, rsi: 50, macdHist: 0,
         volumeRatio: 0, atr: 0, signal: 'WAIT', price: 0,
         candleCount: 0, lastSkipReason: 'Collecting data...',
+        mtfTrendUp: false,
       };
       this.positions[sym] = null;
       this.lastTradeTime[sym] = 0;
@@ -69,8 +72,9 @@ export class Scalper extends EventEmitter {
   start() {
     for (const symbol of this.symbols) {
       this._connectKline(symbol);
+      this._connectKline5m(symbol);
     }
-    console.log(`📈 Scalper v2 started: ${this.symbols.join(', ').toUpperCase()} @ ${this.interval}`);
+    console.log(`📈 Scalper v2 started: ${this.symbols.join(', ').toUpperCase()} @ ${this.interval} + 5m MTF`);
   }
 
   _connectKline(symbol) {
@@ -122,6 +126,43 @@ export class Scalper extends EventEmitter {
     });
 
     this.websockets[symbol] = ws;
+  }
+
+  // ── 5-minute Multi-Timeframe Feed ────────────────────────────────────────
+  _connectKline5m(symbol) {
+    const url = `wss://stream.binance.com:9443/ws/${symbol}@kline_5m`;
+    const ws = new WebSocket(url);
+
+    ws.on('message', (data) => {
+      try {
+        const msg = JSON.parse(data);
+        const kline = msg.k;
+        if (!kline || !kline.x) return; // Only process closed 5m candles
+
+        const close = parseFloat(kline.c);
+        const high = parseFloat(kline.h);
+        const low = parseFloat(kline.l);
+        const volume = parseFloat(kline.v);
+
+        this.candles5m[symbol].push({ close, high, low, volume });
+        if (this.candles5m[symbol].length > 30) {
+          this.candles5m[symbol] = this.candles5m[symbol].slice(-30);
+        }
+
+        // Update 5m trend
+        const closes5m = this.candles5m[symbol].map(c => c.close);
+        if (closes5m.length >= this.slowPeriod) {
+          const ema9_5m = this._ema(closes5m, this.fastPeriod);
+          const ema21_5m = this._ema(closes5m, this.slowPeriod);
+          this.signals[symbol].mtfTrendUp = ema9_5m > ema21_5m;
+        }
+      } catch (err) { /* ignore */ }
+    });
+
+    ws.on('error', () => {});
+    ws.on('close', () => {
+      setTimeout(() => this._connectKline5m(symbol), 3000);
+    });
   }
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -293,6 +334,9 @@ export class Scalper extends EventEmitter {
     const volumeOk = volumeRatio >= this.volumeMultiplier;
     const cooldownOk = (Date.now() - (this.lastTradeTime[symbol] || 0)) > this.cooldownMs;
 
+    // Multi-timeframe check: 5m EMA9 > EMA21
+    const mtfOk = this.signals[symbol].mtfTrendUp;
+
     // Build skip reason log
     const checks = [];
     if (!emaCrossUp) checks.push('EMA no cross');
@@ -302,8 +346,9 @@ export class Scalper extends EventEmitter {
     if (!macdCrossedZero) checks.push('MACD no zero cross');
     if (!inTradingWindow) checks.push(`Hour ${utcHour} outside 08-22`);
     if (!cooldownOk) checks.push('Cooldown active');
+    if (!mtfOk) checks.push('5m trend down');
 
-    if (emaCrossUp && rsiInRange && rsiRising && volumeOk && macdCrossedZero && inTradingWindow && cooldownOk) {
+    if (emaCrossUp && rsiInRange && rsiRising && volumeOk && macdCrossedZero && inTradingWindow && cooldownOk && mtfOk) {
       this.signals[symbol].signal = 'BUY';
       this.signals[symbol].lastSkipReason = '';
 

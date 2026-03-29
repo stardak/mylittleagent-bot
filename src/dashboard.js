@@ -80,7 +80,6 @@ export class Dashboard {
         btcusdt: this.scalper.getPosition('btcusdt'),
         ethusdt: this.scalper.getPosition('ethusdt'),
         solusdt: this.scalper.getPosition('solusdt'),
-        bnbusdt: this.scalper.getPosition('bnbusdt'),
       },
     } : null;
 

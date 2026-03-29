@@ -260,10 +260,10 @@ async function main() {
   // ── Binance Scalper ─────────────────────────────────────────
 
   const scalper = new Scalper({
-    symbols: ['btcusdt', 'ethusdt', 'solusdt', 'bnbusdt'],
+    symbols: ['btcusdt', 'ethusdt', 'solusdt'],
     interval: '1m',
     stopLossPct: 1.5,
-    takeProfitPct: 2.5,
+    takeProfitPct: 3.0,
     cooldownMs: 60_000,
   });
 
@@ -285,7 +285,7 @@ async function main() {
   dashboard.activityLogger = logger;
 
   // Startup entry
-  logger.info(`Bot started in ${IS_LIVE ? 'LIVE' : 'PAPER'} mode. Watching ${scalper.symbols.map(s => s.replace('usdt','').toUpperCase()).join(', ')}. First signals in ~38 minutes after indicator warmup.`);
+  logger.info(`Bot started in ${IS_LIVE ? 'LIVE' : 'PAPER'} mode. Watching ${scalper.symbols.map(s => s.replace('usdt','').toUpperCase()).join(', ')} with 5m MTF confirmation. First signals in ~38 minutes after indicator warmup.`);
 
   // Forward candle evaluations to dashboard live ticker
   scalper.on('candle-eval', (evalData) => {

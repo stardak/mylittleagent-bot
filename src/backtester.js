@@ -9,7 +9,7 @@
 //   const results = await runBacktest({ startingBalance: 10000 });
 // ══════════════════════════════════════════════════════════════════════════════
 
-const SYMBOLS = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT'];
+const SYMBOLS = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT'];
 const INTERVAL = '1m';
 const DAYS = 30;
 const KLINE_LIMIT = 1000; // Binance max per request
@@ -24,7 +24,7 @@ const MACD_SIGNAL = 9;
 const ATR_PERIOD = 14;
 const VOL_AVG_PERIOD = 20;
 const VOL_MULTIPLIER = 1.5;
-const TAKE_PROFIT_PCT = 2.5;
+const TAKE_PROFIT_PCT = 3.0;
 const BREAKEVEN_TRIGGER_PCT = 1.2;
 const COOLDOWN_MS = 4 * 60 * 60 * 1000;
 const MIN_CANDLES = MACD_SLOW + MACD_SIGNAL + 3;
@@ -146,12 +146,37 @@ function backtestSymbol(candles, symbol, startingBalance) {
   let position = null;
   let lastTradeTime = 0;
   const buffer = [];
+  const buffer5m = [];  // 5m candles built from 1m
+  let candle5mAccum = [];  // accumulator for building 5m candles
   const maxBuffer = 60;
+  let mtfTrendUp = false;
 
   for (let i = 0; i < candles.length; i++) {
     const candle = candles[i];
     buffer.push(candle);
     if (buffer.length > maxBuffer) buffer.shift();
+
+    // Build 5m candles from 1m candles
+    candle5mAccum.push(candle);
+    if (candle5mAccum.length >= 5) {
+      const c5m = {
+        close: candle5mAccum[candle5mAccum.length - 1].close,
+        high: Math.max(...candle5mAccum.map(c => c.high)),
+        low: Math.min(...candle5mAccum.map(c => c.low)),
+        volume: candle5mAccum.reduce((s, c) => s + c.volume, 0),
+      };
+      buffer5m.push(c5m);
+      if (buffer5m.length > 30) buffer5m.shift();
+      candle5mAccum = [];
+
+      // Update 5m trend
+      const closes5m = buffer5m.map(c => c.close);
+      if (closes5m.length >= SLOW_PERIOD) {
+        const ema9_5m = ema(closes5m, FAST_PERIOD);
+        const ema21_5m = ema(closes5m, SLOW_PERIOD);
+        mtfTrendUp = ema9_5m > ema21_5m;
+      }
+    }
 
     const closes = buffer.map(c => c.close);
     const candleCount = closes.length;
@@ -244,7 +269,7 @@ function backtestSymbol(candles, symbol, startingBalance) {
     const volumeOk = volumeRatio >= VOL_MULTIPLIER;
     const cooldownOk = (candle.openTime - lastTradeTime) > COOLDOWN_MS;
 
-    if (emaCrossUp && rsiInRange && rsiRising && volumeOk && macdCrossedZero && inTradingWindow && cooldownOk) {
+    if (emaCrossUp && rsiInRange && rsiRising && volumeOk && macdCrossedZero && inTradingWindow && cooldownOk && mtfTrendUp) {
       // Position sizing: risk 1% of balance / (ATR * 1.5)
       const riskAmount = startingBalance * 0.01;
       const stopDistance = atrVal ? atrVal * 1.5 : candle.close * 0.015;
