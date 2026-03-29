@@ -713,3 +713,52 @@ body {
   overflow-y: auto;
 }
 
+/* ── About Section ─────────────────────────────────────────────────────────── */
+.about-section {
+  padding: 24px 0 40px;
+}
+
+.about-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 16px;
+  letter-spacing: -0.02em;
+}
+
+.about-section p {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.8;
+  margin-bottom: 12px;
+}
+
+.about-section ul {
+  margin: 8px 0 16px 20px;
+  padding: 0;
+}
+
+.about-section li {
+  font-size: 0.83rem;
+  color: var(--text-secondary);
+  line-height: 1.7;
+  margin-bottom: 6px;
+}
+
+.about-section em {
+  color: var(--text-primary);
+  font-style: italic;
+}
+
+.about-section strong {
+  color: var(--accent-light);
+}
+
+.about-signature {
+  margin-top: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  font-style: italic;
+}
+
