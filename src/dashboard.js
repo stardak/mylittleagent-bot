@@ -109,6 +109,10 @@ export class Dashboard {
     });
 
     this.app.post('/api/toggle', (req, res) => {
+      const pin = process.env.DASHBOARD_PIN;
+      if (pin && req.body.pin !== pin) {
+        return res.status(401).json({ success: false, message: 'Wrong PIN' });
+      }
       const isPaused = this.risk.togglePause();
       this.pushUpdate();
       res.json({
@@ -128,7 +132,12 @@ export class Dashboard {
         entries.reverse().forEach(e => socket.emit('activity', e));
       }
 
-      socket.on('toggle', () => {
+      socket.on('toggle', (data) => {
+        const pin = process.env.DASHBOARD_PIN;
+        if (pin && (!data || data.pin !== pin)) {
+          socket.emit('pin-error', { message: 'Wrong PIN' });
+          return;
+        }
         this.risk.togglePause();
         this.pushUpdate();
       });

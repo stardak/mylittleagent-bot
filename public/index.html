@@ -197,7 +197,24 @@
       marketCount: $('marketCount'), marketCards: $('marketCards'),
     };
 
-    els.tradingToggle.addEventListener('change', () => socket.emit('toggle'));
+    let cachedPin = null;
+    els.tradingToggle.addEventListener('change', (e) => {
+      e.preventDefault();
+      if (!cachedPin) {
+        cachedPin = prompt('Enter your dashboard PIN:');
+        if (!cachedPin) {
+          els.tradingToggle.checked = !els.tradingToggle.checked;
+          return;
+        }
+      }
+      socket.emit('toggle', { pin: cachedPin });
+    });
+
+    socket.on('pin-error', () => {
+      cachedPin = null;
+      els.tradingToggle.checked = !els.tradingToggle.checked;
+      alert('Wrong PIN. Try again.');
+    });
 
     socket.on('update', (data) => updateDashboard(data));
     socket.on('activity', (entry) => addActivity(entry));
