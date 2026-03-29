@@ -300,7 +300,7 @@ export class Scalper extends EventEmitter {
     const atr = this._atr(candles, this.atrPeriod);
 
     const utcHour = new Date().getUTCHours();
-    const inTradingWindow = utcHour >= 8 && utcHour < 22;
+    const inTradingWindow = (utcHour >= 9 && utcHour < 11) || (utcHour >= 18 && utcHour < 21);
 
     // Update signal state
     this.signals[symbol] = {
@@ -349,7 +349,7 @@ export class Scalper extends EventEmitter {
     if (!rsiRising) checks.push('RSI falling');
     if (!volumeOk) checks.push(`Vol ${volumeRatio.toFixed(1)}x < 1.5x`);
     if (!macdCrossedZero) checks.push('MACD no zero cross');
-    if (!inTradingWindow) checks.push(`Hour ${utcHour} outside 08-22`);
+    if (!inTradingWindow) checks.push(`Hour ${utcHour} outside 09-11/18-21`);
     if (!cooldownOk) checks.push('Cooldown active');
     if (!mtfOk) checks.push('5m strong downtrend');
 

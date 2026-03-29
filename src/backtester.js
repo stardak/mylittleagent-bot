@@ -215,7 +215,7 @@ function backtestSymbol(candles, symbol, startingBalance) {
     const atrVal = atr(buffer, ATR_PERIOD);
 
     const utcHour = new Date(candle.openTime).getUTCHours();
-    const inTradingWindow = utcHour >= 8 && utcHour < 22;
+    const inTradingWindow = (utcHour >= 9 && utcHour < 11) || (utcHour >= 18 && utcHour < 21);
 
     // ── Check exits if in position ──
     if (position) {
