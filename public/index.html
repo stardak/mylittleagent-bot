@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="MyLittleAgent.co — AI-powered crypto trading dashboard">
+  <title>MyLittleAgent.co</title>
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='28' font-size='28'>🤖</text></svg>">
+</head>
+<body>
+  <div class="app">
+
+    <!-- ── Header ──────────────────────────────────────────────── -->
+    <header class="header">
+      <div class="header-left">
+        <div class="logo">
+          <svg width="24" height="24" viewBox="0 0 100 100" fill="none"><path d="M50 8L8 78h84L50 8zm0 18l28 48H22l28-48z" fill="#7c5cfc"/></svg>
+          MyLittleAgent
+        </div>
+        <span id="modeBadge" class="mode-badge paper">Paper</span>
+      </div>
+      <div class="header-right">
+        <div class="connection" id="binanceStatus">
+          <span class="connection-dot disconnected" id="connectionDot"></span>
+          <span id="connectionText">Connecting…</span>
+        </div>
+        <div class="toggle-container">
+          <span class="toggle-label" id="toggleLabel">OFF</span>
+          <label class="toggle">
+            <input type="checkbox" id="tradingToggle">
+            <span class="toggle-track"></span>
+            <span class="toggle-thumb"></span>
+          </label>
+        </div>
+      </div>
+    </header>
+
+    <!-- ── Warning Banners ─────────────────────────────────────── -->
+    <div id="killBanner" class="warning-banner danger">
+      🚨 Kill switch activated — drawdown exceeded 40%. Manual restart required.
+    </div>
+    <div id="haltBanner" class="warning-banner halted">
+      🛑 Daily loss limit hit. Resumes in <span id="haltTimer">—</span>.
+    </div>
+    <div id="drawdownWarning" class="warning-banner caution">
+      ⚠️ Drawdown approaching kill switch (<span id="drawdownPct">0</span>%).
+    </div>
+    <div id="dailyLossWarning" class="warning-banner caution">
+      ⚠️ Daily losses approaching halt limit (<span id="dailyLossPct">0</span>%).
+    </div>
+
+    <!-- ── Portfolio Stats ─────────────────────────────────────── -->
+    <div class="stats-grid">
+      <div class="stat-card portfolio">
+        <div class="stat-label">Portfolio</div>
+        <div class="stat-value neutral" id="portfolioValue">$0.00</div>
+        <div class="stat-sub" id="portfolioStart">Started at $0.00</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Today's P&L</div>
+        <div class="stat-value neutral" id="todayPnl">$0.00</div>
+        <div class="stat-sub" id="todayTrades">0 trades today</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Win Rate</div>
+        <div class="stat-value neutral" id="winRate">0.0%</div>
+        <div class="stat-sub" id="totalTrades">0 total</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Open Positions</div>
+        <div class="stat-value neutral" id="openPositions">0</div>
+        <div class="stat-sub" id="maxPositions">Max: 5</div>
+      </div>
+    </div>
+
+    <!-- ── Live Prices ─────────────────────────────────────────── -->
+    <div class="prices-bar">
+      <div class="price-chip">
+        <span class="price-symbol">BTC</span>
+        <span class="price-value" id="btcPrice">—</span>
+        <span class="price-momentum" id="btcMomentum">0.00%</span>
+      </div>
+      <div class="price-chip">
+        <span class="price-symbol">ETH</span>
+        <span class="price-value" id="ethPrice">—</span>
+        <span class="price-momentum" id="ethMomentum">0.00%</span>
+      </div>
+    </div>
+
+    <!-- ── Live Ticker ─────────────────────────────────────────── -->
+    <div id="liveTicker" class="live-ticker">
+      <span class="ticker-dot"></span>
+      <span id="tickerText">Starting up…</span>
+      <span id="tickerTime" class="ticker-time"></span>
+    </div>
+
+    <!-- ── Scalper Section ─────────────────────────────────────── -->
+    <div class="section-title">
+      📈 Scalper
+      <span class="mode-badge paper" id="scalperMode" style="font-size:0.65rem">Paper</span>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Balance</div>
+        <div class="stat-value neutral" id="scalperBalance">$99.00</div>
+        <div class="stat-sub" id="scalperPnl">P&L: $0.00</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Win Rate</div>
+        <div class="stat-value neutral" id="scalperWinRate">0.0%</div>
+        <div class="stat-sub" id="scalperTradeCount">0 trades</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">BTC Signal</div>
+        <div class="stat-value neutral" id="btcSignal">WAIT</div>
+        <div class="stat-sub" id="btcIndicators">Collecting candles...</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">ETH Signal</div>
+        <div class="stat-value neutral" id="ethSignal">WAIT</div>
+        <div class="stat-sub" id="ethIndicators">Collecting candles...</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">SOL Signal</div>
+        <div class="stat-value neutral" id="solSignal">WAIT</div>
+        <div class="stat-sub" id="solIndicators">Collecting candles...</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">BNB Signal</div>
+        <div class="stat-value neutral" id="bnbSignal">WAIT</div>
+        <div class="stat-sub" id="bnbIndicators">Collecting candles...</div>
+      </div>
+    </div>
+
+    <!-- Open Positions -->
+    <div id="scalperPositions" style="display:none">
+      <div class="section-title">Open Positions</div>
+      <div id="positionsList" class="trade-feed"></div>
+    </div>
+
+    <!-- Scalper Trade History -->
+    <div class="section-title">Scalper Trades <span class="count" id="scalperTradesCount">0</span></div>
+    <div class="trade-feed" id="scalperTradeFeed">
+      <div class="empty-state">
+        <div class="empty-state-icon">📈</div>
+        <div class="empty-state-text">
+          Warming up indicators...<br>First signals in ~38 minutes.
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Activity Log ────────────────────────────────────────── -->
+    <div class="divider"></div>
+    <div class="section-title">📋 Activity Log <span class="count" id="activityCount">0</span></div>
+    <div class="trade-feed" id="activityLog">
+      <div class="empty-state">
+        <div class="empty-state-icon">📋</div>
+        <div class="empty-state-text">No activity yet. Entries will appear as the bot evaluates signals.</div>
+      </div>
+    </div>
+
+    <!-- ── Polymarket Markets ──────────────────────────────────── -->
+    <div class="divider"></div>
+    <div class="section-title">🔮 Polymarket Markets <span class="count" id="marketCount">0</span></div>
+    <div id="marketCards">
+      <div class="trade-feed">
+        <div class="empty-state">
+          <div class="empty-state-icon">🔮</div>
+          <div class="empty-state-text">Scanning Polymarket for politics, macro, AI, and crypto markets…</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── Socket.IO + Logic ────────────────────────────────────── -->
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    const $ = (id) => document.getElementById(id);
+
+    const els = {
+      modeBadge: $('modeBadge'), connectionDot: $('connectionDot'),
+      connectionText: $('connectionText'), toggleLabel: $('toggleLabel'),
+      tradingToggle: $('tradingToggle'), killBanner: $('killBanner'),
+      haltBanner: $('haltBanner'), haltTimer: $('haltTimer'),
+      drawdownWarning: $('drawdownWarning'), drawdownPct: $('drawdownPct'),
+      dailyLossWarning: $('dailyLossWarning'), dailyLossPct: $('dailyLossPct'),
+      portfolioValue: $('portfolioValue'), portfolioStart: $('portfolioStart'),
+      todayPnl: $('todayPnl'), todayTrades: $('todayTrades'),
+      winRate: $('winRate'), totalTrades: $('totalTrades'),
+      openPositions: $('openPositions'), maxPositions: $('maxPositions'),
+      btcPrice: $('btcPrice'), btcMomentum: $('btcMomentum'),
+      ethPrice: $('ethPrice'), ethMomentum: $('ethMomentum'),
+      marketCount: $('marketCount'), marketCards: $('marketCards'),
+    };
+
+    els.tradingToggle.addEventListener('change', () => socket.emit('toggle'));
+
+    socket.on('update', (data) => updateDashboard(data));
+    socket.on('activity', (entry) => addActivity(entry));
+    socket.on('disconnect', () => {
+      els.connectionDot.className = 'connection-dot disconnected';
+      els.connectionText.textContent = 'Disconnected';
+    });
+
+    function updateDashboard(data) {
+      const { status, trades, binanceStatus, prices, isLive } = data;
+
+      // Mode
+      els.modeBadge.textContent = isLive ? 'Live' : 'Paper';
+      els.modeBadge.className = 'mode-badge ' + (isLive ? 'live' : 'paper');
+
+      // Connection
+      if (binanceStatus && binanceStatus.allConnected) {
+        els.connectionDot.className = 'connection-dot connected';
+        els.connectionText.textContent = 'Connected';
+      } else {
+        els.connectionDot.className = 'connection-dot disconnected';
+        els.connectionText.textContent = 'Disconnected';
+      }
+
+      // Toggle
+      els.tradingToggle.checked = !status.isPaused;
+      els.toggleLabel.textContent = status.isPaused ? 'OFF' : 'ON';
+
+      // Banners
+      els.killBanner.classList.toggle('visible', status.isKilled);
+      els.haltBanner.classList.toggle('visible', status.isHalted);
+      if (status.isHalted && status.haltedUntil) {
+        const r = new Date(status.haltedUntil) - new Date();
+        els.haltTimer.textContent = `${Math.floor(r/3600000)}h ${Math.floor((r%3600000)/60000)}m`;
+      }
+      els.drawdownWarning.classList.toggle('visible', status.drawdownWarning && !status.isKilled);
+      els.drawdownPct.textContent = status.totalDrawdownPct;
+      els.dailyLossWarning.classList.toggle('visible', status.dailyLossWarning && !status.isHalted);
+      els.dailyLossPct.textContent = status.dailyLossPct;
+
+      // Stats
+      els.portfolioValue.textContent = fmtUsd(status.portfolio);
+      els.portfolioValue.className = 'stat-value ' + pnlClass(status.portfolio - status.startingPortfolio);
+      els.portfolioStart.textContent = `Started at ${fmtUsd(status.startingPortfolio)}`;
+      els.todayPnl.textContent = (status.todayPnl >= 0 ? '+' : '') + fmtUsd(status.todayPnl);
+      els.todayPnl.className = 'stat-value ' + pnlClass(status.todayPnl);
+      els.todayTrades.textContent = `${status.todayTradeCount} trade${status.todayTradeCount !== 1 ? 's' : ''} today`;
+      els.winRate.textContent = status.winRate + '%';
+      els.totalTrades.textContent = `${status.totalTrades} total (${status.totalWins}W)`;
+      els.openPositions.textContent = status.openPositions;
+
+      // Prices
+      if (prices.btcusdt && prices.btcusdt.price) {
+        els.btcPrice.textContent = fmtUsd(prices.btcusdt.price);
+        setMomentum(els.btcMomentum, prices.btcusdt.momentum);
+      }
+      if (prices.ethusdt && prices.ethusdt.price) {
+        els.ethPrice.textContent = fmtUsd(prices.ethusdt.price);
+        setMomentum(els.ethMomentum, prices.ethusdt.momentum);
+      }
+
+      // Polymarket market cards
+      if (data.marketCards) {
+        renderMarketCards(data.marketCards);
+      }
+
+      // Scalper
+      updateScalper(data);
+    }
+
+    // ── Scalper UI ──────────────────────────────────────────────
+    function updateScalper(data) {
+      const { scalper, binancePortfolio, isLive } = data;
+      const sm = $('scalperMode');
+      if (sm) { sm.textContent = isLive ? 'Live' : 'Paper'; sm.className = 'mode-badge ' + (isLive ? 'live' : 'paper'); }
+
+      if (binancePortfolio) {
+        const b = $('scalperBalance'), p = $('scalperPnl'), w = $('scalperWinRate'), t = $('scalperTradeCount');
+        if (b) { b.textContent = fmtUsd(binancePortfolio.balance); b.className = 'stat-value ' + pnlClass(binancePortfolio.totalPnl); }
+        if (p) { const s = binancePortfolio.totalPnl >= 0 ? '+' : ''; p.textContent = `P&L: ${s}${fmtUsd(binancePortfolio.totalPnl)} (${s}${binancePortfolio.totalPnlPct.toFixed(1)}%)`; }
+        if (w) { w.textContent = binancePortfolio.winRate.toFixed(1) + '%'; w.className = 'stat-value ' + (binancePortfolio.winRate >= 50 ? 'positive' : binancePortfolio.totalTrades > 0 ? 'negative' : 'neutral'); }
+        if (t) t.textContent = `${binancePortfolio.totalTrades} (${binancePortfolio.wins}W / ${binancePortfolio.losses}L)`;
+
+        const stc = $('scalperTradesCount'), stf = $('scalperTradeFeed');
+        if (stc) stc.textContent = binancePortfolio.recentTrades.length;
+        if (stf && binancePortfolio.recentTrades.length > 0) {
+          stf.innerHTML = binancePortfolio.recentTrades.map(t => {
+            const icon = t.type === 'BUY' ? '📈' : t.pnl >= 0 ? '✅' : '❌';
+            const cls = t.pnl > 0 ? 'win' : t.pnl < 0 ? 'loss' : 'pending';
+            const pnlStr = t.pnl != null
+              ? `<span class="trade-amount ${pnlClass(t.pnl)}">${t.pnl >= 0 ? '+' : ''}${fmtUsd(t.pnl)}</span>`
+              : `<span class="trade-amount">${fmtUsd(t.cost || 0)}</span>`;
+            return `<div class="trade-item">
+              <div class="trade-status-icon ${cls}">${icon}</div>
+              <div class="trade-info">
+                <div class="trade-symbol">${t.type} ${t.symbol} · ${t.mode}</div>
+                <div class="trade-detail">@ $${Number(t.price).toLocaleString('en-US', {minimumFractionDigits: 2})}</div>
+              </div>${pnlStr}
+              <div class="trade-time">${fmtTime(t.timestamp)}</div>
+            </div>`;
+          }).join('');
+        }
+      }
+
+      if (scalper && scalper.signals) {
+        updateSignalCard('btc', scalper.signals.btcusdt, scalper.positions?.btcusdt);
+        updateSignalCard('eth', scalper.signals.ethusdt, scalper.positions?.ethusdt);
+        updateSignalCard('sol', scalper.signals.solusdt, scalper.positions?.solusdt);
+        updateSignalCard('bnb', scalper.signals.bnbusdt, scalper.positions?.bnbusdt);
+
+        const posDiv = $('scalperPositions'), posList = $('positionsList');
+        const allPos = [
+          ['BTC', scalper.positions?.btcusdt, scalper.signals.btcusdt],
+          ['ETH', scalper.positions?.ethusdt, scalper.signals.ethusdt],
+          ['SOL', scalper.positions?.solusdt, scalper.signals.solusdt],
+          ['BNB', scalper.positions?.bnbusdt, scalper.signals.bnbusdt],
+        ];
+        const hasPos = allPos.some(([,p]) => p);
+        if (posDiv) posDiv.style.display = hasPos ? 'block' : 'none';
+        if (posList && hasPos) {
+          posList.innerHTML = allPos.map(([sym, pos, sig]) => {
+            if (!pos) return '';
+            const cp = sig?.price || pos.entryPrice;
+            const pnl = ((cp - pos.entryPrice) / pos.entryPrice) * 100;
+            return `<div class="trade-item">
+              <div class="trade-status-icon pending">📊</div>
+              <div class="trade-info">
+                <div class="trade-symbol">LONG ${sym}USDT</div>
+                <div class="trade-detail">Entry $${pos.entryPrice.toFixed(2)} · SL $${pos.dynamicStop?.toFixed(2) || '—'} · TP $${pos.takeProfit?.toFixed(2) || '—'}${pos.breakevenStop ? ' · 🛡️ BE' : ''}</div>
+              </div>
+              <span class="trade-amount ${pnl >= 0 ? 'positive' : 'negative'}">${pnl >= 0 ? '+' : ''}${pnl.toFixed(2)}%</span>
+            </div>`;
+          }).join('');
+        }
+      }
+    }
+
+    function updateSignalCard(prefix, signal, position) {
+      const sigEl = $(prefix + 'Signal'), indEl = $(prefix + 'Indicators');
+      if (!sigEl || !indEl) return;
+
+      if (!signal || signal.signal === 'WAIT') {
+        const pct = signal ? Math.min(100, Math.round((signal.candleCount / 38) * 100)) : 0;
+        const count = signal?.candleCount || 0;
+        sigEl.textContent = 'WAIT';
+        sigEl.className = 'stat-value neutral';
+        // Show progress bar + any partial indicator data
+        let info = `<div style="background:var(--bg-elevated);border-radius:4px;height:4px;margin:6px 0;overflow:hidden"><div style="background:var(--accent);height:100%;width:${pct}%;transition:width 0.5s"></div></div>`;
+        if (signal?.price) info += `$${signal.price.toLocaleString('en-US',{minimumFractionDigits:2})} · `;
+        if (signal?.rsi) info += `RSI:${Math.round(signal.rsi)} · `;
+        if (signal?.volumeRatio) info += `Vol:${signal.volumeRatio.toFixed(1)}x · `;
+        info += `${count}/38 candles`;
+        indEl.innerHTML = info;
+        return;
+      }
+
+      const sig = position ? 'IN TRADE' : signal.signal;
+      sigEl.textContent = sig;
+      sigEl.className = 'stat-value ' + (sig === 'BUY' ? 'positive' : sig === 'IN TRADE' ? 'positive' : 'neutral');
+      if (signal.lastSkipReason) {
+        indEl.textContent = signal.lastSkipReason;
+      } else {
+        indEl.textContent = `RSI:${signal.rsi?.toFixed(0)} · MACD:${signal.macdHist?.toFixed(3)} · Vol:${signal.volumeRatio?.toFixed(1)}x`;
+      }
+    }
+
+    // ── Live Ticker ────────────────────────────────────────────
+    socket.on('candle-eval', (data) => {
+      const ticker = $('tickerText');
+      const tickerTime = $('tickerTime');
+      const dot = document.querySelector('.ticker-dot');
+      if (!ticker) return;
+
+      const coin = data.symbol.replace('usdt', '').toUpperCase();
+      const status = data.hasPosition ? '📊 monitoring' : '🔍 scanning';
+      ticker.textContent = `${coin} $${data.price.toLocaleString('en-US',{minimumFractionDigits:2})} · RSI:${data.rsi} · MACD:${data.macdHist?.toFixed(3)} · Vol:${data.volumeRatio}x · ${status}`;
+      tickerTime.textContent = new Date().toLocaleTimeString('en-US', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+
+      // Pulse the dot
+      if (dot) { dot.classList.remove('pulse'); void dot.offsetWidth; dot.classList.add('pulse'); }
+    });
+
+    // ── Activity Log ───────────────────────────────────────────
+    const activityEntries = [];
+
+    function addActivity(entry) {
+      activityEntries.unshift(entry);
+      if (activityEntries.length > 50) activityEntries.pop();
+      renderActivityLog();
+    }
+
+    function renderActivityLog() {
+      const el = $('activityLog');
+      const cnt = $('activityCount');
+      if (!el) return;
+      if (cnt) cnt.textContent = activityEntries.length;
+      if (activityEntries.length === 0) return;
+
+      el.innerHTML = activityEntries.map(e => {
+        const icons = { buy: '🟢', sell: '🔴', skip: '⚪', info: '🔵' };
+        const cls = { buy: 'win', sell: e.message?.includes('+') ? 'win' : 'loss', skip: 'skipped', info: 'pending' };
+        const tagColors = { regime:'#ff9f0a', rsi:'#ff453a', ema:'#30d158', tp:'#30d158', sl:'#ff453a', breakeven:'#ff9f0a', cooldown:'#636366', correlation:'#ff9f0a' };
+        const tag = e.tag ? `<span style="background:${tagColors[e.tag] || 'var(--accent)'}22;color:${tagColors[e.tag] || 'var(--accent-light)'};padding:2px 8px;border-radius:4px;font-size:0.65rem;font-weight:600;margin-left:6px">${e.tag}</span>` : '';
+        const reasonLine = e.reason ? `<div class="trade-detail" style="color:var(--text-secondary);margin-top:2px">↳ ${e.reason}</div>` : '';
+        return `<div class="trade-item">
+          <div class="trade-status-icon ${cls[e.type] || 'pending'}">${icons[e.type] || '🔵'}</div>
+          <div class="trade-info">
+            <div class="trade-symbol">${e.coin ? e.coin + ' · ' : ''}${e.type.toUpperCase()}${tag}</div>
+            <div class="trade-detail">${e.message}</div>
+            ${reasonLine}
+          </div>
+          <div class="trade-time">${e.time || ''}</div>
+        </div>`;
+      }).join('');
+    }
+
+    // ── Helpers ─────────────────────────────────────────────────
+    function renderTrade(t) {
+      const cls = t.pnl > 0 ? 'win' : t.pnl < 0 ? 'loss' : (t.status === 'skipped' || t.status === 'failed') ? 'skipped' : 'pending';
+      const icon = t.pnl > 0 ? '✅' : t.pnl < 0 ? '❌' : t.status === 'skipped' ? '⏭️' : '⏳';
+      const amt = t.pnl != null ? `<span class="trade-amount ${pnlClass(t.pnl)}">${t.pnl >= 0 ? '+' : ''}${fmtUsd(t.pnl)}</span>` : '';
+      return `<div class="trade-item">
+        <div class="trade-status-icon ${cls}">${icon}</div>
+        <div class="trade-info">
+          <div class="trade-symbol">${t.side} ${t.symbol}</div>
+          <div class="trade-detail">${t.reasoning ? t.reasoning.split('\\n')[0] : t.status}</div>
+        </div>${amt}
+        <div class="trade-time">${fmtTime(t.timestamp)}</div>
+      </div>`;
+    }
+
+    function fmtUsd(v) { return v == null ? '$0.00' : '$' + Number(v).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2}); }
+    function pnlClass(v) { return v > 0 ? 'positive' : v < 0 ? 'negative' : 'neutral'; }
+    function fmtTime(ts) { return ts ? new Date(ts).toLocaleTimeString('en-US', {hour:'2-digit',minute:'2-digit'}) : ''; }
+    function setMomentum(el, val) {
+      const v = val || 0;
+      el.textContent = (v >= 0 ? '+' : '') + v.toFixed(3) + '%';
+      el.className = 'price-momentum ' + (v >= 0 ? 'up' : 'down');
+    }
+
+    // ── Market Cards ───────────────────────────────────────────
+    function renderMarketCards(cards) {
+      const container = $('marketCards');
+      const countEl = $('marketCount');
+      if (!container) return;
+
+      const allMarkets = Object.values(cards).flat();
+      if (countEl) countEl.textContent = allMarkets.length;
+
+      if (allMarkets.length === 0) return;
+
+      const catIcons = { 'Politics': '🏛️', 'Macro': '📊', 'AI & Tech': '🤖', 'Crypto': '₿', 'Other': '🔮' };
+      const catColors = { 'Politics': '#ff453a', 'Macro': '#ff9f0a', 'AI & Tech': '#30d158', 'Crypto': '#ff9f0a', 'Other': '#a1a1a6' };
+
+      let html = '';
+      for (const [category, markets] of Object.entries(cards)) {
+        if (!markets || markets.length === 0) continue;
+
+        const icon = catIcons[category] || '📊';
+        const color = catColors[category] || '#a1a1a6';
+
+        html += `<div style="margin-bottom:8px"><span class="section-title">${icon} ${category} <span class="count">${markets.length}</span></span></div>`;
+        html += '<div class="trade-feed" style="margin-bottom:16px">';
+
+        for (const m of markets) {
+          const edgeColor = m.edgeScore >= 60 ? 'var(--green)' : m.edgeScore >= 40 ? 'var(--orange)' : 'var(--text-tertiary)';
+          const edgeBg = m.edgeScore >= 60 ? 'var(--green-dim)' : m.edgeScore >= 40 ? 'var(--orange-dim)' : 'var(--bg-elevated)';
+
+          html += `<div class="trade-item">
+            <div class="trade-status-icon pending" style="background:${color}22;font-size:0.85rem">${icon}</div>
+            <div class="trade-info">
+              <div class="trade-symbol">${m.question}</div>
+              <div class="trade-detail" style="margin-top:4px">
+                <span style="color:var(--green);font-weight:600">YES ${m.yesPct}¢</span>
+                <span style="margin:0 6px;color:var(--text-tertiary)">·</span>
+                <span style="color:var(--red);font-weight:600">NO ${m.noPct}¢</span>
+                <span style="margin:0 6px;color:var(--text-tertiary)">·</span>
+                <span style="color:var(--text-secondary)">${m.volumeStr} vol</span>
+                <span style="margin:0 6px;color:var(--text-tertiary)">·</span>
+                <span style="color:var(--text-tertiary)">Ends: ${m.endDateStr}</span>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+              <span style="background:${edgeBg};color:${edgeColor};padding:2px 8px;border-radius:6px;font-size:0.7rem;font-weight:600">Edge ${m.edgeScore}</span>
+            </div>
+          </div>`;
+        }
+        html += '</div>';
+      }
+
+      container.innerHTML = html;
+    }
+  </script>
+</body>
+</html>
