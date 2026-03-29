@@ -598,15 +598,32 @@ body {
 
 /* ── Info Icons ────────────────────────────────────────────────────────────── */
 .info-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--text-tertiary);
+  font-size: 0.6rem;
+  font-weight: 700;
+  font-style: italic;
+  font-family: 'Georgia', serif;
   cursor: pointer;
-  font-size: 0.7rem;
-  opacity: 0.5;
-  transition: opacity 0.2s;
+  transition: var(--transition);
   vertical-align: middle;
+  margin-left: 4px;
+  flex-shrink: 0;
+  line-height: 1;
+  padding: 0;
 }
 
 .info-icon:hover {
-  opacity: 1;
+  background: var(--accent-glow);
+  border-color: var(--accent);
+  color: var(--accent-light);
 }
 
 /* ── Info Modal ────────────────────────────────────────────────────────────── */
