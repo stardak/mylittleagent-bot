@@ -3,6 +3,8 @@
 // ══════════════════════════════════════════════════════════════════════════════
 // Express server on port 3000 with Socket.IO for live updates.
 //
+// Includes: Backtesting endpoint, PIN-protected toggle, live data streaming.
+//
 // Features:
 //   • Portfolio value and P&L in large text
 //   • Live feed of last 20 trade decisions
@@ -17,6 +19,7 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { runBacktest } from './backtester.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -35,6 +38,11 @@ export class Dashboard {
     this.scalper = null;
     this.binanceTrader = null;
     this.polyScanner = null;
+
+    // Backtest cache (1 hour TTL)
+    this._backtestCache = null;
+    this._backtestCacheTime = 0;
+    this._backtestRunning = false;
 
     this.app.use(express.static(path.join(__dirname, '..', 'public')));
     this.app.use(express.json());
@@ -78,12 +86,14 @@ export class Dashboard {
 
     const binancePortfolio = this.binanceTrader ? this.binanceTrader.getPortfolio() : null;
     const marketCards = this.polyScanner ? this.polyScanner.getMarketCards() : {};
+    const backtestResults = this._backtestCache || null;
 
     return {
       status, trades, binanceStatus, prices,
       scalper: scalperData,
       binancePortfolio,
       marketCards,
+      backtestResults,
       isLive: this.isLive,
       timestamp: new Date().toISOString()
     };
@@ -119,6 +129,35 @@ export class Dashboard {
         success: true, isPaused,
         message: isPaused ? 'Trading is now PAUSED' : 'Trading is now ACTIVE'
       });
+    });
+
+    // Backtest endpoint
+    this.app.get('/api/backtest', async (req, res) => {
+      try {
+        // Return cached results if fresh (< 1 hour)
+        const now = Date.now();
+        if (this._backtestCache && (now - this._backtestCacheTime) < 3600_000) {
+          return res.json({ cached: true, ...this._backtestCache });
+        }
+
+        if (this._backtestRunning) {
+          return res.status(429).json({ error: 'Backtest already running, please wait...' });
+        }
+
+        this._backtestRunning = true;
+        const results = await runBacktest({
+          startingBalance: parseFloat(process.env.STARTING_PORTFOLIO) || 10_000,
+        });
+        this._backtestCache = results;
+        this._backtestCacheTime = now;
+        this._backtestRunning = false;
+
+        res.json(results);
+      } catch (err) {
+        this._backtestRunning = false;
+        console.error('Backtest error:', err);
+        res.status(500).json({ error: err.message });
+      }
     });
   }
 

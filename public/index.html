@@ -53,22 +53,22 @@
     <!-- ── Portfolio Stats ─────────────────────────────────────── -->
     <div class="stats-grid">
       <div class="stat-card portfolio">
-        <div class="stat-label">Portfolio</div>
+        <div class="stat-label">Portfolio <span class="info-icon" data-info="portfolio">ℹ️</span></div>
         <div class="stat-value neutral" id="portfolioValue">$0.00</div>
         <div class="stat-sub" id="portfolioStart">Started at $0.00</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">Today's P&L</div>
+        <div class="stat-label">Today's P&L <span class="info-icon" data-info="pnl">ℹ️</span></div>
         <div class="stat-value neutral" id="todayPnl">$0.00</div>
         <div class="stat-sub" id="todayTrades">0 trades today</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">Win Rate</div>
+        <div class="stat-label">Win Rate <span class="info-icon" data-info="winrate">ℹ️</span></div>
         <div class="stat-value neutral" id="winRate">0.0%</div>
         <div class="stat-sub" id="totalTrades">0 total</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">Open Positions</div>
+        <div class="stat-label">Open Positions <span class="info-icon" data-info="positions">ℹ️</span></div>
         <div class="stat-value neutral" id="openPositions">0</div>
         <div class="stat-sub" id="maxPositions">Max: 5</div>
       </div>
@@ -92,18 +92,20 @@
     <div id="liveTicker" class="live-ticker">
       <span class="ticker-dot"></span>
       <span id="tickerText">Starting up…</span>
+      <span class="info-icon" data-info="ticker" style="margin-left:auto;margin-right:4px">ℹ️</span>
       <span id="tickerTime" class="ticker-time"></span>
     </div>
 
     <!-- ── Scalper Section ─────────────────────────────────────── -->
     <div class="section-title">
       📈 Scalper
+      <span class="info-icon" data-info="signals">ℹ️</span>
       <span class="mode-badge paper" id="scalperMode" style="font-size:0.65rem">Paper</span>
     </div>
 
     <div class="stats-grid">
       <div class="stat-card">
-        <div class="stat-label">Balance</div>
+        <div class="stat-label">Balance <span class="info-icon" data-info="scalperbal">ℹ️</span></div>
         <div class="stat-value neutral" id="scalperBalance">$99.00</div>
         <div class="stat-sub" id="scalperPnl">P&L: $0.00</div>
       </div>
@@ -151,9 +153,26 @@
       </div>
     </div>
 
+    <!-- ── Backtest Results ──────────────────────────────────────── -->
+    <div class="divider"></div>
+    <div class="section-title">📊 Backtest Results <span class="info-icon" data-info="backtest">ℹ️</span></div>
+    <div id="backtestSection">
+      <div class="backtest-controls">
+        <button id="runBacktestBtn" class="backtest-btn">▶ Run 30-Day Backtest</button>
+        <span id="backtestStatus" class="backtest-status"></span>
+      </div>
+      <div id="backtestResults" style="display:none">
+        <div class="stats-grid" id="backtestStats"></div>
+        <div class="section-title" style="margin-top:16px">Per Symbol</div>
+        <div class="stats-grid" id="backtestPerSymbol"></div>
+        <div class="section-title" style="margin-top:16px">Trade Log <span class="count" id="backtestTradeCount">0</span></div>
+        <div class="trade-feed backtest-trades" id="backtestTradeFeed"></div>
+      </div>
+    </div>
+
     <!-- ── Activity Log ────────────────────────────────────────── -->
     <div class="divider"></div>
-    <div class="section-title">📋 Activity Log <span class="count" id="activityCount">0</span></div>
+    <div class="section-title">📋 Activity Log <span class="info-icon" data-info="activity">ℹ️</span> <span class="count" id="activityCount">0</span></div>
     <div class="trade-feed" id="activityLog">
       <div class="empty-state">
         <div class="empty-state-icon">📋</div>
@@ -163,7 +182,7 @@
 
     <!-- ── Polymarket Markets ──────────────────────────────────── -->
     <div class="divider"></div>
-    <div class="section-title">🔮 Polymarket Markets <span class="count" id="marketCount">0</span></div>
+    <div class="section-title">🔮 Polymarket Markets <span class="info-icon" data-info="polymarket">ℹ️</span> <span class="count" id="marketCount">0</span></div>
     <div id="marketCards">
       <div class="trade-feed">
         <div class="empty-state">
@@ -173,6 +192,15 @@
       </div>
     </div>
 
+  </div>
+
+  <!-- ── Info Modal ──────────────────────────────────────────────── -->
+  <div id="infoOverlay" class="info-overlay" style="display:none">
+    <div class="info-modal">
+      <button class="info-modal-close" id="infoClose">✕</button>
+      <div class="info-modal-title" id="infoTitle"></div>
+      <div class="info-modal-body" id="infoBody"></div>
+    </div>
   </div>
 
   <!-- ── Socket.IO + Logic ────────────────────────────────────── -->
@@ -216,7 +244,13 @@
       alert('Wrong PIN. Try again.');
     });
 
-    socket.on('update', (data) => updateDashboard(data));
+    socket.on('update', (data) => {
+      updateDashboard(data);
+      if (data.backtestResults && !$('backtestResults').dataset.loaded) {
+        renderBacktest(data.backtestResults);
+        $('backtestResults').dataset.loaded = '1';
+      }
+    });
     socket.on('activity', (entry) => addActivity(entry));
     socket.on('disconnect', () => {
       els.connectionDot.className = 'connection-dot disconnected';
@@ -506,6 +540,96 @@
       }
 
       container.innerHTML = html;
+    }
+
+    // ── Info Icons ─────────────────────────────────────────────
+    const infoTexts = {
+      portfolio: { title: 'Portfolio', body: "Your total account balance. This is how much virtual money the bot is managing — think of it like your bank balance for trading." },
+      pnl: { title: "Today's P&L", body: "Profit and Loss today. Green means the bot made money today, red means it lost money. This resets every day at midnight." },
+      winrate: { title: 'Win Rate', body: "The percentage of trades that made a profit. Above 50% means the bot wins more often than it loses. A good bot typically aims for 55%+." },
+      positions: { title: 'Open Positions', body: "How many trades are currently active (bought but not yet sold). The bot is watching these and will sell when the right moment comes." },
+      ticker: { title: 'Live Ticker', body: "Real-time data from each coin, updated every minute. RSI, MACD, and Volume are technical indicators the bot uses to decide when to trade." },
+      signals: { title: 'Scalper', body: "The bot checks each coin every minute using 7 different tests. WAIT = still loading data. HOLD = watching but no opportunity yet. BUY = all 7 tests passed. IN TRADE = currently holding a position." },
+      scalperbal: { title: 'Scalper Balance', body: "The virtual money the scalper is managing. P&L shows total profit or loss since the bot started running." },
+      activity: { title: 'Activity Log', body: "A live feed of everything the bot is doing — signals it checked, trades it took, and reasons it skipped opportunities." },
+      polymarket: { title: 'Polymarket Markets', body: "Prediction markets the bot is monitoring. These are real-world events people bet on. The Edge Score shows how likely the bot thinks there's a pricing opportunity worth acting on." },
+      backtest: { title: 'Backtest Results', body: "A historical simulation that replays the trading strategy against the last 30 days of real price data. It shows how the bot would have performed if it had been running. Use this to judge whether the strategy is profitable before risking real money." },
+    };
+
+    document.addEventListener('click', (e) => {
+      const icon = e.target.closest('.info-icon');
+      if (!icon) return;
+      e.stopPropagation();
+      const key = icon.dataset.info;
+      const info = infoTexts[key];
+      if (!info) return;
+      $('infoTitle').textContent = info.title;
+      $('infoBody').textContent = info.body;
+      $('infoOverlay').style.display = 'flex';
+    });
+
+    $('infoOverlay').addEventListener('click', (e) => {
+      if (e.target === $('infoOverlay') || e.target === $('infoClose')) {
+        $('infoOverlay').style.display = 'none';
+      }
+    });
+
+    // ── Backtest ───────────────────────────────────────────────
+    $('runBacktestBtn').addEventListener('click', async () => {
+      const btn = $('runBacktestBtn');
+      const status = $('backtestStatus');
+      btn.disabled = true;
+      btn.textContent = '⏳ Running...';
+      status.textContent = 'Fetching 30 days of data & replaying strategy...';
+
+      try {
+        const res = await fetch('/api/backtest');
+        const data = await res.json();
+        if (data.error) throw new Error(data.error);
+        renderBacktest(data);
+        btn.textContent = '✅ Backtest Complete';
+        status.textContent = data.cached ? '(cached result)' : `Ran at ${new Date(data.ranAt).toLocaleTimeString()}`;
+      } catch (err) {
+        btn.textContent = '❌ Failed';
+        status.textContent = err.message;
+      }
+      setTimeout(() => { btn.disabled = false; btn.textContent = '▶ Run 30-Day Backtest'; }, 5000);
+    });
+
+
+
+    function renderBacktest(data) {
+      $('backtestResults').style.display = 'block';
+      $('backtestTradeCount').textContent = data.totalTrades;
+
+      $('backtestStats').innerHTML = [
+        { label: 'Win Rate', value: data.winRate + '%', cls: data.winRate >= 50 ? 'positive' : 'negative' },
+        { label: 'Total P&L', value: (data.totalPnlUsd >= 0 ? '+' : '') + fmtUsd(data.totalPnlUsd) + ` (${data.totalPnlPct >= 0 ? '+' : ''}${data.totalPnlPct}%)`, cls: data.totalPnlUsd >= 0 ? 'positive' : 'negative' },
+        { label: 'Max Drawdown', value: fmtUsd(data.maxDrawdown) + ` (${data.maxDrawdownPct}%)`, cls: 'negative' },
+        { label: 'Trades', value: `${data.totalTrades} (${data.wins}W / ${data.losses}L)`, cls: 'neutral' },
+        { label: 'Avg Win', value: fmtUsd(data.avgWin), cls: 'positive' },
+        { label: 'Avg Loss', value: fmtUsd(data.avgLoss), cls: 'negative' },
+      ].map(s => `<div class="stat-card"><div class="stat-label">${s.label}</div><div class="stat-value ${s.cls}">${s.value}</div></div>`).join('');
+
+      const symbols = Object.entries(data.perSymbol || {});
+      $('backtestPerSymbol').innerHTML = symbols.map(([sym, d]) => {
+        const wr = d.trades > 0 ? (d.wins / d.trades * 100).toFixed(0) : 0;
+        return `<div class="stat-card"><div class="stat-label">${sym}</div><div class="stat-value ${d.totalPnl >= 0 ? 'positive' : 'negative'}">${d.totalPnl >= 0 ? '+' : ''}${fmtUsd(d.totalPnl)}</div><div class="stat-sub">${d.trades} trades · ${wr}% win</div></div>`;
+      }).join('');
+
+      $('backtestTradeFeed').innerHTML = (data.trades || []).map(t => {
+        const icon = t.pnlUsd >= 0 ? '✅' : '❌';
+        const cls = t.pnlUsd >= 0 ? 'win' : 'loss';
+        return `<div class="trade-item">
+          <div class="trade-status-icon ${cls}">${icon}</div>
+          <div class="trade-info">
+            <div class="trade-symbol">${t.symbol} · ${t.reason}</div>
+            <div class="trade-detail">$${t.entryPrice.toLocaleString()} → $${t.exitPrice.toLocaleString()} · Cost: ${fmtUsd(t.cost)}</div>
+          </div>
+          <span class="trade-amount ${t.pnlUsd >= 0 ? 'positive' : 'negative'}">${t.pnlUsd >= 0 ? '+' : ''}${fmtUsd(t.pnlUsd)} (${t.pnlPct >= 0 ? '+' : ''}${t.pnlPct}%)</span>
+          <div class="trade-time">${new Date(t.entryTime).toLocaleDateString('en-GB', {day:'numeric',month:'short'})}</div>
+        </div>`;
+      }).join('');
     }
   </script>
 </body>

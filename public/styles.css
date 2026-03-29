@@ -595,3 +595,113 @@ body {
   white-space: normal;
   word-break: break-word;
 }
+
+/* ── Info Icons ────────────────────────────────────────────────────────────── */
+.info-icon {
+  cursor: pointer;
+  font-size: 0.7rem;
+  opacity: 0.5;
+  transition: opacity 0.2s;
+  vertical-align: middle;
+}
+
+.info-icon:hover {
+  opacity: 1;
+}
+
+/* ── Info Modal ────────────────────────────────────────────────────────────── */
+.info-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.info-modal {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  padding: 28px 32px;
+  max-width: 420px;
+  width: 100%;
+  position: relative;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.info-modal-close {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  background: none;
+  border: none;
+  color: var(--text-tertiary);
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.info-modal-close:hover {
+  color: var(--text-primary);
+}
+
+.info-modal-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+}
+
+.info-modal-body {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+
+/* ── Backtest ──────────────────────────────────────────────────────────────── */
+.backtest-controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.backtest-btn {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  padding: 10px 24px;
+  border-radius: var(--radius-md);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  font-family: inherit;
+}
+
+.backtest-btn:hover {
+  background: var(--accent-light);
+  transform: translateY(-1px);
+}
+
+.backtest-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.backtest-status {
+  font-size: 0.8rem;
+  color: var(--text-tertiary);
+}
+
+.backtest-trades {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
