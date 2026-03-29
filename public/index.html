@@ -15,7 +15,7 @@
     <header class="header">
       <div class="header-left">
         <div class="logo">
-          <svg width="22" height="22" viewBox="0 0 100 100" fill="none"><path d="M50 8L8 78h84L50 8zm0 18l28 48H22l28-48z" fill="#00d4aa"/></svg>
+          <svg width="20" height="20" viewBox="0 0 100 100" fill="none"><path d="M50 8L8 78h84L50 8zm0 18l28 48H22l28-48z" fill="#7c6aff"/></svg>
           MyLittleAgent
         </div>
         <span id="modeBadge" class="mode-badge paper">Paper</span>
@@ -36,14 +36,12 @@
       </div>
     </header>
 
-    <!-- ── Session Status ─────────────────────────────────────── -->
-    <div class="session-status" id="sessionStatusBar">
-      <div class="session-dot resting" id="sessionDot"></div>
-      <div class="session-info">
-        <div class="session-label" id="sessionLabel">
-          Between Sessions <span class="badge resting" id="sessionBadge">Resting</span>
-        </div>
-        <div class="session-countdown" id="sessionCountdown">Calculating next session…</div>
+    <!-- ── Session Pill ────────────────────────────────────────── -->
+    <div class="session-pill-wrap">
+      <div class="session-pill">
+        <div class="session-dot resting" id="sessionDot"></div>
+        <span class="session-text" id="sessionLabel">Between Sessions <span class="badge resting" id="sessionBadge">Resting</span></span>
+        <span class="session-countdown" id="sessionCountdown">—</span>
       </div>
     </div>
 
@@ -63,13 +61,13 @@
 
     <!-- ── Hero Balance ────────────────────────────────────────── -->
     <div class="hero-balance">
-      <div class="hero-label">Portfolio Balance</div>
-      <div class="hero-value count-up" id="portfolioValue">$0.00</div>
+      <div class="hero-label">Portfolio</div>
+      <div class="hero-value" id="portfolioValue">$99.00</div>
       <div class="hero-sub">
         <span id="scalperPnl" class="pnl-inline neutral">P&L: $0.00</span>
         &nbsp;·&nbsp;
         <span id="portfolioStart">Started at $99.00</span>
-        <span id="lastSessionLabel" style="display:none"> · Last session</span>
+        <span id="lastSessionLabel" style="display:none"> · as of last session</span>
       </div>
     </div>
 
@@ -447,7 +445,6 @@
 
       // Hero balance
       els.portfolioValue.textContent = fmtUsd(status.portfolio);
-      els.portfolioValue.className = 'hero-value count-up';
       els.portfolioStart.textContent = `Started at ${fmtUsd(status.startingPortfolio)}`;
 
       // Stats
