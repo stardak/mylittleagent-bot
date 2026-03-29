@@ -241,23 +241,13 @@ export class PolymarketScanner {
     if (totalMarkets > 0) {
       console.log(`📋 Found ${totalMarkets} markets (${catCounts})`);
 
-      // Alert on new markets
+      // Track new markets (log only, no Telegram alert)
       const newMarkets = filtered.filter(m => {
         const id = m.conditionId || m.id;
         return !this.knownMarketIds.has(id);
       });
       for (const m of newMarkets) {
         this.knownMarketIds.add(m.conditionId || m.id);
-      }
-      // Only alert on first new markets after initial load
-      if (this.knownMarketIds.size > newMarkets.length && newMarkets.length > 0) {
-        for (const m of newMarkets.slice(0, 3)) {
-          const q = m.question || m.title || 'Unknown';
-          console.log(`🆕 NEW: ${q}`);
-          if (this.alerts) {
-            await this.alerts.send(`🆕 <b>New market found!</b>\n\n📊 ${q}`);
-          }
-        }
       }
     } else {
       console.log('📋 No qualifying markets found (>$10K volume).');
