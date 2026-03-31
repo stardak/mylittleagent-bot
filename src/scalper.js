@@ -5,17 +5,17 @@
 //
 //   BUY requires ALL of:
 //     1. EMA9 crosses above EMA21
-//     2. RSI(14) between 45-60 AND rising (vs 2 candles ago)
-//     3. Volume > 1.5x 20-period average
-//     4. MACD histogram crossed zero (neg→pos) within last 3 candles
-//     5. UTC hour between 08:00 and 22:00
-//     6. No open position on this coin
-//     7. Last trade > 4 hours ago
+//     2. RSI(14) between 30-70
+//     3. Volume >= 1.0x 20-period average
+//     4. UTC hour between 08:00 and 21:00
+//     5. No open position on this coin
+//     6. Last trade > 30 min ago
+//     7. 5m MTF not in strong downtrend
 //
 //   SELL on ANY of:
 //     1. EMA9 crosses below EMA21
 //     2. RSI > 75
-//     3. Price reaches +2.5% (take profit)
+//     3. Price reaches +3.0% (take profit)
 //     4. Price falls below entry - ATR(14)*1.5 (dynamic stop)
 //     5. After +1.2%, move stop to breakeven
 //
@@ -41,10 +41,10 @@ export class Scalper extends EventEmitter {
     this.macdSignal = 9;
     this.atrPeriod = 14;
     this.volumeAvgPeriod = 20;
-    this.volumeMultiplier = 1.5;
+    this.volumeMultiplier = 1.0;
     this.takeProfitPct = 3.0;
     this.breakevenTriggerPct = 1.2;
-    this.cooldownMs = 4 * 60 * 60 * 1000;  // 4 hours between trades per coin
+    this.cooldownMs = 30 * 60 * 1000;  // 30 minutes between trades per coin
 
     // State per symbol
     this.candles = {};       // { symbol: [{ close, high, low, volume }] }
@@ -358,7 +358,7 @@ export class Scalper extends EventEmitter {
     const atr = this._atr(candles, this.atrPeriod);
 
     const utcHour = new Date().getUTCHours();
-    const inTradingWindow = (utcHour >= 9 && utcHour < 11) || (utcHour >= 18 && utcHour < 21);
+    const inTradingWindow = (utcHour >= 8 && utcHour < 21);
 
     // Update signal state
     this.signals[symbol] = {
@@ -393,7 +393,7 @@ export class Scalper extends EventEmitter {
 
     // ── Evaluate BUY conditions ────────────────────────────────
     const emaCrossUp = prevEmaFast <= prevEmaSlow && emaFast > emaSlow;
-    const rsiInRange = rsi >= 45 && rsi <= 60;
+    const rsiInRange = rsi >= 30 && rsi <= 70;
     const volumeOk = volumeRatio >= this.volumeMultiplier;
     const cooldownOk = (Date.now() - (this.lastTradeTime[symbol] || 0)) > this.cooldownMs;
 
@@ -403,15 +403,13 @@ export class Scalper extends EventEmitter {
     // Build skip reason log
     const checks = [];
     if (!emaCrossUp) checks.push('EMA no cross');
-    if (!rsiInRange) checks.push(`RSI ${rsi.toFixed(0)} not in 45-60`);
-    if (!rsiRising) checks.push('RSI falling');
-    if (!volumeOk) checks.push(`Vol ${volumeRatio.toFixed(1)}x < 1.5x`);
-    if (!macdCrossedZero) checks.push('MACD no zero cross');
-    if (!inTradingWindow) checks.push(`Hour ${utcHour} outside 09-11/18-21`);
+    if (!rsiInRange) checks.push(`RSI ${rsi.toFixed(0)} not in 30-70`);
+    if (!volumeOk) checks.push(`Vol ${volumeRatio.toFixed(1)}x < 1.0x`);
+    if (!inTradingWindow) checks.push(`Hour ${utcHour} outside 08-21`);
     if (!cooldownOk) checks.push('Cooldown active');
     if (!mtfOk) checks.push('5m strong downtrend');
 
-    if (emaCrossUp && rsiInRange && rsiRising && volumeOk && macdCrossedZero && inTradingWindow && cooldownOk && mtfOk) {
+    if (emaCrossUp && rsiInRange && volumeOk && inTradingWindow && cooldownOk && mtfOk) {
       this.signals[symbol].signal = 'BUY';
       this.signals[symbol].lastSkipReason = '';
 
