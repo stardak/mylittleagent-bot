@@ -261,10 +261,7 @@ async function main() {
 
   const scalper = new Scalper({
     symbols: ['ethusdt'],
-    interval: '1m',
-    stopLossPct: 1.5,
-    takeProfitPct: 3.0,
-    cooldownMs: 60_000,
+    interval: '5m',
   });
 
   const binanceTrader = new BinanceTrader({

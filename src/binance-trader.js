@@ -136,8 +136,7 @@ export class BinanceTrader {
 
   // ── Paper Trading ───────────────────────────────────────────────────────
   _paperBuy(symbol, quantity, price, amountUsd) {
-    // Simulate a small spread (0.05%)
-    const fillPrice = price * 1.0005;
+    const fillPrice = price;
     const cost = quantity * fillPrice;
 
     this.portfolio.balance -= cost;
@@ -170,8 +169,7 @@ export class BinanceTrader {
   }
 
   _paperSell(symbol, quantity, price, entryPrice) {
-    // Simulate a small spread (0.05%)
-    const fillPrice = price * 0.9995;
+    const fillPrice = price;
     const revenue = quantity * fillPrice;
     const cost = quantity * entryPrice;
     const pnl = revenue - cost;

@@ -1,7 +1,7 @@
 // ══════════════════════════════════════════════════════════════════════════════
-// BINANCE MOMENTUM SCALPER v2
+// BINANCE MOMENTUM SCALPER v3
 // ══════════════════════════════════════════════════════════════════════════════
-// Advanced scalping on 1-minute klines with multi-indicator confirmation:
+// Swing-scalping on 5-minute klines with multi-timeframe confirmation:
 //
 //   BUY requires ALL of:
 //     1. EMA9 crosses above EMA21
@@ -10,16 +10,16 @@
 //     4. UTC hour between 08:00 and 21:00
 //     5. No open position on this coin
 //     6. Last trade > 30 min ago
-//     7. 5m MTF not in strong downtrend
+//     7. 15m MTF not in strong downtrend
+//     8. 1h trend is up (price above 1h EMA21)
 //
 //   SELL on ANY of:
 //     1. EMA9 crosses below EMA21
-//     2. RSI > 75
-//     3. Price reaches +3.0% (take profit)
-//     4. Price falls below entry - ATR(14)*1.5 (dynamic stop)
-//     5. After +1.2%, move stop to breakeven
+//     2. Price reaches +1.5% (take profit)
+//     3. Price falls below entry - ATR(14)*1.0 (dynamic stop)
 //
-//   Position sizing: risk 1% of portfolio, size = (portfolio*0.01) / (ATR*1.5)
+//   Position sizing: risk 1% of portfolio, size = (portfolio*0.01) / ATR
+//   Max position: 15% of portfolio
 // ══════════════════════════════════════════════════════════════════════════════
 
 import WebSocket from 'ws';
@@ -30,7 +30,7 @@ export class Scalper extends EventEmitter {
     super();
 
     this.symbols = options.symbols || ['ethusdt'];
-    this.interval = options.interval || '1m';
+    this.interval = options.interval || '5m';
 
     // Strategy parameters
     this.fastPeriod = 9;
@@ -42,26 +42,28 @@ export class Scalper extends EventEmitter {
     this.atrPeriod = 14;
     this.volumeAvgPeriod = 20;
     this.volumeMultiplier = 1.0;
-    this.takeProfitPct = 3.0;
-    this.breakevenTriggerPct = 1.2;
+    this.takeProfitPct = 1.5;
     this.cooldownMs = 30 * 60 * 1000;  // 30 minutes between trades per coin
 
     // State per symbol
     this.candles = {};       // { symbol: [{ close, high, low, volume }] }
-    this.candles5m = {};     // { symbol: [{ close, high, low, volume }] } — 5m for MTF
+    this.candles5m = {};     // { symbol: [{ close, high, low, volume }] } — 15m for MTF
+    this.candles1h = {};     // { symbol: [{ close, high, low, volume }] } — 1h for trend
     this.signals = {};       // { symbol: { emaFast, emaSlow, rsi, macdHist, signal, ... } }
-    this.positions = {};     // { symbol: { side, entryPrice, quantity, timestamp, breakevenStop } }
+    this.positions = {};     // { symbol: { side, entryPrice, quantity, timestamp } }
     this.lastTradeTime = {}; // { symbol: timestamp }
     this.websockets = {};
 
     for (const sym of this.symbols) {
       this.candles[sym] = [];
       this.candles5m[sym] = [];
+      this.candles1h[sym] = [];
       this.signals[sym] = {
         emaFast: 0, emaSlow: 0, rsi: 50, macdHist: 0,
         volumeRatio: 0, atr: 0, signal: 'WAIT', price: 0,
         candleCount: 0, lastSkipReason: 'Collecting data...',
         mtfBlocked: false,
+        hourlyTrendUp: true,
       };
       this.positions[sym] = null;
       this.lastTradeTime[sym] = 0;
@@ -78,20 +80,21 @@ export class Scalper extends EventEmitter {
     for (const symbol of this.symbols) {
       this._connectKline(symbol);
       this._connectKline5m(symbol);
+      this._connectKline1h(symbol);
     }
-    console.log(`📈 Scalper v2 started: ${this.symbols.join(', ').toUpperCase()} @ ${this.interval} + 5m MTF`);
+    console.log(`📈 Scalper v3 started: ${this.symbols.join(', ').toUpperCase()} @ ${this.interval} + 15m MTF + 1h trend`);
   }
 
   // ── Pre-seed historical candles from REST API ───────────────────────────
   async _preseedCandles(symbol) {
     try {
-      // Fetch 50 x 1m candles
-      const url1m = `https://api.binance.com/api/v3/klines?symbol=${symbol.toUpperCase()}&interval=1m&limit=50`;
-      const res1m = await fetch(url1m);
-      const data1m = await res1m.json();
+      // Fetch 50 x 5m candles (primary timeframe)
+      const url5m = `https://api.binance.com/api/v3/klines?symbol=${symbol.toUpperCase()}&interval=5m&limit=50`;
+      const res5m = await fetch(url5m);
+      const data5m = await res5m.json();
 
-      if (Array.isArray(data1m)) {
-        this.candles[symbol] = data1m.map(k => ({
+      if (Array.isArray(data5m)) {
+        this.candles[symbol] = data5m.map(k => ({
           close: parseFloat(k[4]),
           high: parseFloat(k[2]),
           low: parseFloat(k[3]),
@@ -99,36 +102,59 @@ export class Scalper extends EventEmitter {
         }));
         // Run initial evaluation
         this._evaluate(symbol);
-        console.log(`📊 ${symbol.toUpperCase()} pre-seeded: ${this.candles[symbol].length} x 1m candles — indicators ready`);
+        console.log(`📊 ${symbol.toUpperCase()} pre-seeded: ${this.candles[symbol].length} x 5m candles — indicators ready`);
       }
 
-      // Fetch 30 x 5m candles for MTF
-      const url5m = `https://api.binance.com/api/v3/klines?symbol=${symbol.toUpperCase()}&interval=5m&limit=30`;
-      const res5m = await fetch(url5m);
-      const data5m = await res5m.json();
+      // Fetch 30 x 15m candles for MTF
+      const url15m = `https://api.binance.com/api/v3/klines?symbol=${symbol.toUpperCase()}&interval=15m&limit=30`;
+      const res15m = await fetch(url15m);
+      const data15m = await res15m.json();
 
-      if (Array.isArray(data5m)) {
-        this.candles5m[symbol] = data5m.map(k => ({
+      if (Array.isArray(data15m)) {
+        this.candles5m[symbol] = data15m.map(k => ({
           close: parseFloat(k[4]),
           high: parseFloat(k[2]),
           low: parseFloat(k[3]),
           volume: parseFloat(k[5]),
         }));
 
-        // Compute initial 5m trend
-        const closes5m = this.candles5m[symbol].map(c => c.close);
-        if (closes5m.length >= this.slowPeriod + 3) {
-          const ema9_5m = this._ema(closes5m, this.fastPeriod);
-          const ema21_5m = this._ema(closes5m, this.slowPeriod);
-          const ema21_3ago = this._ema(closes5m.slice(0, -3), this.slowPeriod);
-          const price5m = closes5m[closes5m.length - 1];
+        // Compute initial 15m trend
+        const closes15m = this.candles5m[symbol].map(c => c.close);
+        if (closes15m.length >= this.slowPeriod + 3) {
+          const ema9_15m = this._ema(closes15m, this.fastPeriod);
+          const ema21_15m = this._ema(closes15m, this.slowPeriod);
+          const ema21_3ago = this._ema(closes15m.slice(0, -3), this.slowPeriod);
+          const price15m = closes15m[closes15m.length - 1];
 
-          const isBelow9 = price5m < ema9_5m;
-          const isBelow21 = price5m < ema21_5m;
-          const ema21Falling = ema21_5m < ema21_3ago;
+          const isBelow9 = price15m < ema9_15m;
+          const isBelow21 = price15m < ema21_15m;
+          const ema21Falling = ema21_15m < ema21_3ago;
           this.signals[symbol].mtfBlocked = isBelow9 && isBelow21 && ema21Falling;
         }
-        console.log(`📊 ${symbol.toUpperCase()} pre-seeded: ${this.candles5m[symbol].length} x 5m candles — MTF ready`);
+        console.log(`📊 ${symbol.toUpperCase()} pre-seeded: ${this.candles5m[symbol].length} x 15m candles — MTF ready`);
+      }
+
+      // Fetch 30 x 1h candles for trend filter
+      const url1h = `https://api.binance.com/api/v3/klines?symbol=${symbol.toUpperCase()}&interval=1h&limit=30`;
+      const res1h = await fetch(url1h);
+      const data1h = await res1h.json();
+
+      if (Array.isArray(data1h)) {
+        this.candles1h[symbol] = data1h.map(k => ({
+          close: parseFloat(k[4]),
+          high: parseFloat(k[2]),
+          low: parseFloat(k[3]),
+          volume: parseFloat(k[5]),
+        }));
+
+        // Compute initial 1h trend
+        const closes1h = this.candles1h[symbol].map(c => c.close);
+        if (closes1h.length >= this.slowPeriod) {
+          const ema21_1h = this._ema(closes1h, this.slowPeriod);
+          const price1h = closes1h[closes1h.length - 1];
+          this.signals[symbol].hourlyTrendUp = price1h > ema21_1h;
+        }
+        console.log(`📊 ${symbol.toUpperCase()} pre-seeded: ${this.candles1h[symbol].length} x 1h candles — trend filter ready`);
       }
     } catch (err) {
       console.error(`⚠️ ${symbol.toUpperCase()} pre-seed failed: ${err.message} — falling back to live warmup`);
@@ -186,16 +212,16 @@ export class Scalper extends EventEmitter {
     this.websockets[symbol] = ws;
   }
 
-  // ── 5-minute Multi-Timeframe Feed ────────────────────────────────────────
+  // ── 15-minute Multi-Timeframe Feed ───────────────────────────────────────
   _connectKline5m(symbol) {
-    const url = `wss://stream.binance.com:9443/ws/${symbol}@kline_5m`;
+    const url = `wss://stream.binance.com:9443/ws/${symbol}@kline_15m`;
     const ws = new WebSocket(url);
 
     ws.on('message', (data) => {
       try {
         const msg = JSON.parse(data);
         const kline = msg.k;
-        if (!kline || !kline.x) return; // Only process closed 5m candles
+        if (!kline || !kline.x) return; // Only process closed 15m candles
 
         const close = parseFloat(kline.c);
         const high = parseFloat(kline.h);
@@ -207,16 +233,16 @@ export class Scalper extends EventEmitter {
           this.candles5m[symbol] = this.candles5m[symbol].slice(-30);
         }
 
-        // Update 5m trend data (loose filter)
-        const closes5m = this.candles5m[symbol].map(c => c.close);
-        if (closes5m.length >= this.slowPeriod + 3) {
-          const ema9_5m = this._ema(closes5m, this.fastPeriod);
-          const ema21_5m = this._ema(closes5m, this.slowPeriod);
-          const ema21_3ago = this._ema(closes5m.slice(0, -3), this.slowPeriod);
-          const price5m = closes5m[closes5m.length - 1];
+        // Update 15m trend data (loose filter)
+        const closes15m = this.candles5m[symbol].map(c => c.close);
+        if (closes15m.length >= this.slowPeriod + 3) {
+          const ema9_15m = this._ema(closes15m, this.fastPeriod);
+          const ema21_15m = this._ema(closes15m, this.slowPeriod);
+          const ema21_3ago = this._ema(closes15m.slice(0, -3), this.slowPeriod);
+          const price15m = closes15m[closes15m.length - 1];
 
           // Only block if ALL THREE downtrend conditions are true
-          const strongDowntrend = (ema9_5m < ema21_5m) && (ema21_5m < ema21_3ago) && (price5m < ema9_5m);
+          const strongDowntrend = (ema9_15m < ema21_15m) && (ema21_15m < ema21_3ago) && (price15m < ema9_15m);
           this.signals[symbol].mtfBlocked = strongDowntrend;
         }
       } catch (err) { /* ignore */ }
@@ -225,6 +251,43 @@ export class Scalper extends EventEmitter {
     ws.on('error', () => {});
     ws.on('close', () => {
       setTimeout(() => this._connectKline5m(symbol), 3000);
+    });
+  }
+
+  // ── 1-hour Trend Filter Feed ────────────────────────────────────────────
+  _connectKline1h(symbol) {
+    const url = `wss://stream.binance.com:9443/ws/${symbol}@kline_1h`;
+    const ws = new WebSocket(url);
+
+    ws.on('message', (data) => {
+      try {
+        const msg = JSON.parse(data);
+        const kline = msg.k;
+        if (!kline || !kline.x) return; // Only process closed 1h candles
+
+        const close = parseFloat(kline.c);
+        const high = parseFloat(kline.h);
+        const low = parseFloat(kline.l);
+        const volume = parseFloat(kline.v);
+
+        this.candles1h[symbol].push({ close, high, low, volume });
+        if (this.candles1h[symbol].length > 30) {
+          this.candles1h[symbol] = this.candles1h[symbol].slice(-30);
+        }
+
+        // Update 1h trend: price above EMA21 = uptrend
+        const closes1h = this.candles1h[symbol].map(c => c.close);
+        if (closes1h.length >= this.slowPeriod) {
+          const ema21_1h = this._ema(closes1h, this.slowPeriod);
+          const price1h = closes1h[closes1h.length - 1];
+          this.signals[symbol].hourlyTrendUp = price1h > ema21_1h;
+        }
+      } catch (err) { /* ignore */ }
+    });
+
+    ws.on('error', () => {});
+    ws.on('close', () => {
+      setTimeout(() => this._connectKline1h(symbol), 3000);
     });
   }
 
@@ -397,8 +460,11 @@ export class Scalper extends EventEmitter {
     const volumeOk = volumeRatio >= this.volumeMultiplier;
     const cooldownOk = (Date.now() - (this.lastTradeTime[symbol] || 0)) > this.cooldownMs;
 
-    // Multi-timeframe check: only block if strong 5m downtrend
+    // Multi-timeframe check: only block if strong 15m downtrend
     const mtfOk = !this.signals[symbol].mtfBlocked;
+
+    // 1-hour trend filter: only buy when hourly trend is up
+    const hourlyOk = this.signals[symbol].hourlyTrendUp;
 
     // Build skip reason log
     const checks = [];
@@ -407,9 +473,10 @@ export class Scalper extends EventEmitter {
     if (!volumeOk) checks.push(`Vol ${volumeRatio.toFixed(1)}x < 1.0x`);
     if (!inTradingWindow) checks.push(`Hour ${utcHour} outside 08-21`);
     if (!cooldownOk) checks.push('Cooldown active');
-    if (!mtfOk) checks.push('5m strong downtrend');
+    if (!mtfOk) checks.push('15m strong downtrend');
+    if (!hourlyOk) checks.push('1h trend down');
 
-    if (emaCrossUp && rsiInRange && volumeOk && inTradingWindow && cooldownOk && mtfOk) {
+    if (emaCrossUp && rsiInRange && volumeOk && inTradingWindow && cooldownOk && mtfOk && hourlyOk) {
       this.signals[symbol].signal = 'BUY';
       this.signals[symbol].lastSkipReason = '';
 
@@ -446,33 +513,19 @@ export class Scalper extends EventEmitter {
 
     const pnlPct = ((currentPrice - position.entryPrice) / position.entryPrice) * 100;
 
-    // Rule 5: After +1.2%, move stop to breakeven
-    if (pnlPct >= this.breakevenTriggerPct && !position.breakevenStop) {
-      position.breakevenStop = true;
-      position.dynamicStop = position.entryPrice;
-      console.log(`📐 ${symbol.toUpperCase()} breakeven stop activated @ $${position.entryPrice.toFixed(2)}`);
-    }
-
-    // Rule 3: Take profit at +2.5%
+    // Rule 1: Take profit at +1.5%
     if (pnlPct >= this.takeProfitPct) {
       this._emitClose(symbol, 'TAKE_PROFIT', currentPrice, pnlPct);
       return;
     }
 
-    // Rule 4: Dynamic stop loss = entry - ATR*1.5
+    // Rule 2: Dynamic stop loss = entry - ATR*1.0
     if (currentPrice <= position.dynamicStop) {
-      const reason = position.breakevenStop ? 'BREAKEVEN_STOP' : 'ATR_STOP';
-      this._emitClose(symbol, reason, currentPrice, pnlPct);
+      this._emitClose(symbol, 'ATR_STOP', currentPrice, pnlPct);
       return;
     }
 
-    // Rule 2: RSI > 75
-    if (rsi > 75) {
-      this._emitClose(symbol, 'RSI_OVERBOUGHT', currentPrice, pnlPct);
-      return;
-    }
-
-    // Rule 1: EMA9 crosses below EMA21
+    // Rule 3: EMA9 crosses below EMA21
     if (prevEmaFast >= prevEmaSlow && emaFast < emaSlow) {
       this._emitClose(symbol, 'EMA_CROSS_DOWN', currentPrice, pnlPct);
       return;
@@ -496,7 +549,8 @@ export class Scalper extends EventEmitter {
   // ── Open a Position ─────────────────────────────────────────────────────
   openPosition(symbol, entryPrice, quantity) {
     const atr = this.signals[symbol]?.atr || entryPrice * 0.015;
-    const dynamicStop = entryPrice - (atr * 1.5);
+    const dynamicStop = entryPrice - (atr * 1.0);
+    const takeProfit = entryPrice * (1 + this.takeProfitPct / 100);
 
     this.positions[symbol] = {
       side: 'LONG',
@@ -504,11 +558,10 @@ export class Scalper extends EventEmitter {
       quantity,
       timestamp: Date.now(),
       dynamicStop,
-      breakevenStop: false,
-      takeProfit: entryPrice * (1 + this.takeProfitPct / 100),
+      takeProfit,
     };
     this.lastTradeTime[symbol] = Date.now();
-    console.log(`📈 Position opened: ${symbol.toUpperCase()} @ $${entryPrice.toFixed(2)} | SL: $${dynamicStop.toFixed(2)} (ATR) | TP: $${(entryPrice * 1.025).toFixed(2)}`);
+    console.log(`📈 Position opened: ${symbol.toUpperCase()} @ $${entryPrice.toFixed(2)} | SL: $${dynamicStop.toFixed(2)} (ATR×1.0) | TP: $${takeProfit.toFixed(2)} (+${this.takeProfitPct}%)`);
   }
 
   closePosition(symbol) {
@@ -518,13 +571,13 @@ export class Scalper extends EventEmitter {
   // ── Position sizing: risk 1% of portfolio / (ATR * 1.5) ────────────────
   getPositionSize(symbol, portfolioBalance) {
     const atr = this.signals[symbol]?.atr;
-    if (!atr || atr === 0) return portfolioBalance * 0.3;  // fallback 30%
+    if (!atr || atr === 0) return portfolioBalance * 0.15;  // fallback 15%
     const riskAmount = portfolioBalance * 0.01;  // 1% risk
     const price = this.signals[symbol]?.price || 1;
-    const shares = riskAmount / (atr * 1.5);
+    const shares = riskAmount / atr;  // ATR×1.0 stop
     const positionValue = shares * price;
-    // Cap at 30% of portfolio
-    return Math.min(positionValue, portfolioBalance * 0.3);
+    // Cap at 15% of portfolio
+    return Math.min(positionValue, portfolioBalance * 0.15);
   }
 
   // ── Getters ─────────────────────────────────────────────────────────────
