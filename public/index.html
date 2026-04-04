@@ -295,30 +295,32 @@
             <h2 class="text-lg font-bold text-white mb-4">How I Built This Bot</h2>
             <div class="prose prose-sm prose-invert max-w-none text-gray-400 leading-relaxed space-y-4">
               <p>This started as a question: <em class="text-profit not-italic">can I build a trading bot that actually makes money?</em> Not a tutorial project, not a toy — a real system that watches real markets and makes real decisions.</p>
-              <p>The bot monitors <strong class="text-white font-semibold">three crypto assets</strong> — BTC, ETH, and SOL — on 15-minute candles, around the clock. It uses technical analysis to decide when to buy, when to short, and — most importantly — when to do nothing.</p>
+              <p>The bot monitors <strong class="text-white font-semibold">three crypto assets</strong> — BTC, ETH, and SOL — on 15-minute candles during London and New York sessions (UTC 07:00–21:00).</p>
 
-              <h3 class="text-base font-bold text-white mt-8 mb-3">What Makes It Different</h3>
-              <p>Most trading bots use one fixed strategy. This bot <strong class="text-white font-semibold">adapts</strong>. It detects the current <strong class="text-white font-semibold">market regime</strong> using ADX and automatically switches between two strategies:</p>
+              <h3 class="text-base font-bold text-white mt-8 mb-3">How It Trades (v6)</h3>
+              <p>The bot uses <strong class="text-white font-semibold">two strategies</strong> and automatically switches based on the market regime detected by ADX:</p>
               <ul class="list-disc pl-5 space-y-1.5 text-gray-400">
-                <li><strong class="text-white font-semibold">Mean Reversion</strong> (ranging markets) — buys the dip when price hits the lower Bollinger Band with oversold RSI.</li>
-                <li><strong class="text-white font-semibold">Breakout</strong> (trending markets) — rides momentum by entering on Donchian channel breakouts confirmed by volume.</li>
+                <li><strong class="text-white font-semibold">Confirmation Candle MR</strong> (ADX < 25, ranging) — waits for price to <em>close outside</em> the Bollinger Band, then enters only when the <em>next candle closes back inside</em>. This "bounce-back" filter triples the win rate vs entering on the touch itself.</li>
+                <li><strong class="text-white font-semibold">Breakout</strong> (ADX > 40, trending) — enters on Donchian channel breakouts with 2× average volume and strong trend (ADX 40+). Trailing stop at 2.5× ATR.</li>
               </ul>
 
-              <h3 class="text-base font-bold text-white mt-8 mb-3">What I Learned Building It</h3>
+              <h3 class="text-base font-bold text-white mt-8 mb-3">Position Sizing</h3>
+              <p><strong class="text-white font-semibold">3% compounding</strong> — every trade bets 3% of the <em>current</em> portfolio value, not a fixed dollar amount. Wins compound, losses shrink the bet automatically.</p>
+
+              <h3 class="text-base font-bold text-white mt-8 mb-3">Version History</h3>
               <ul class="list-disc pl-5 space-y-1.5 text-gray-400">
                 <li><strong class="text-white font-semibold">v1–v3</strong> — Simple EMA crossover scalping on 1-minute candles. Too much noise.</li>
-                <li><strong class="text-white font-semibold">v4</strong> — 5-minute candles with a higher-timeframe trend filter. Better signals.</li>
-                <li><strong class="text-white font-semibold">v5</strong> — Added short selling. Doubled the opportunity set.</li>
-                <li><strong class="text-white font-semibold">v6</strong> — <em class="text-profit not-italic">Current version.</em> Full regime-adaptive strategy on 15-minute candles.</li>
+                <li><strong class="text-white font-semibold">v4</strong> — 5-minute candles with higher-timeframe trend filter. Better signals.</li>
+                <li><strong class="text-white font-semibold">v5</strong> — R:R fix (1× ATR stop, full reversion target), MACD filter. MACD blocked all trades.</li>
+                <li><strong class="text-white font-semibold">v6</strong> — <em class="text-profit not-italic">Current version.</em> Confirmation candle MR, removed MACD, 1.5× ATR stop, 3% compounding, $95 hard floor.</li>
               </ul>
 
               <h3 class="text-base font-bold text-white mt-8 mb-3">Safety Nets</h3>
               <ul class="list-disc pl-5 space-y-1.5 text-gray-400">
-                <li><strong class="text-white font-semibold">Stop-loss on every trade</strong> — max 10% of portfolio</li>
-                <li><strong class="text-white font-semibold">Take-profit</strong> — locks in gains automatically</li>
-                <li><strong class="text-white font-semibold">Breakeven trigger</strong> — stop moves to entry price</li>
+                <li><strong class="text-white font-semibold">$95 hard floor</strong> — trading pauses + Telegram alert if portfolio drops 5%</li>
+                <li><strong class="text-white font-semibold">Breakeven stop</strong> — once 0.5× ATR in profit, stop moves to entry (zero risk)</li>
+                <li><strong class="text-white font-semibold">Max 2 positions</strong> — BTC/ETH/SOL are correlated; limits concurrent exposure</li>
                 <li><strong class="text-white font-semibold">5% daily loss limit</strong> — stops trading until tomorrow</li>
-                <li><strong class="text-white font-semibold">3-loss circuit breaker</strong> — 2-hour cooldown</li>
                 <li><strong class="text-white font-semibold">40% kill switch</strong> — permanent shutdown</li>
               </ul>
 

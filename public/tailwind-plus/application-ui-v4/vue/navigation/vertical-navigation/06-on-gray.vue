@@ -1,0 +1,54 @@
+<template>
+  <nav class="flex flex-1 flex-col" aria-label="Sidebar">
+    <ul role="list" class="flex flex-1 flex-col gap-y-7">
+      <li>
+        <ul role="list" class="-mx-2 space-y-1">
+          <li v-for="item in navigation" :key="item.name">
+            <a :href="item.href" :class="[item.current ? 'bg-gray-100 text-indigo-600 dark:bg-white/5 dark:text-white' : 'text-gray-700 hover:bg-gray-100 hover:text-indigo-600 dark:text-gray-300 dark:hover:bg-white/5 dark:hover:text-white', 'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold']">
+              <component :is="item.icon" :class="[item.current ? 'text-indigo-600 dark:text-white' : 'text-gray-400 group-hover:text-indigo-600 dark:text-gray-500 dark:group-hover:text-white', 'size-6 shrink-0']" aria-hidden="true" />
+              {{ item.name }}
+              <span v-if="item.count" class="ml-auto w-9 min-w-max rounded-full bg-gray-50 px-2.5 py-0.5 text-center text-xs/5 font-medium whitespace-nowrap text-gray-600 outline-1 -outline-offset-1 outline-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:outline-white/10" aria-hidden="true">{{ item.count }}</span>
+            </a>
+          </li>
+        </ul>
+      </li>
+      <li>
+        <div class="text-xs/6 font-semibold text-gray-400 dark:text-gray-500">Projects</div>
+        <ul role="list" class="-mx-2 mt-2 space-y-1">
+          <li v-for="item in secondaryNavigation" :key="item.name">
+            <a :href="item.href" :class="[item.current ? 'bg-gray-50 text-indigo-600 dark:bg-white/5 dark:text-white' : 'text-gray-700 hover:bg-gray-100 hover:text-indigo-600 dark:text-gray-300 dark:hover:bg-white/5 dark:hover:text-white', 'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold']">
+              <span :class="[item.current ? 'border-indigo-600 text-indigo-600 dark:border-indigo-500 dark:text-white' : 'border-gray-200 text-gray-400 group-hover:border-indigo-600 group-hover:text-indigo-600 dark:border-white/10 dark:text-gray-500 dark:group-hover:border-white/20 dark:group-hover:text-white', 'flex size-6 shrink-0 items-center justify-center rounded-lg border bg-white text-[0.625rem] font-medium dark:bg-gray-900/50']">{{ item.initial }}</span>
+              <span class="truncate">{{ item.name }}</span>
+            </a>
+          </li>
+        </ul>
+      </li>
+    </ul>
+  </nav>
+</template>
+
+<script setup>
+import {
+  CalendarIcon,
+  ChartPieIcon,
+  DocumentDuplicateIcon,
+  FolderIcon,
+  HomeIcon,
+  UsersIcon,
+} from '@heroicons/vue/24/outline'
+
+const navigation = [
+  { name: 'Dashboard', href: '#', icon: HomeIcon, count: '5', current: true },
+  { name: 'Team', href: '#', icon: UsersIcon, current: false },
+  { name: 'Projects', href: '#', icon: FolderIcon, count: '12', current: false },
+  { name: 'Calendar', href: '#', icon: CalendarIcon, count: '20+', current: false },
+  { name: 'Documents', href: '#', icon: DocumentDuplicateIcon, current: false },
+  { name: 'Reports', href: '#', icon: ChartPieIcon, current: false },
+]
+const secondaryNavigation = [
+  { name: 'Website redesign', href: '#', initial: 'W', current: false },
+  { name: 'GraphQL API', href: '#', initial: 'G', current: false },
+  { name: 'Customer migration guides', href: '#', initial: 'C', current: false },
+  { name: 'Profit sharing program', href: '#', initial: 'P', current: false },
+]
+</script>

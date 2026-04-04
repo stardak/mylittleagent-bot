@@ -283,7 +283,7 @@ async function main() {
 
   // Startup entry
   const symbolList = scalper.symbols.map(s => s.replace('usdt','').toUpperCase()).join(', ');
-  logger.info(`Bot v4 started in ${IS_LIVE ? 'LIVE' : 'PAPER'} mode. Regime-adaptive strategy on ${symbolList}. Mean Reversion (ADX<20) + Breakout (ADX>25).`);
+  logger.info(`Bot v6 started in ${IS_LIVE ? 'LIVE' : 'PAPER'} mode. Confirmation MR + Breakout on ${symbolList}. 3% compounding, $95 hard floor.`);
 
   // Forward candle evaluations to dashboard live ticker
   scalper.on('candle-eval', (evalData) => {
@@ -304,6 +304,13 @@ async function main() {
       reason,
       reason.includes('RSI') ? 'rsi' : reason.includes('Vol') ? 'regime' : reason.includes('BB') ? 'ema' : reason.includes('Hour') ? 'regime' : reason.includes('Cooldown') ? 'cooldown' : null
     );
+  });
+
+  // Hard floor: pause trading if portfolio drops below $95
+  scalper.on('hard-floor', ({ balance, floor }) => {
+    const msg = `🚨 <b>HARD FLOOR HIT</b>\n\nPortfolio: $${balance.toFixed(2)}\nFloor: $${floor}\n\n⛔ Trading is PAUSED.\nReview before resuming.`;
+    alerts.send(msg);
+    console.log(`\n🚨🚨🚨 HARD FLOOR HIT — $${balance.toFixed(2)} < $${floor} — TRADING PAUSED 🚨🚨🚨\n`);
   });
 
   // Handle BUY and SELL_SHORT signals (from either strategy, either direction)
