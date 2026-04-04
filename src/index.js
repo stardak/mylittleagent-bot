@@ -257,11 +257,11 @@ async function main() {
   console.log('🚀 Bot is running! Dashboard: http://localhost:3000');
   console.log('   Press Ctrl+C to stop.\n');
 
-  // ── Binance Scalper ─────────────────────────────────────────
+  // ── Binance Scalper v4 — Regime-Adaptive ─────────────────────
 
   const scalper = new Scalper({
-    symbols: ['ethusdt'],
-    interval: '5m',
+    symbols: ['ethusdt', 'btcusdt', 'solusdt'],
+    interval: '15m',
   });
 
   const binanceTrader = new BinanceTrader({
@@ -282,68 +282,82 @@ async function main() {
   dashboard.activityLogger = logger;
 
   // Startup entry
-  logger.info(`Bot started in ${IS_LIVE ? 'LIVE' : 'PAPER'} mode. Watching ${scalper.symbols.map(s => s.replace('usdt','').toUpperCase()).join(', ')} with 5m MTF confirmation. First signals in ~38 minutes after indicator warmup.`);
+  const symbolList = scalper.symbols.map(s => s.replace('usdt','').toUpperCase()).join(', ');
+  logger.info(`Bot v4 started in ${IS_LIVE ? 'LIVE' : 'PAPER'} mode. Regime-adaptive strategy on ${symbolList}. Mean Reversion (ADX<20) + Breakout (ADX>25).`);
 
   // Forward candle evaluations to dashboard live ticker
   scalper.on('candle-eval', (evalData) => {
     dashboard.io.emit('candle-eval', evalData);
   });
 
-  // Log blocked EMA crosses (skip entries with reasons)
-  scalper.on('skip', ({ symbol, reason, price, rsi, volumeRatio, macdHist }) => {
+  // Log regime changes
+  scalper.on('regime-change', ({ symbol, from, to, adx }) => {
+    const coin = symbol.replace('usdt', '').toUpperCase();
+    logger.info(`${coin} regime shifted: ${from} → ${to} (ADX ${adx.toFixed(1)})`);
+  });
+
+  // Log blocked entries
+  scalper.on('skip', ({ symbol, reason, price, rsi, volumeRatio }) => {
     const coin = symbol.replace('usdt', '').toUpperCase();
     logger.skip(coin,
-      `${coin} EMA crossover detected at $${price.toFixed(2)} but blocked.`,
+      `${coin} signal near at $${price.toFixed(2)} but blocked.`,
       reason,
-      reason.includes('RSI') ? 'rsi' : reason.includes('Vol') ? 'regime' : reason.includes('MACD') ? 'ema' : reason.includes('Hour') ? 'regime' : reason.includes('Cooldown') ? 'cooldown' : null
+      reason.includes('RSI') ? 'rsi' : reason.includes('Vol') ? 'regime' : reason.includes('BB') ? 'ema' : reason.includes('Hour') ? 'regime' : reason.includes('Cooldown') ? 'cooldown' : null
     );
   });
 
-  // Handle BUY signals
-  scalper.on('signal', async ({ symbol, signal, price, emaFast, emaSlow, rsi, macdHist, volumeRatio, atr }) => {
-    if (signal !== 'BUY') return;
+  // Handle BUY and SELL_SHORT signals (from either strategy, either direction)
+  scalper.on('signal', async ({ symbol, signal, side, strategy, price, rsi, volumeRatio, atr }) => {
+    if (signal !== 'BUY' && signal !== 'SELL_SHORT') return;
     if (scalper.hasOpenPosition(symbol)) return;
 
     const coin = symbol.replace('usdt', '').toUpperCase();
     const positionUsd = scalper.getPositionSize(symbol, binanceTrader.portfolio.balance);
-    const positionPct = (positionUsd / binanceTrader.portfolio.balance) * 100;
 
-    const trade = await binanceTrader.buy(symbol, price, positionPct);
+    if (positionUsd <= 0) {
+      logger.skip(coin, `${coin} ${signal} blocked: max portfolio exposure reached.`, 'Exposure limit', 'regime');
+      return;
+    }
+
+    const positionPct = (positionUsd / binanceTrader.portfolio.balance) * 100;
+    const tradeSide = side || 'LONG';
+
+    const trade = await binanceTrader.buy(symbol, price, positionPct, strategy);
     if (trade) {
-      scalper.openPosition(symbol, trade.price, trade.quantity);
+      scalper.openPosition(symbol, trade.price, trade.quantity, strategy, tradeSide);
+      const pos = scalper.getPosition(symbol);
+      const sideEmoji = tradeSide === 'LONG' ? '📈' : '📉';
+      const stopInfo = strategy === 'MEAN_REVERSION'
+        ? `Stop: $${pos?.stopPrice?.toFixed(2)} | Target: $${pos?.targetPrice?.toFixed(2)}`
+        : `Trail: $${pos?.trailingStop?.toFixed(2)} | TP: $${pos?.targetPrice?.toFixed(2)}`;
+
       logger.buy(coin,
-        `${coin} bought at $${trade.price.toFixed(2)}. Size: $${trade.cost.toFixed(2)}. Stop at $${scalper.getPosition(symbol)?.dynamicStop?.toFixed(2)}.`,
-        `EMA crossover, RSI ${rsi?.toFixed(0)} rising, MACD ${macdHist?.toFixed(3)}, vol ${volumeRatio?.toFixed(1)}x`
+        `${sideEmoji} ${coin} [${strategy} ${tradeSide}] entered at $${trade.price.toFixed(2)}. Size: $${trade.cost.toFixed(2)}. ${stopInfo}`,
+        `${strategy} ${tradeSide}, RSI ${rsi?.toFixed(0)}, vol ${volumeRatio?.toFixed(1)}x`
       );
       dashboard.pushUpdate();
     }
   });
 
-  // Handle position closes (stop-loss or take-profit)
-  scalper.on('close-position', async ({ symbol, reason, entryPrice, exitPrice, pnlPct, quantity }) => {
+  // Handle position closes (stop-loss, target hit, trailing stop, etc.)
+  scalper.on('close-position', async ({ symbol, reason, strategy, side, entryPrice, exitPrice, pnlPct, quantity }) => {
     const coin = symbol.replace('usdt', '').toUpperCase();
-    const tagMap = { TAKE_PROFIT: 'tp', ATR_STOP: 'sl', BREAKEVEN_STOP: 'breakeven', RSI_OVERBOUGHT: 'rsi', EMA_CROSS_DOWN: 'ema' };
+    const tagMap = {
+      TAKE_PROFIT: 'tp', STOP_LOSS: 'sl', TARGET_HIT: 'tp',
+      TRAILING_STOP: 'sl', REGIME_CHANGE: 'regime', TIME_EXIT: 'sl',
+    };
+    const tradeSide = side || 'LONG';
 
-    await binanceTrader.sell(symbol, quantity, exitPrice, entryPrice);
-    const pnlUsd = quantity * (exitPrice - entryPrice);
+    await binanceTrader.sell(symbol, quantity, exitPrice, entryPrice, strategy, reason, tradeSide);
+    const isLong = tradeSide === 'LONG';
+    const pnlUsd = isLong
+      ? quantity * (exitPrice - entryPrice)
+      : quantity * (entryPrice - exitPrice);
     logger.sell(coin,
-      `${coin} sold at $${exitPrice.toFixed(2)}. ${reason}. P&L: ${pnlUsd >= 0 ? '+' : ''}$${pnlUsd.toFixed(2)} (${pnlPct >= 0 ? '+' : ''}${pnlPct.toFixed(2)}%).`,
+      `${coin} [${strategy} ${tradeSide}] closed at $${exitPrice.toFixed(2)}. ${reason}. P&L: ${pnlUsd >= 0 ? '+' : ''}$${pnlUsd.toFixed(2)} (${pnlPct >= 0 ? '+' : ''}${pnlPct.toFixed(2)}%).`,
       `Exit: ${reason}, entry $${entryPrice.toFixed(2)} → $${exitPrice.toFixed(2)}`,
       tagMap[reason] || 'sl'
     );
-    scalper.closePosition(symbol);
-    dashboard.pushUpdate();
-  });
-
-  // Handle manual SELL signals from strategy
-  scalper.on('signal', async ({ symbol, signal, price }) => {
-    if (signal !== 'SELL') return;
-    if (!scalper.hasOpenPosition(symbol)) return;
-
-    const position = scalper.getPosition(symbol);
-    console.log(`\n📈 SELL SIGNAL: ${symbol.toUpperCase()} @ $${price.toFixed(2)}`);
-
-    await binanceTrader.sell(symbol, position.quantity, price, position.entryPrice);
     scalper.closePosition(symbol);
     dashboard.pushUpdate();
   });

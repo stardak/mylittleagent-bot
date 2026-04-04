@@ -21,6 +21,9 @@ export class BinanceTrader {
     this.apiSecret = options.apiSecret || '';
     this.alerts = options.alerts || null;
 
+    // Fee simulation (Binance spot taker fee)
+    this.feePct = 0.001; // 0.1% per side = 0.2% round-trip
+
     // Portfolio tracking
     this.portfolio = {
       startingBalance: options.startingBalance || 99,
@@ -29,6 +32,12 @@ export class BinanceTrader {
       trades: [],
       wins: 0,
       losses: 0,
+      // Per-strategy tracking
+      strategyStats: {
+        MEAN_REVERSION: { wins: 0, losses: 0, pnl: 0 },
+        BREAKOUT: { wins: 0, losses: 0, pnl: 0 },
+        UNKNOWN: { wins: 0, losses: 0, pnl: 0 },
+      },
     };
 
     // SQLite persistence
@@ -52,9 +61,17 @@ export class BinanceTrader {
         pnl REAL,
         pnl_pct REAL,
         entry_price REAL,
+        fee REAL DEFAULT 0,
+        strategy TEXT DEFAULT 'UNKNOWN',
+        exit_reason TEXT,
         mode TEXT NOT NULL DEFAULT 'PAPER'
       );
     `);
+
+    // Add columns if they don't exist (migration for existing DBs)
+    try { this.db.exec(`ALTER TABLE scalper_trades ADD COLUMN fee REAL DEFAULT 0`); } catch(e) { /* already exists */ }
+    try { this.db.exec(`ALTER TABLE scalper_trades ADD COLUMN strategy TEXT DEFAULT 'UNKNOWN'`); } catch(e) { /* already exists */ }
+    try { this.db.exec(`ALTER TABLE scalper_trades ADD COLUMN exit_reason TEXT`); } catch(e) { /* already exists */ }
   }
 
   _loadScalperState() {
@@ -74,6 +91,26 @@ export class BinanceTrader {
       this.portfolio.balance = this.portfolio.startingBalance + stats.totalPnl;
     }
 
+    // Restore per-strategy stats
+    try {
+      const stratStats = this.db.prepare(`
+        SELECT
+          COALESCE(strategy, 'UNKNOWN') as strategy,
+          COALESCE(SUM(CASE WHEN pnl > 0 THEN 1 ELSE 0 END), 0) as wins,
+          COALESCE(SUM(CASE WHEN pnl <= 0 THEN 1 ELSE 0 END), 0) as losses,
+          COALESCE(SUM(pnl), 0) as pnl
+        FROM scalper_trades WHERE type='SELL'
+        GROUP BY strategy
+      `).all();
+
+      for (const row of stratStats) {
+        const key = row.strategy || 'UNKNOWN';
+        if (this.portfolio.strategyStats[key]) {
+          this.portfolio.strategyStats[key] = { wins: row.wins, losses: row.losses, pnl: row.pnl };
+        }
+      }
+    } catch(e) { /* strategy column might not exist yet */ }
+
     // Load recent trades for dashboard display
     const recentRows = this.db.prepare(
       'SELECT * FROM scalper_trades ORDER BY id DESC LIMIT 40'
@@ -90,6 +127,8 @@ export class BinanceTrader {
       pnl: r.pnl,
       pnlPct: r.pnl_pct,
       entryPrice: r.entry_price,
+      strategy: r.strategy || 'UNKNOWN',
+      exitReason: r.exit_reason || '',
       timestamp: r.timestamp,
       mode: r.mode,
     }));
@@ -99,17 +138,18 @@ export class BinanceTrader {
 
   _persistTrade(trade) {
     this.db.prepare(`
-      INSERT INTO scalper_trades (timestamp, type, symbol, price, quantity, cost, revenue, pnl, pnl_pct, entry_price, mode)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO scalper_trades (timestamp, type, symbol, price, quantity, cost, revenue, pnl, pnl_pct, entry_price, fee, strategy, exit_reason, mode)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       trade.timestamp, trade.type, trade.symbol, trade.price, trade.quantity,
       trade.cost || null, trade.revenue || null, trade.pnl || null,
-      trade.pnlPct || null, trade.entryPrice || null, trade.mode
+      trade.pnlPct || null, trade.entryPrice || null, trade.fee || 0,
+      trade.strategy || 'UNKNOWN', trade.exitReason || null, trade.mode
     );
   }
 
   // ── Execute a BUY ───────────────────────────────────────────────────────
-  async buy(symbol, price, portfolioPct) {
+  async buy(symbol, price, portfolioPct, strategy = 'UNKNOWN') {
     const amountUsd = this.portfolio.balance * (portfolioPct / 100);
     if (amountUsd < 5) {
       console.log(`📈 Skipping buy: balance too low ($${this.portfolio.balance.toFixed(2)})`);
@@ -119,25 +159,26 @@ export class BinanceTrader {
     const quantity = amountUsd / price;
 
     if (this.live) {
-      return await this._liveBuy(symbol, quantity, price);
+      return await this._liveBuy(symbol, quantity, price, strategy);
     } else {
-      return this._paperBuy(symbol, quantity, price, amountUsd);
+      return this._paperBuy(symbol, quantity, price, amountUsd, strategy);
     }
   }
 
   // ── Execute a SELL ──────────────────────────────────────────────────────
-  async sell(symbol, quantity, price, entryPrice) {
+  async sell(symbol, quantity, price, entryPrice, strategy = 'UNKNOWN', exitReason = '', side = 'LONG') {
     if (this.live) {
-      return await this._liveSell(symbol, quantity, price, entryPrice);
+      return await this._liveSell(symbol, quantity, price, entryPrice, strategy, exitReason);
     } else {
-      return this._paperSell(symbol, quantity, price, entryPrice);
+      return this._paperSell(symbol, quantity, price, entryPrice, strategy, exitReason, side);
     }
   }
 
   // ── Paper Trading ───────────────────────────────────────────────────────
-  _paperBuy(symbol, quantity, price, amountUsd) {
+  _paperBuy(symbol, quantity, price, amountUsd, strategy = 'UNKNOWN') {
     const fillPrice = price;
-    const cost = quantity * fillPrice;
+    const fee = quantity * fillPrice * this.feePct; // Buy-side fee
+    const cost = quantity * fillPrice + fee;
 
     this.portfolio.balance -= cost;
 
@@ -148,38 +189,58 @@ export class BinanceTrader {
       price: fillPrice,
       quantity,
       cost,
+      fee,
+      strategy,
       timestamp: Date.now(),
       mode: 'PAPER',
     };
 
     this.portfolio.trades.push(trade);
     this._persistTrade(trade);
-    console.log(`📝 PAPER BUY: ${quantity.toFixed(6)} ${symbol.toUpperCase()} @ $${fillPrice.toFixed(2)} ($${cost.toFixed(2)})`);
+    console.log(`📝 PAPER BUY [${strategy}]: ${quantity.toFixed(6)} ${symbol.toUpperCase()} @ $${fillPrice.toFixed(2)} ($${cost.toFixed(2)} incl $${fee.toFixed(2)} fee)`);
 
     if (this.alerts) {
       this.alerts.send(
-        `📈 <b>Paper BUY</b>\n\n` +
+        `📈 <b>Paper BUY [${strategy}]</b>\n\n` +
         `${symbol.toUpperCase()} @ $${fillPrice.toFixed(2)}\n` +
-        `Amount: $${cost.toFixed(2)}\n` +
-        `SL: $${(fillPrice * 0.985).toFixed(2)} | TP: $${(fillPrice * 1.025).toFixed(2)}`
+        `Amount: $${cost.toFixed(2)} (fee: $${fee.toFixed(2)})`
       );
     }
 
     return trade;
   }
 
-  _paperSell(symbol, quantity, price, entryPrice) {
+  _paperSell(symbol, quantity, price, entryPrice, strategy = 'UNKNOWN', exitReason = '', side = 'LONG') {
     const fillPrice = price;
-    const revenue = quantity * fillPrice;
+    const fee = quantity * fillPrice * this.feePct; // Sell-side fee
+    const isLong = side === 'LONG';
+
+    // Direction-aware P&L
+    const revenue = quantity * fillPrice - fee;
     const cost = quantity * entryPrice;
-    const pnl = revenue - cost;
-    const pnlPct = ((fillPrice - entryPrice) / entryPrice) * 100;
+    const pnl = isLong ? (revenue - cost) : (cost - revenue + quantity * fillPrice - quantity * fillPrice + quantity * (entryPrice - fillPrice) - fee);
+    // Simplify: for longs, pnl = qty*(exit-entry) - fees. For shorts, pnl = qty*(entry-exit) - fees.
+    const rawPnl = isLong
+      ? quantity * (fillPrice - entryPrice)
+      : quantity * (entryPrice - fillPrice);
+    const totalFees = quantity * fillPrice * this.feePct + quantity * entryPrice * this.feePct; // buy + sell fees
+    const netPnl = rawPnl - totalFees;
+    const pnlPct = isLong
+      ? ((fillPrice - entryPrice) / entryPrice) * 100 - (this.feePct * 2 * 100)
+      : ((entryPrice - fillPrice) / entryPrice) * 100 - (this.feePct * 2 * 100);
 
-    this.portfolio.balance += revenue;
-    this.portfolio.totalPnl += pnl;
+    // Return collateral + P&L to balance
+    this.portfolio.balance += (quantity * entryPrice) + netPnl;
+    this.portfolio.totalPnl += netPnl;
 
-    if (pnl >= 0) this.portfolio.wins++;
+    if (netPnl >= 0) this.portfolio.wins++;
     else this.portfolio.losses++;
+
+    // Update per-strategy stats
+    const stratKey = this.portfolio.strategyStats[strategy] ? strategy : 'UNKNOWN';
+    if (netPnl >= 0) this.portfolio.strategyStats[stratKey].wins++;
+    else this.portfolio.strategyStats[stratKey].losses++;
+    this.portfolio.strategyStats[stratKey].pnl += netPnl;
 
     const trade = {
       id: `paper-${Date.now()}`,
@@ -187,10 +248,13 @@ export class BinanceTrader {
       symbol: symbol.toUpperCase(),
       price: fillPrice,
       quantity,
-      revenue,
-      pnl,
+      revenue: quantity * fillPrice,
+      pnl: netPnl,
       pnlPct,
       entryPrice,
+      fee: totalFees,
+      strategy,
+      exitReason,
       timestamp: Date.now(),
       mode: 'PAPER',
     };
@@ -198,14 +262,15 @@ export class BinanceTrader {
     this.portfolio.trades.push(trade);
     this._persistTrade(trade);
 
-    const emoji = pnl >= 0 ? '✅' : '❌';
-    console.log(`📝 PAPER SELL: ${quantity.toFixed(6)} ${symbol.toUpperCase()} @ $${fillPrice.toFixed(2)} | P&L: ${emoji} $${pnl.toFixed(2)} (${pnlPct.toFixed(2)}%)`);
+    const emoji = netPnl >= 0 ? '✅' : '❌';
+    const sideLabel = isLong ? 'LONG' : 'SHORT';
+    console.log(`📝 PAPER CLOSE [${strategy}/${sideLabel}/${exitReason}]: ${quantity.toFixed(6)} ${symbol.toUpperCase()} @ $${fillPrice.toFixed(2)} | P&L: ${emoji} $${netPnl.toFixed(2)} (${pnlPct.toFixed(2)}%) | Fee: $${totalFees.toFixed(2)}`);
 
     if (this.alerts) {
       this.alerts.send(
-        `${emoji} <b>Paper SELL</b>\n\n` +
+        `${emoji} <b>Paper ${sideLabel} CLOSE [${strategy}]</b>\n\n` +
         `${symbol.toUpperCase()} @ $${fillPrice.toFixed(2)}\n` +
-        `Entry: $${entryPrice.toFixed(2)}\n` +
+        `Entry: $${entryPrice.toFixed(2)} | ${exitReason}\n` +
         `P&L: $${pnl.toFixed(2)} (${pnlPct >= 0 ? '+' : ''}${pnlPct.toFixed(2)}%)\n` +
         `Balance: $${this.portfolio.balance.toFixed(2)}`
       );
@@ -350,6 +415,7 @@ export class BinanceTrader {
       winRate: totalTrades > 0 ? (this.portfolio.wins / totalTrades) * 100 : 0,
       totalTrades,
       recentTrades: this.portfolio.trades.slice(-20).reverse(),
+      strategyStats: this.portfolio.strategyStats,
       mode: this.live ? 'LIVE' : 'PAPER',
     };
   }
