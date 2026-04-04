@@ -79,19 +79,21 @@ export class AlertService {
 
   /**
    * Send a startup notification so you know the bot is running.
-   * Debounced — only sends once per 5 minutes to avoid spam from PM2 restarts.
+   * Debounced — only sends once per 10 minutes to avoid spam from PM2 restarts.
    */
   async sendStartupAlert(mode) {
     const fs = await import('fs');
     const path = await import('path');
-    const flagFile = path.join(process.cwd(), '.last-startup-alert');
-    const COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
+    const { fileURLToPath } = await import('url');
+    const __dirname = path.dirname(fileURLToPath(import.meta.url));
+    const flagFile = path.join(__dirname, '..', '.last-startup-alert');
+    const COOLDOWN_MS = 10 * 60 * 1000; // 10 minutes
 
     try {
       if (fs.existsSync(flagFile)) {
         const lastSent = parseInt(fs.readFileSync(flagFile, 'utf8'), 10);
         if (Date.now() - lastSent < COOLDOWN_MS) {
-          console.log('📢 Startup alert skipped (cooldown — sent less than 5m ago)');
+          console.log('📢 Startup alert skipped (cooldown — sent less than 10m ago)');
           return;
         }
       }
