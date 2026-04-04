@@ -295,36 +295,46 @@
             <h2 class="text-lg font-bold text-white mb-4">How I Built This Bot</h2>
             <div class="prose prose-sm prose-invert max-w-none text-gray-400 leading-relaxed space-y-4">
               <p>This started as a question: <em class="text-profit not-italic">can I build a trading bot that actually makes money?</em> Not a tutorial project, not a toy — a real system that watches real markets and makes real decisions.</p>
-              <p>The bot monitors <strong class="text-white font-semibold">three crypto assets</strong> — BTC, ETH, and SOL — on 15-minute candles during London and New York sessions (UTC 07:00–21:00).</p>
 
-              <h3 class="text-base font-bold text-white mt-8 mb-3">How It Trades (v6)</h3>
-              <p>The bot uses <strong class="text-white font-semibold">two strategies</strong> and automatically switches based on the market regime detected by ADX:</p>
+              <p>What I ended up building — accidentally — is a <strong class="text-white font-semibold">systematic algorithmic trading system</strong>. No emotional decisions, no gut feelings. Every entry, exit, and position size is rule-based and backtestable. The overall style is closest to what the industry calls <strong class="text-white font-semibold">quantitative trading at the retail level</strong>.</p>
+
+              <h3 class="text-base font-bold text-white mt-8 mb-3">The Journey</h3>
+              <p>I didn't start here. I started with "can we just guess up or down every five minutes?" — a simple momentum voter on 5-minute candles. Three signals vote, and if two agree, bet. It sounded clean. It was also completely useless: <strong class="text-white font-semibold">10% win rate</strong>, negative EV, a max loss streak of 51. Crypto on short timeframes is noise, and fees eat everything.</p>
+
+              <p>So I moved to 15-minute candles and tried mean reversion — buy when price drops below the Bollinger Band, sell when it bounces back. Better idea, but <strong class="text-white font-semibold">15% win rate</strong>. Price would touch the band and keep going. Catching falling knives.</p>
+
+              <p>The breakthrough came from a simple rule: <em class="text-profit not-italic">don't enter on the touch — wait for the next candle to close back inside the band</em>. One candle of proof that the bounce is real. That single filter <strong class="text-white font-semibold">tripled the win rate from 15% to 57%</strong>. The technique has a name in professional trading: <strong class="text-white font-semibold">mean reversion with entry confirmation</strong>. It's used in serious institutional strategies, not just retail bots.</p>
+
+              <h3 class="text-base font-bold text-white mt-8 mb-3">How It Trades Now (v6)</h3>
+              <p>The bot monitors <strong class="text-white font-semibold">BTC, ETH, and SOL</strong> on 15-minute candles during London and New York sessions. It detects the market regime using ADX and switches between two strategies:</p>
               <ul class="list-disc pl-5 space-y-1.5 text-gray-400">
-                <li><strong class="text-white font-semibold">Confirmation Candle MR</strong> (ADX < 25, ranging) — waits for price to <em>close outside</em> the Bollinger Band, then enters only when the <em>next candle closes back inside</em>. This "bounce-back" filter triples the win rate vs entering on the touch itself.</li>
-                <li><strong class="text-white font-semibold">Breakout</strong> (ADX > 40, trending) — enters on Donchian channel breakouts with 2× average volume and strong trend (ADX 40+). Trailing stop at 2.5× ATR.</li>
+                <li><strong class="text-white font-semibold">Confirmation Candle MR</strong> (ranging markets, ADX < 25) — waits for price to close outside the Bollinger Band with extreme RSI, then enters only when the next candle closes back inside. The "bounce-back" is the confirmation.</li>
+                <li><strong class="text-white font-semibold">Donchian Breakout</strong> (trending markets, ADX > 40) — enters on channel breakouts confirmed by 2× average volume. Trailing stop at 2.5× ATR.</li>
               </ul>
 
-              <h3 class="text-base font-bold text-white mt-8 mb-3">Position Sizing</h3>
-              <p><strong class="text-white font-semibold">3% compounding</strong> — every trade bets 3% of the <em>current</em> portfolio value, not a fixed dollar amount. Wins compound, losses shrink the bet automatically.</p>
+              <h3 class="text-base font-bold text-white mt-8 mb-3">Position Sizing: The Kelly Connection</h3>
+              <p>Every trade bets <strong class="text-white font-semibold">3% of the current portfolio value</strong>, not a fixed dollar amount. When you win, the next bet is bigger. When you lose, it shrinks. This is straight out of the <strong class="text-white font-semibold">Kelly Criterion</strong> playbook — a formula originally developed for gambling by physicist John Kelly in the 1950s, later adopted by some of the most successful hedge funds in history, including <strong class="text-white font-semibold">Renaissance Technologies</strong> and <strong class="text-white font-semibold">Bridgewater Associates</strong>.</p>
+              <p>The 3% figure is deliberately conservative — a fractional Kelly — which sacrifices some growth for dramatically lower drawdown risk.</p>
 
-              <h3 class="text-base font-bold text-white mt-8 mb-3">Version History</h3>
+              <h3 class="text-base font-bold text-white mt-8 mb-3">What Was Tested and Rejected</h3>
               <ul class="list-disc pl-5 space-y-1.5 text-gray-400">
-                <li><strong class="text-white font-semibold">v1–v3</strong> — Simple EMA crossover scalping on 1-minute candles. Too much noise.</li>
-                <li><strong class="text-white font-semibold">v4</strong> — 5-minute candles with higher-timeframe trend filter. Better signals.</li>
-                <li><strong class="text-white font-semibold">v5</strong> — R:R fix (1× ATR stop, full reversion target), MACD filter. MACD blocked all trades.</li>
-                <li><strong class="text-white font-semibold">v6</strong> — <em class="text-profit not-italic">Current version.</em> Confirmation candle MR, removed MACD, 1.5× ATR stop, 3% compounding, $95 hard floor.</li>
+                <li><strong class="text-white font-semibold">MACD confirmation</strong> — blocked 100% of mean reversion trades across 30 days. Removed.</li>
+                <li><strong class="text-white font-semibold">Momentum voting (5m and 1h)</strong> — 10-32% win rate. Pure noise on short timeframes.</li>
+                <li><strong class="text-white font-semibold">1× ATR stops</strong> — too tight, caused 87% of trades to stop out before reversing. Loosened to 1.5×.</li>
+                <li><strong class="text-white font-semibold">BB touch entry (no confirmation)</strong> — 15% win rate. Catching falling knives.</li>
               </ul>
+              <p>Every decision above came from an 18-combination parameter sweep across 8,640 candles — not intuition.</p>
 
               <h3 class="text-base font-bold text-white mt-8 mb-3">Safety Nets</h3>
               <ul class="list-disc pl-5 space-y-1.5 text-gray-400">
-                <li><strong class="text-white font-semibold">$95 hard floor</strong> — trading pauses + Telegram alert if portfolio drops 5%</li>
-                <li><strong class="text-white font-semibold">Breakeven stop</strong> — once 0.5× ATR in profit, stop moves to entry (zero risk)</li>
-                <li><strong class="text-white font-semibold">Max 2 positions</strong> — BTC/ETH/SOL are correlated; limits concurrent exposure</li>
+                <li><strong class="text-white font-semibold">$95 hard floor</strong> — trading pauses and I get a Telegram alert if the portfolio drops 5%</li>
+                <li><strong class="text-white font-semibold">Breakeven stop</strong> — once 0.5× ATR in profit, the stop moves to the entry price. Zero risk.</li>
+                <li><strong class="text-white font-semibold">Max 2 positions</strong> — BTC, ETH, and SOL are correlated. No triple exposure.</li>
                 <li><strong class="text-white font-semibold">5% daily loss limit</strong> — stops trading until tomorrow</li>
                 <li><strong class="text-white font-semibold">40% kill switch</strong> — permanent shutdown</li>
               </ul>
 
-              <p>Currently running in <strong class="text-white font-semibold">paper trading mode</strong> — simulating trades with fake money while I validate the strategy in live market conditions.</p>
+              <p>Currently running in <strong class="text-white font-semibold">paper trading mode</strong> — simulating trades while I validate the strategy in live market conditions. The goal isn't to get rich quick. It's to find a small, consistent edge and let compounding do the rest.</p>
               <p class="text-gray-600 italic mt-6">— Stef Michalak</p>
             </div>
           </div>
