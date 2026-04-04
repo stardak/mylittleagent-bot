@@ -615,101 +615,133 @@
       indEl.textContent = signal.lastSkipReason || `RSI:${signal.rsi?.toFixed(0)} · MACD:${signal.macdHist?.toFixed(3)} · Vol:${signal.volumeRatio?.toFixed(1)}x`;
     }
 
-    // ── Live Ticker ────────────────────────────────────────
-    // ── Bloomberg Ticker State ─────────────────────────────
+    // ── Bloomberg Ticker ────────────────────────────────────
     const tickerData = {};
-    const ticker24h = {};
+    const tickerMarket = {};  // from Binance REST API
 
-    // Fetch 24hr changes from Binance
-    async function fetch24hChanges() {
+    // Fetch prices + 24h stats from Binance REST (works immediately, no socket needed)
+    async function fetchTickerMarketData() {
       try {
         const symbols = ['ETHUSDT', 'BTCUSDT', 'SOLUSDT'];
         const res = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbols=${JSON.stringify(symbols)}`);
         const data = await res.json();
         for (const d of data) {
-          ticker24h[d.symbol.toLowerCase()] = parseFloat(d.priceChangePercent);
+          const sym = d.symbol.toLowerCase();
+          tickerMarket[sym] = {
+            price: parseFloat(d.lastPrice),
+            change: parseFloat(d.priceChangePercent),
+            high: parseFloat(d.highPrice),
+            low: parseFloat(d.lowPrice),
+            volume: parseFloat(d.quoteVolume),
+          };
         }
-      } catch (e) { console.warn('24h fetch failed:', e); }
+        renderTickerBar();
+      } catch (e) { console.warn('Ticker fetch failed:', e); }
     }
-    fetch24hChanges();
-    setInterval(fetch24hChanges, 30000);
+    fetchTickerMarketData();
+    setInterval(fetchTickerMarketData, 30000);
 
-    function renderTickerBar() {
-      const syms = ['ethusdt', 'btcusdt', 'solusdt'];
+    function buildTickerHTML() {
+      const syms = ['btcusdt', 'ethusdt', 'solusdt'];
       const labels = { ethusdt: 'ETH', btcusdt: 'BTC', solusdt: 'SOL' };
       let html = '';
 
       for (const sym of syms) {
-        const d = tickerData[sym];
-        const change = ticker24h[sym];
-        if (!d) continue;
+        const mkt = tickerMarket[sym];
+        const live = tickerData[sym]; // from socket (may not exist yet)
+        if (!mkt) continue;
 
         const coin = labels[sym];
-        const priceStr = d.price >= 1000 ? d.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : d.price.toFixed(2);
-        const changeStr = change != null ? (change >= 0 ? `+${change.toFixed(2)}%` : `${change.toFixed(2)}%`) : '—';
+        const price = live?.price || mkt.price;
+        const priceStr = price >= 1000 ? price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : price.toFixed(2);
+        const change = mkt.change;
+        const changeStr = change >= 0 ? `+${change.toFixed(2)}%` : `${change.toFixed(2)}%`;
         const changeCls = change >= 0 ? 'up' : 'down';
 
-        // ADX regime
-        const adxVal = d.adx || 0;
-        const regimeLbl = adxVal >= 25 ? 'TRENDING' : 'RANGING';
-        const regimeCls = adxVal >= 25 ? 'trending' : 'ranging';
+        // ADX regime (from socket if available)
+        const adxVal = live?.adx || 0;
+        const hasAdx = !!live?.adx;
+        const regimeLbl = hasAdx ? (adxVal >= 25 ? 'TRENDING' : 'RANGING') : 'WAIT';
+        const regimeCls = !hasAdx ? 'neutral' : (adxVal >= 25 ? 'trending' : 'ranging');
 
-        // RSI level
-        const rsiVal = d.rsi || 50;
+        // RSI (from socket if available)
+        const rsiVal = live?.rsi || 0;
+        const hasRsi = !!live?.rsi;
         let rsiLbl = 'NEUTRAL', rsiCls = 'neutral';
-        if (rsiVal < 30) { rsiLbl = 'OVERSOLD'; rsiCls = 'oversold'; }
-        else if (rsiVal > 70) { rsiLbl = 'OVERBOUGHT'; rsiCls = 'overbought'; }
+        if (hasRsi) {
+          if (rsiVal < 30) { rsiLbl = 'OVERSOLD'; rsiCls = 'oversold'; }
+          else if (rsiVal > 70) { rsiLbl = 'OVERBOUGHT'; rsiCls = 'overbought'; }
+        } else { rsiLbl = '—'; }
+
+        // 24h range
+        const rangeStr = `H:$${mkt.high >= 1000 ? mkt.high.toLocaleString('en-US',{maximumFractionDigits:0}) : mkt.high.toFixed(2)} L:$${mkt.low >= 1000 ? mkt.low.toLocaleString('en-US',{maximumFractionDigits:0}) : mkt.low.toFixed(2)}`;
+
+        // Volume
+        const volM = mkt.volume / 1e6;
+        const volStr = volM >= 1000 ? `${(volM/1000).toFixed(1)}B` : `${volM.toFixed(0)}M`;
 
         html += `<div class="ticker-item">`;
         html += `<span class="ticker-coin">${coin}</span>`;
         html += `<span class="ticker-price">$${priceStr}</span>`;
         html += `<span class="ticker-change ${changeCls}">${changeStr}</span>`;
         html += `<span class="ticker-divider">│</span>`;
-        html += `<span class="ticker-val">ADX ${adxVal.toFixed(0)}</span>`;
-        html += `<span class="ticker-label ${regimeCls}">${regimeLbl}</span>`;
+        html += `<span class="ticker-val">${rangeStr}</span>`;
         html += `<span class="ticker-divider">│</span>`;
-        html += `<span class="ticker-val">RSI ${rsiVal}</span>`;
-        html += `<span class="ticker-label ${rsiCls}">${rsiLbl}</span>`;
+        html += `<span class="ticker-val">Vol ${volStr}</span>`;
+        if (hasAdx) {
+          html += `<span class="ticker-divider">│</span>`;
+          html += `<span class="ticker-val">ADX ${adxVal.toFixed(0)}</span>`;
+          html += `<span class="ticker-label ${regimeCls}">${regimeLbl}</span>`;
+        }
+        if (hasRsi) {
+          html += `<span class="ticker-divider">│</span>`;
+          html += `<span class="ticker-val">RSI ${rsiVal}</span>`;
+          html += `<span class="ticker-label ${rsiCls}">${rsiLbl}</span>`;
+        }
         html += `</div>`;
       }
 
-      // Session countdown
+      // Strategy badge
+      html += `<div class="ticker-item"><span class="ticker-label trending">v6</span><span class="ticker-val">Confirmation MR + Breakout</span></div>`;
+
+      // Session info
       const now = new Date();
-      const utcH = now.getUTCHours(), utcM = now.getUTCMinutes();
+      const utcH = now.getUTCHours(), utcM = now.getUTCMinutes(), utcS = now.getUTCSeconds();
       const inSession = utcH >= 7 && utcH < 21;
       if (!inSession) {
-        let secsToSession;
-        if (utcH >= 21) secsToSession = ((24 - utcH + 7) * 60 - utcM) * 60;
-        else secsToSession = ((7 - utcH) * 60 - utcM) * 60;
-        const hrs = Math.floor(secsToSession / 3600);
-        const mins = Math.floor((secsToSession % 3600) / 60);
-        html += `<div class="ticker-item"><span class="ticker-session">⏱ NEXT SESSION IN ${hrs}h ${mins}m</span></div>`;
+        let secsTo;
+        if (utcH >= 21) secsTo = ((24 - utcH + 7) * 60 - utcM) * 60 - utcS;
+        else secsTo = ((7 - utcH) * 60 - utcM) * 60 - utcS;
+        const h = Math.floor(secsTo / 3600), m = Math.floor((secsTo % 3600) / 60), s = secsTo % 60;
+        html += `<div class="ticker-item"><span class="ticker-session">⏱ NEXT SESSION ${h}h ${m}m ${s}s</span></div>`;
       } else {
-        const secsLeft = ((21 - utcH) * 60 - utcM) * 60;
-        const hrs = Math.floor(secsLeft / 3600);
-        const mins = Math.floor((secsLeft % 3600) / 60);
-        html += `<div class="ticker-item"><span class="ticker-session" style="color:#34d399">● LIVE — ${hrs}h ${mins}m left</span></div>`;
+        const left = ((21 - utcH) * 60 - utcM) * 60 - utcS;
+        const h = Math.floor(left / 3600), m = Math.floor((left % 3600) / 60);
+        html += `<div class="ticker-item"><span class="ticker-session" style="color:#34d399">● LIVE — ${h}h ${m}m left</span></div>`;
       }
 
-      // Timestamp
-      html += `<div class="ticker-item"><span class="ticker-val">${now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })} UTC${now.getTimezoneOffset() === 0 ? '' : (now.getTimezoneOffset() > 0 ? '-' : '+') + Math.abs(now.getTimezoneOffset() / 60)}</span></div>`;
+      // Position sizing
+      html += `<div class="ticker-item"><span class="ticker-val">Bet: 3% compounding</span><span class="ticker-divider">│</span><span class="ticker-val">Floor: $95</span></div>`;
 
-      // Duplicate for seamless loop
-      const content = document.getElementById('tickerContent');
-      if (content) {
-        content.innerHTML = html;
-        // Clone for seamless scroll
-        const strip = document.getElementById('tickerStrip');
-        const existing = strip.querySelectorAll('.ticker-clone');
-        existing.forEach(e => e.remove());
-        const clone = content.cloneNode(true);
-        clone.classList.add('ticker-clone');
-        clone.removeAttribute('id');
-        strip.appendChild(clone);
-      }
+      // Clock
+      const timeStr = now.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit', second:'2-digit', hour12: false });
+      html += `<div class="ticker-item"><span class="ticker-val">${timeStr}</span></div>`;
+
+      return html;
     }
 
-    // Update ticker every second for countdown
+    function renderTickerBar() {
+      const html = buildTickerHTML();
+      if (!html) return;
+
+      const strip = document.getElementById('tickerStrip');
+      if (!strip) return;
+
+      // Render content TWICE for seamless loop (animation goes to -50%)
+      strip.innerHTML = `<div class="flex items-center" style="height:38px">${html}</div><div class="flex items-center" style="height:38px">${html}</div>`;
+    }
+
+    // Update every second for countdown
     setInterval(renderTickerBar, 1000);
 
     socket.on('candle-eval', (data) => {
