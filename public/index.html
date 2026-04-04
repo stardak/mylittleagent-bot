@@ -1,305 +1,347 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="h-full bg-gray-950">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="MyLittleAgent.co — AI-powered crypto trading dashboard">
   <title>MyLittleAgent.co</title>
-  <link rel="stylesheet" href="/styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='28' font-size='28'>🤖</text></svg>">
+  <style type="text/tailwindcss">
+    @theme {
+      --font-sans: 'Inter', system-ui, sans-serif;
+      --color-brand-400: #818cf8;
+      --color-brand-500: #6366f1;
+      --color-brand-600: #4f46e5;
+      --color-brand-700: #4338ca;
+      --color-brand-800: #3730a3;
+      --color-brand-900: #312e81;
+      --color-brand-950: #1e1b4b;
+      --color-profit: #34d399;
+      --color-profit-dim: rgba(52, 211, 153, 0.1);
+      --color-loss: #f87171;
+      --color-loss-dim: rgba(248, 113, 113, 0.1);
+      --color-warn: #fbbf24;
+      --color-warn-dim: rgba(251, 191, 36, 0.1);
+    }
+    @keyframes pulse-glow {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+    @keyframes ticker-flash {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.8); opacity: 0.4; }
+      100% { transform: scale(1); }
+    }
+    .animate-pulse-glow { animation: pulse-glow 2.5s ease-in-out infinite; }
+    .animate-ticker-flash { animation: ticker-flash 0.4s ease-out; }
+  </style>
 </head>
-<body>
-  <div class="app">
+<body class="h-full font-sans antialiased text-gray-100">
 
-    <!-- ── Header ──────────────────────────────────────────────── -->
-    <header class="header">
-      <div class="header-left">
-        <div class="logo">
-          <svg width="20" height="20" viewBox="0 0 100 100" fill="none"><path d="M50 8L8 78h84L50 8zm0 18l28 48H22l28-48z" fill="#7c6aff"/></svg>
-          MyLittleAgent
+  <!-- ── Branded Nav with Overlap ──────────────────────────── -->
+  <div class="min-h-full">
+    <div class="bg-brand-800 pb-32">
+      <nav class="border-b border-brand-400/25">
+        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div class="flex h-16 items-center justify-between">
+            <!-- Left: Logo + Mode -->
+            <div class="flex items-center gap-3">
+              <div class="flex items-center gap-2">
+                <svg width="28" height="28" viewBox="0 0 100 100" fill="none"><path d="M50 8L8 78h84L50 8zm0 18l28 48H22l28-48z" fill="#a5b4fc"/></svg>
+                <span class="text-sm font-bold text-white tracking-tight">MyLittleAgent</span>
+              </div>
+              <span id="modeBadge" class="rounded-full bg-brand-950/60 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-widest text-brand-400">Paper</span>
+            </div>
+
+            <!-- Right: Connection + Toggle -->
+            <div class="flex items-center gap-5">
+              <!-- Session Pill -->
+              <div class="hidden sm:flex items-center gap-2 rounded-full bg-brand-900/60 px-3.5 py-1.5 text-xs">
+                <span id="sessionDot" class="size-2 rounded-full bg-gray-500 animate-pulse-glow"></span>
+                <span id="sessionLabel" class="text-brand-400/80 font-medium">Between Sessions</span>
+                <span id="sessionBadge" class="rounded-full bg-brand-950/50 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-gray-400">Resting</span>
+                <span id="sessionCountdown" class="text-[10px] text-brand-400/50">—</span>
+              </div>
+
+              <!-- Connection -->
+              <div id="binanceStatus" class="flex items-center gap-1.5 text-xs text-brand-400/60">
+                <span id="connectionDot" class="size-2 rounded-full bg-red-400"></span>
+                <span id="connectionText" class="hidden sm:inline">Connecting…</span>
+              </div>
+
+              <!-- Toggle -->
+              <div class="flex items-center gap-2">
+                <span id="toggleLabel" class="text-[10px] font-semibold uppercase tracking-wider text-brand-400/40">OFF</span>
+                <label class="relative inline-flex cursor-pointer items-center">
+                  <input type="checkbox" id="tradingToggle" class="peer sr-only">
+                  <div class="h-5 w-9 rounded-full bg-brand-950/50 ring-1 ring-white/10 peer-checked:bg-profit/20 peer-checked:ring-profit/30 transition-all after:absolute after:top-0.5 after:left-0.5 after:size-4 after:rounded-full after:bg-gray-400 after:transition-all peer-checked:after:translate-x-4 peer-checked:after:bg-profit"></div>
+                </label>
+              </div>
+            </div>
+          </div>
         </div>
-        <span id="modeBadge" class="mode-badge paper">Paper</span>
-      </div>
-      <div class="header-right">
-        <div class="connection" id="binanceStatus">
-          <span class="connection-dot disconnected" id="connectionDot"></span>
-          <span id="connectionText">Connecting…</span>
+      </nav>
+
+      <!-- Hero Header -->
+      <header class="py-8">
+        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <!-- Warning Banners -->
+          <div id="killBanner" class="mb-4 hidden rounded-lg border border-red-400/30 bg-red-400/10 px-4 py-3 text-sm font-medium text-red-300">🚨 Kill switch activated — drawdown exceeded 40%. Manual restart required.</div>
+          <div id="haltBanner" class="mb-4 hidden rounded-lg border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm font-medium text-amber-300">🛑 Daily loss limit hit. Resumes in <span id="haltTimer">—</span>.</div>
+          <div id="drawdownWarning" class="mb-4 hidden rounded-lg border border-amber-400/20 bg-amber-400/5 px-4 py-3 text-sm text-amber-300">⚠️ Drawdown approaching kill switch (<span id="drawdownPct">0</span>%).</div>
+          <div id="dailyLossWarning" class="mb-4 hidden rounded-lg border border-amber-400/20 bg-amber-400/5 px-4 py-3 text-sm text-amber-300">⚠️ Daily losses approaching halt limit (<span id="dailyLossPct">0</span>%).</div>
+
+          <p class="text-[11px] uppercase tracking-[0.2em] text-brand-400/40 font-semibold mb-2">Portfolio</p>
+          <h1 id="portfolioValue" class="text-5xl sm:text-6xl font-extrabold tracking-tighter text-white">$99.00</h1>
+          <p class="mt-2 text-sm text-brand-400/60">
+            <span id="scalperPnl" class="font-semibold text-gray-400">P&L: $0.00</span>
+            <span class="mx-1.5">·</span>
+            <span id="portfolioStart">Started at $99.00</span>
+            <span id="lastSessionLabel" class="hidden"> · as of last session</span>
+          </p>
         </div>
-        <div class="toggle-container">
-          <span class="toggle-label" id="toggleLabel">OFF</span>
-          <label class="toggle">
-            <input type="checkbox" id="tradingToggle">
-            <span class="toggle-track"></span>
-            <span class="toggle-thumb"></span>
-          </label>
+      </header>
+    </div>
+
+    <!-- ── Main Content (overlaps branded header) ──────────── -->
+    <main class="-mt-32">
+      <div class="mx-auto max-w-7xl px-4 pb-16 sm:px-6 lg:px-8">
+
+        <!-- ── Stats Grid ────────────────────────────────────── -->
+        <dl class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
+          <div class="relative overflow-hidden rounded-xl bg-gray-800/80 backdrop-blur-lg px-5 pt-5 pb-4 shadow-lg ring-1 ring-white/5">
+            <dt class="truncate text-xs font-medium text-gray-400 flex items-center gap-1.5">Today's P&L <span class="info-icon" data-info="pnl">i</span></dt>
+            <dd class="mt-2 text-2xl font-bold tracking-tight" id="todayPnl">$0.00</dd>
+            <p class="mt-1 text-xs text-gray-500" id="todayTrades">0 trades today</p>
+          </div>
+          <div class="relative overflow-hidden rounded-xl bg-gray-800/80 backdrop-blur-lg px-5 pt-5 pb-4 shadow-lg ring-1 ring-white/5">
+            <dt class="truncate text-xs font-medium text-gray-400 flex items-center gap-1.5">Win Rate <span class="info-icon" data-info="winrate">i</span></dt>
+            <dd class="mt-2 text-2xl font-bold tracking-tight" id="winRate">0.0%</dd>
+            <p class="mt-1 text-xs text-gray-500" id="totalTrades">0 total</p>
+          </div>
+          <div class="relative overflow-hidden rounded-xl bg-gray-800/80 backdrop-blur-lg px-5 pt-5 pb-4 shadow-lg ring-1 ring-white/5">
+            <dt class="truncate text-xs font-medium text-gray-400 flex items-center gap-1.5">Scalper Balance <span class="info-icon" data-info="scalperbal">i</span></dt>
+            <dd class="mt-2 text-2xl font-bold tracking-tight" id="scalperBalance">$99.00</dd>
+            <p class="mt-1 text-xs text-gray-500" id="scalperTradeCount">0 trades</p>
+          </div>
+          <div class="relative overflow-hidden rounded-xl bg-gray-800/80 backdrop-blur-lg px-5 pt-5 pb-4 shadow-lg ring-1 ring-white/5">
+            <dt class="truncate text-xs font-medium text-gray-400">Win Rate (Scalper)</dt>
+            <dd class="mt-2 text-2xl font-bold tracking-tight" id="scalperWinRate">0.0%</dd>
+            <p class="mt-1 text-xs text-gray-500" id="openPositions">0 open</p>
+          </div>
+        </dl>
+
+        <!-- ── Live Prices ───────────────────────────────────── -->
+        <div class="grid grid-cols-3 gap-3 mb-6">
+          <div class="flex items-center justify-between rounded-xl bg-gray-800/60 backdrop-blur px-4 py-3 ring-1 ring-white/5">
+            <div>
+              <p class="text-[10px] font-bold uppercase tracking-widest text-gray-500">BTC</p>
+              <p class="text-sm font-bold text-white mt-0.5" id="btcPrice">—</p>
+            </div>
+            <span class="text-xs font-semibold" id="btcMomentum">0.00%</span>
+          </div>
+          <div class="flex items-center justify-between rounded-xl bg-gray-800/60 backdrop-blur px-4 py-3 ring-1 ring-white/5">
+            <div>
+              <p class="text-[10px] font-bold uppercase tracking-widest text-gray-500">ETH</p>
+              <p class="text-sm font-bold text-white mt-0.5" id="ethPrice">—</p>
+            </div>
+            <span class="text-xs font-semibold" id="ethMomentum">0.00%</span>
+          </div>
+          <div class="flex items-center justify-between rounded-xl bg-gray-800/60 backdrop-blur px-4 py-3 ring-1 ring-white/5">
+            <div>
+              <p class="text-[10px] font-bold uppercase tracking-widest text-gray-500">SOL</p>
+              <p class="text-sm font-bold text-white mt-0.5" id="solPrice">—</p>
+            </div>
+            <span class="text-xs font-semibold" id="solMomentum">0.00%</span>
+          </div>
         </div>
-      </div>
-    </header>
 
-    <!-- ── Session Pill ────────────────────────────────────────── -->
-    <div class="session-pill-wrap">
-      <div class="session-pill">
-        <div class="session-dot resting" id="sessionDot"></div>
-        <span class="session-text" id="sessionLabel">Between Sessions <span class="badge resting" id="sessionBadge">Resting</span></span>
-        <span class="session-countdown" id="sessionCountdown">—</span>
-      </div>
-    </div>
-
-    <!-- ── Warning Banners ─────────────────────────────────────── -->
-    <div id="killBanner" class="warning-banner danger">
-      🚨 Kill switch activated — drawdown exceeded 40%. Manual restart required.
-    </div>
-    <div id="haltBanner" class="warning-banner halted">
-      🛑 Daily loss limit hit. Resumes in <span id="haltTimer">—</span>.
-    </div>
-    <div id="drawdownWarning" class="warning-banner caution">
-      ⚠️ Drawdown approaching kill switch (<span id="drawdownPct">0</span>%).
-    </div>
-    <div id="dailyLossWarning" class="warning-banner caution">
-      ⚠️ Daily losses approaching halt limit (<span id="dailyLossPct">0</span>%).
-    </div>
-
-    <!-- ── Hero Balance ────────────────────────────────────────── -->
-    <div class="hero-balance">
-      <div class="hero-label">Portfolio</div>
-      <div class="hero-value" id="portfolioValue">$99.00</div>
-      <div class="hero-sub">
-        <span id="scalperPnl" class="pnl-inline neutral">P&L: $0.00</span>
-        &nbsp;·&nbsp;
-        <span id="portfolioStart">Started at $99.00</span>
-        <span id="lastSessionLabel" style="display:none"> · as of last session</span>
-      </div>
-    </div>
-
-    <!-- ── Overview Stats ──────────────────────────────────────── -->
-    <div class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-label">Today's P&L <span class="info-icon" data-info="pnl">i</span></div>
-        <div class="stat-value neutral" id="todayPnl">$0.00</div>
-        <div class="stat-sub" id="todayTrades">0 trades today</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Win Rate <span class="info-icon" data-info="winrate">i</span></div>
-        <div class="stat-value neutral" id="winRate">0.0%</div>
-        <div class="stat-sub" id="totalTrades">0 total</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Scalper Balance <span class="info-icon" data-info="scalperbal">i</span></div>
-        <div class="stat-value neutral" id="scalperBalance">$99.00</div>
-        <div class="stat-sub" id="scalperTradeCount">0 trades</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Win Rate (Scalper)</div>
-        <div class="stat-value neutral" id="scalperWinRate">0.0%</div>
-        <div class="stat-sub" id="openPositions">0 open</div>
-      </div>
-    </div>
-
-    <!-- ── Live Prices ─────────────────────────────────────────── -->
-    <div class="prices-bar">
-      <div class="price-chip" style="flex:1">
-        <span class="price-symbol">BTC</span>
-        <span class="price-value" id="btcPrice">—</span>
-        <span class="price-momentum" id="btcMomentum">0.00%</span>
-      </div>
-      <div class="price-chip" style="flex:1">
-        <span class="price-symbol">ETH</span>
-        <span class="price-value" id="ethPrice">—</span>
-        <span class="price-momentum" id="ethMomentum">0.00%</span>
-      </div>
-      <div class="price-chip" style="flex:1">
-        <span class="price-symbol">SOL</span>
-        <span class="price-value" id="solPrice">—</span>
-        <span class="price-momentum" id="solMomentum">0.00%</span>
-      </div>
-    </div>
-
-    <!-- ── Live Charts ─────────────────────────────────────────── -->
-    <div class="charts-grid-multi">
-      <div class="chart-container">
-        <div class="chart-label">BTC / USDT · 15min</div>
-        <div id="btcChart" class="tv-chart"></div>
-      </div>
-      <div class="chart-container">
-        <div class="chart-label">ETH / USDT · 15min</div>
-        <div id="ethChart" class="tv-chart"></div>
-      </div>
-      <div class="chart-container">
-        <div class="chart-label">SOL / USDT · 15min</div>
-        <div id="solChart" class="tv-chart"></div>
-      </div>
-    </div>
-    <script src="https://s3.tradingview.com/tv.js"></script>
-    <script>
-      function createChart(container, symbol) {
-        new TradingView.widget({
-          container_id: container,
-          symbol: 'BINANCE:' + symbol,
-          interval: '15',
-          timezone: 'Etc/UTC',
-          theme: 'dark',
-          style: '1',
-          locale: 'en',
-          toolbar_bg: '#0a0a0f',
-          enable_publishing: false,
-          hide_top_toolbar: true,
-          hide_legend: false,
-          save_image: false,
-          hide_volume: false,
-          backgroundColor: '#0a0a0f',
-          gridColor: 'rgba(255,255,255,0.03)',
-          width: '100%',
-          height: 280,
-          allow_symbol_change: false,
-        });
-      }
-      createChart('btcChart', 'BTCUSDT');
-      createChart('ethChart', 'ETHUSDT');
-      createChart('solChart', 'SOLUSDT');
-    </script>
-
-    <!-- ── Live Ticker ─────────────────────────────────────────── -->
-    <div id="liveTicker" class="live-ticker">
-      <span class="ticker-dot"></span>
-      <span id="tickerText">Starting up…</span>
-      <span class="info-icon" data-info="ticker" style="margin-left:auto;margin-right:4px">i</span>
-      <span id="tickerTime" class="ticker-time"></span>
-    </div>
-
-    <!-- ── Scalper Section ─────────────────────────────────────── -->
-    <div class="section-title">
-      📈 Strategy
-      <span class="info-icon" data-info="signals">i</span>
-      <span class="mode-badge paper" id="scalperMode" style="font-size:0.6rem">Paper</span>
-    </div>
-
-    <div class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-label">BTC Signal</div>
-        <div class="stat-value neutral" id="btcSignal">WAIT</div>
-        <div class="stat-sub" id="btcIndicators">Collecting candles...</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">ETH Signal</div>
-        <div class="stat-value neutral" id="ethSignal">WAIT</div>
-        <div class="stat-sub" id="ethIndicators">Collecting candles...</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">SOL Signal</div>
-        <div class="stat-value neutral" id="solSignal">WAIT</div>
-        <div class="stat-sub" id="solIndicators">Collecting candles...</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Open Positions <span class="info-icon" data-info="positions">i</span></div>
-        <div class="stat-value neutral" id="maxPositions">0</div>
-        <div class="stat-sub" id="positionSub">No active trades</div>
-      </div>
-    </div>
-
-    <!-- Open Positions -->
-    <div id="scalperPositions" style="display:none">
-      <div class="section-title">Open Positions</div>
-      <div id="positionsList" class="trade-feed"></div>
-    </div>
-
-    <!-- Scalper Trade History -->
-    <div class="section-title">Scalper Trades <span class="count" id="scalperTradesCount">0</span></div>
-    <div class="trade-feed" id="scalperTradeFeed">
-      <div class="empty-state">
-        <div class="empty-state-icon">📈</div>
-        <div class="empty-state-text">
-          Warming up indicators...<br>First signals in ~38 minutes.
+        <!-- ── Charts ────────────────────────────────────────── -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+          <div class="rounded-xl bg-gray-800/60 ring-1 ring-white/5 overflow-hidden">
+            <p class="px-4 pt-3 text-[10px] font-semibold uppercase tracking-widest text-gray-500">BTC / USDT · 15min</p>
+            <div id="btcChart" class="h-[280px]"></div>
+          </div>
+          <div class="rounded-xl bg-gray-800/60 ring-1 ring-white/5 overflow-hidden">
+            <p class="px-4 pt-3 text-[10px] font-semibold uppercase tracking-widest text-gray-500">ETH / USDT · 15min</p>
+            <div id="ethChart" class="h-[280px]"></div>
+          </div>
+          <div class="rounded-xl bg-gray-800/60 ring-1 ring-white/5 overflow-hidden">
+            <p class="px-4 pt-3 text-[10px] font-semibold uppercase tracking-widest text-gray-500">SOL / USDT · 15min</p>
+            <div id="solChart" class="h-[280px]"></div>
+          </div>
         </div>
+        <script src="https://s3.tradingview.com/tv.js"></script>
+        <script>
+          function createChart(container, symbol) {
+            new TradingView.widget({
+              container_id: container, symbol: 'BINANCE:' + symbol, interval: '15',
+              timezone: 'Etc/UTC', theme: 'dark', style: '1', locale: 'en',
+              toolbar_bg: '#1f2937', enable_publishing: false, hide_top_toolbar: true,
+              hide_legend: false, save_image: false, hide_volume: false,
+              backgroundColor: '#1f2937', gridColor: 'rgba(255,255,255,0.03)',
+              width: '100%', height: 280, allow_symbol_change: false,
+            });
+          }
+          createChart('btcChart', 'BTCUSDT');
+          createChart('ethChart', 'ETHUSDT');
+          createChart('solChart', 'SOLUSDT');
+        </script>
+
+        <!-- ── Live Ticker ───────────────────────────────────── -->
+        <div id="liveTicker" class="flex items-center gap-3 rounded-xl bg-gray-800/60 backdrop-blur px-4 py-3 mb-6 ring-1 ring-white/5 font-mono text-xs text-gray-400 overflow-hidden">
+          <span class="ticker-dot size-1.5 rounded-full bg-profit shrink-0 shadow-[0_0_6px_rgba(52,211,153,0.5)] animate-pulse-glow"></span>
+          <span id="tickerText" class="truncate">Starting up…</span>
+          <span class="info-icon ml-auto shrink-0" data-info="ticker">i</span>
+          <span id="tickerTime" class="text-gray-600 shrink-0"></span>
+        </div>
+
+        <!-- ── Strategy Signals ──────────────────────────────── -->
+        <div class="mb-6">
+          <div class="flex items-center gap-2 mb-3">
+            <h2 class="text-xs font-semibold uppercase tracking-widest text-gray-400">📈 Strategy</h2>
+            <span class="info-icon" data-info="signals">i</span>
+            <span id="scalperMode" class="rounded-full bg-brand-950/60 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-brand-400">Paper</span>
+          </div>
+          <dl class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div class="rounded-xl bg-gray-800/60 backdrop-blur px-5 py-4 ring-1 ring-white/5">
+              <dt class="text-xs font-medium text-gray-400">BTC Signal</dt>
+              <dd class="mt-1.5 text-xl font-bold" id="btcSignal">WAIT</dd>
+              <p class="mt-1 text-xs text-gray-500" id="btcIndicators">Collecting candles...</p>
+            </div>
+            <div class="rounded-xl bg-gray-800/60 backdrop-blur px-5 py-4 ring-1 ring-white/5">
+              <dt class="text-xs font-medium text-gray-400">ETH Signal</dt>
+              <dd class="mt-1.5 text-xl font-bold" id="ethSignal">WAIT</dd>
+              <p class="mt-1 text-xs text-gray-500" id="ethIndicators">Collecting candles...</p>
+            </div>
+            <div class="rounded-xl bg-gray-800/60 backdrop-blur px-5 py-4 ring-1 ring-white/5">
+              <dt class="text-xs font-medium text-gray-400">SOL Signal</dt>
+              <dd class="mt-1.5 text-xl font-bold" id="solSignal">WAIT</dd>
+              <p class="mt-1 text-xs text-gray-500" id="solIndicators">Collecting candles...</p>
+            </div>
+            <div class="rounded-xl bg-gray-800/60 backdrop-blur px-5 py-4 ring-1 ring-white/5">
+              <dt class="text-xs font-medium text-gray-400 flex items-center gap-1.5">Open Positions <span class="info-icon" data-info="positions">i</span></dt>
+              <dd class="mt-1.5 text-xl font-bold" id="maxPositions">0</dd>
+              <p class="mt-1 text-xs text-gray-500" id="positionSub">No active trades</p>
+            </div>
+          </dl>
+        </div>
+
+        <!-- ── Open Positions ────────────────────────────────── -->
+        <div id="scalperPositions" class="hidden mb-6">
+          <h2 class="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-3">Open Positions</h2>
+          <div id="positionsList" class="divide-y divide-white/5 rounded-xl bg-gray-800/60 ring-1 ring-white/5 overflow-hidden"></div>
+        </div>
+
+        <!-- ── Scalper Trade History ──────────────────────────── -->
+        <div class="mb-6">
+          <div class="flex items-center gap-2 mb-3">
+            <h2 class="text-xs font-semibold uppercase tracking-widest text-gray-400">Scalper Trades</h2>
+            <span id="scalperTradesCount" class="rounded-full bg-gray-700 px-2 py-0.5 text-[10px] font-bold text-gray-400">0</span>
+          </div>
+          <div id="scalperTradeFeed" class="divide-y divide-white/5 rounded-xl bg-gray-800/60 ring-1 ring-white/5 overflow-hidden">
+            <div class="py-12 text-center">
+              <p class="text-2xl mb-2 opacity-30">📈</p>
+              <p class="text-xs text-gray-500">Warming up indicators...<br>First signals in ~38 minutes.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Backtest ──────────────────────────────────────── -->
+        <div class="border-t border-white/5 pt-8 mb-6">
+          <div class="flex items-center gap-2 mb-4">
+            <h2 class="text-xs font-semibold uppercase tracking-widest text-gray-400">📊 Backtest Results</h2>
+            <span class="info-icon" data-info="backtest">i</span>
+          </div>
+          <div id="backtestSection">
+            <div class="flex items-center gap-3 mb-5">
+              <button id="runBacktestBtn" class="rounded-lg bg-brand-600 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-brand-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">▶ Run 30-Day Backtest</button>
+              <span id="backtestStatus" class="text-xs text-gray-500"></span>
+            </div>
+            <div id="backtestResults" class="hidden">
+              <dl id="backtestStats" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-4"></dl>
+              <h3 class="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-3">Per Symbol</h3>
+              <dl id="backtestPerSymbol" class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4"></dl>
+              <div class="flex items-center gap-2 mb-3">
+                <h3 class="text-xs font-semibold uppercase tracking-widest text-gray-400">Trade Log</h3>
+                <span id="backtestTradeCount" class="rounded-full bg-gray-700 px-2 py-0.5 text-[10px] font-bold text-gray-400">0</span>
+              </div>
+              <div id="backtestTradeFeed" class="divide-y divide-white/5 rounded-xl bg-gray-800/60 ring-1 ring-white/5 overflow-hidden max-h-[400px] overflow-y-auto"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Activity Log ──────────────────────────────────── -->
+        <div class="border-t border-white/5 pt-8 mb-6">
+          <div class="flex items-center gap-2 mb-3">
+            <h2 class="text-xs font-semibold uppercase tracking-widest text-gray-400">📋 Activity Log</h2>
+            <span class="info-icon" data-info="activity">i</span>
+            <span id="activityCount" class="rounded-full bg-gray-700 px-2 py-0.5 text-[10px] font-bold text-gray-400">0</span>
+          </div>
+          <div id="activityLog" class="divide-y divide-white/5 rounded-xl bg-gray-800/60 ring-1 ring-white/5 overflow-hidden">
+            <div class="py-12 text-center">
+              <p class="text-2xl mb-2 opacity-30">📋</p>
+              <p class="text-xs text-gray-500">No activity yet. Entries will appear as the bot evaluates signals.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── How It Works ──────────────────────────────────── -->
+        <div class="border-t border-white/5 pt-8">
+          <div class="rounded-2xl bg-gray-800/40 ring-1 ring-white/5 p-8 sm:p-10">
+            <h2 class="text-lg font-bold text-white mb-4">How I Built This Bot</h2>
+            <div class="prose prose-sm prose-invert max-w-none text-gray-400 leading-relaxed space-y-4">
+              <p>This started as a question: <em class="text-profit not-italic">can I build a trading bot that actually makes money?</em> Not a tutorial project, not a toy — a real system that watches real markets and makes real decisions.</p>
+              <p>The bot monitors <strong class="text-white font-semibold">three crypto assets</strong> — BTC, ETH, and SOL — on 15-minute candles, around the clock. It uses technical analysis to decide when to buy, when to short, and — most importantly — when to do nothing.</p>
+
+              <h3 class="text-base font-bold text-white mt-8 mb-3">What Makes It Different</h3>
+              <p>Most trading bots use one fixed strategy. This bot <strong class="text-white font-semibold">adapts</strong>. It detects the current <strong class="text-white font-semibold">market regime</strong> using ADX and automatically switches between two strategies:</p>
+              <ul class="list-disc pl-5 space-y-1.5 text-gray-400">
+                <li><strong class="text-white font-semibold">Mean Reversion</strong> (ranging markets) — buys the dip when price hits the lower Bollinger Band with oversold RSI.</li>
+                <li><strong class="text-white font-semibold">Breakout</strong> (trending markets) — rides momentum by entering on Donchian channel breakouts confirmed by volume.</li>
+              </ul>
+
+              <h3 class="text-base font-bold text-white mt-8 mb-3">What I Learned Building It</h3>
+              <ul class="list-disc pl-5 space-y-1.5 text-gray-400">
+                <li><strong class="text-white font-semibold">v1–v3</strong> — Simple EMA crossover scalping on 1-minute candles. Too much noise.</li>
+                <li><strong class="text-white font-semibold">v4</strong> — 5-minute candles with a higher-timeframe trend filter. Better signals.</li>
+                <li><strong class="text-white font-semibold">v5</strong> — Added short selling. Doubled the opportunity set.</li>
+                <li><strong class="text-white font-semibold">v6</strong> — <em class="text-profit not-italic">Current version.</em> Full regime-adaptive strategy on 15-minute candles.</li>
+              </ul>
+
+              <h3 class="text-base font-bold text-white mt-8 mb-3">Safety Nets</h3>
+              <ul class="list-disc pl-5 space-y-1.5 text-gray-400">
+                <li><strong class="text-white font-semibold">Stop-loss on every trade</strong> — max 10% of portfolio</li>
+                <li><strong class="text-white font-semibold">Take-profit</strong> — locks in gains automatically</li>
+                <li><strong class="text-white font-semibold">Breakeven trigger</strong> — stop moves to entry price</li>
+                <li><strong class="text-white font-semibold">5% daily loss limit</strong> — stops trading until tomorrow</li>
+                <li><strong class="text-white font-semibold">3-loss circuit breaker</strong> — 2-hour cooldown</li>
+                <li><strong class="text-white font-semibold">40% kill switch</strong> — permanent shutdown</li>
+              </ul>
+
+              <p>Currently running in <strong class="text-white font-semibold">paper trading mode</strong> — simulating trades with fake money while I validate the strategy in live market conditions.</p>
+              <p class="text-gray-600 italic mt-6">— Stef Michalak</p>
+            </div>
+          </div>
+        </div>
+
       </div>
-    </div>
-
-    <!-- ── Backtest Results ──────────────────────────────────────── -->
-    <div class="divider"></div>
-    <div class="section-title">📊 Backtest Results <span class="info-icon" data-info="backtest">i</span></div>
-    <div id="backtestSection">
-      <div class="backtest-controls">
-        <button id="runBacktestBtn" class="backtest-btn">▶ Run 30-Day Backtest</button>
-        <span id="backtestStatus" class="backtest-status"></span>
-      </div>
-      <div id="backtestResults" style="display:none">
-        <div class="stats-grid" id="backtestStats"></div>
-        <div class="section-title" style="margin-top:16px">Per Symbol</div>
-        <div class="stats-grid" id="backtestPerSymbol"></div>
-        <div class="section-title" style="margin-top:16px">Trade Log <span class="count" id="backtestTradeCount">0</span></div>
-        <div class="trade-feed backtest-trades" id="backtestTradeFeed"></div>
-      </div>
-    </div>
-
-    <!-- ── Activity Log ────────────────────────────────────────── -->
-    <div class="divider"></div>
-    <div class="section-title">📋 Activity Log <span class="info-icon" data-info="activity">i</span> <span class="count" id="activityCount">0</span></div>
-    <div class="trade-feed" id="activityLog">
-      <div class="empty-state">
-        <div class="empty-state-icon">📋</div>
-        <div class="empty-state-text">No activity yet. Entries will appear as the bot evaluates signals.</div>
-      </div>
-    </div>
-
-
-    <!-- ── How It Works ──────────────────────────────────────────── -->
-    <div class="divider"></div>
-    <div class="about-section">
-      <h2 class="about-title">How I Built This Bot</h2>
-
-      <p>This started as a question: <em>can I build a trading bot that actually makes money?</em> Not a tutorial project, not a toy — a real system that watches real markets and makes real decisions. What you're seeing on this dashboard is the answer so far.</p>
-
-      <p>The bot monitors <strong>three crypto assets</strong> — BTC, ETH, and SOL — on 15-minute candles, around the clock. It uses technical analysis to decide when to buy, when to short, and — most importantly — when to do nothing. No gut feelings, no emotions, no FOMO.</p>
-
-      <h2 class="about-title" style="margin-top:32px">What Makes It Different</h2>
-
-      <p>Most trading bots use one fixed strategy. The problem? Markets change. What works in a choppy, sideways market is completely wrong in a strong trend. This bot <strong>adapts</strong>.</p>
-
-      <p>It detects the current <strong>market regime</strong> using ADX (Average Directional Index) and automatically switches between two strategies:</p>
-      <ul>
-        <li><strong>Mean Reversion</strong> (ranging markets) — buys the dip when price hits the lower Bollinger Band with oversold RSI, expecting a bounce. Also shorts when price is overextended above the upper band.</li>
-        <li><strong>Breakout</strong> (trending markets) — rides momentum by entering on Donchian channel breakouts confirmed by volume. Can go long or short depending on the direction of the trend.</li>
-      </ul>
-      <p>Every trade must pass multiple filters — volume, RSI range, Bollinger Band position, cooldown timers. If even one filter fails, it waits. Patience is the strategy.</p>
-
-      <h2 class="about-title" style="margin-top:32px">What I Learned Building It</h2>
-
-      <p>The honest truth: the first few versions lost money. Here's how it evolved:</p>
-      <ul>
-        <li><strong>v1–v3</strong> — Simple EMA crossover scalping on 1-minute candles. Too much noise, too many false signals. Win rate hovered around 48–50%.</li>
-        <li><strong>v4</strong> — Moved to 5-minute candles with a higher-timeframe trend filter. Better signals, but still only traded in one direction (long).</li>
-        <li><strong>v5</strong> — Added short selling. Doubled the bot's opportunity set — now it can profit whether prices go up <em>or</em> down.</li>
-        <li><strong>v6</strong> — <em>Current version.</em> Full regime-adaptive strategy on 15-minute candles across all three assets. The big lesson: slower timeframes with smarter filters beat fast timeframes with lots of trades.</li>
-      </ul>
-
-      <h2 class="about-title" style="margin-top:32px">Safety Nets</h2>
-
-      <p>The bot can't "blow up" because it has multiple layers of protection built in:</p>
-      <ul>
-        <li><strong>Stop-loss on every trade</strong> — max position size is 10% of the portfolio</li>
-        <li><strong>Take-profit</strong> — locks in gains automatically based on the active strategy</li>
-        <li><strong>Breakeven trigger</strong> — once a trade moves enough in the right direction, the stop moves to the entry price (risk-free trade)</li>
-        <li><strong>5% daily loss limit</strong> — if it loses 5% in a day, it stops trading until tomorrow</li>
-        <li><strong>3-loss circuit breaker</strong> — three consecutive losses triggers a 2-hour cooldown</li>
-        <li><strong>40% kill switch</strong> — if total drawdown hits 40%, it shuts down permanently</li>
-      </ul>
-
-      <p>Everything you see on this dashboard is happening in real time. The bot is currently running in <strong>paper trading mode</strong> — simulating trades with fake money while I validate the strategy in live market conditions. If it proves profitable over the next few weeks, I'll switch it to live.</p>
-
-      <div class="about-signature">— Stef Michalak</div>
-    </div>
-
+    </main>
   </div>
 
-  <!-- ── Info Modal ──────────────────────────────────────────────── -->
-  <div id="infoOverlay" class="info-overlay" style="display:none">
-    <div class="info-modal">
-      <button class="info-modal-close" id="infoClose">✕</button>
-      <div class="info-modal-title" id="infoTitle"></div>
-      <div class="info-modal-body" id="infoBody"></div>
+  <!-- ── Info Modal ──────────────────────────────────────────── -->
+  <div id="infoOverlay" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/70 backdrop-blur-sm p-5">
+    <div class="relative w-full max-w-sm rounded-2xl bg-gray-800 p-7 shadow-2xl ring-1 ring-white/10">
+      <button id="infoClose" class="absolute top-3 right-4 text-gray-500 hover:text-white transition-colors text-lg">✕</button>
+      <h3 id="infoTitle" class="text-sm font-bold text-white mb-2"></h3>
+      <p id="infoBody" class="text-sm text-gray-400 leading-relaxed"></p>
     </div>
   </div>
 
-  <!-- ── Socket.IO + Logic ────────────────────────────────────── -->
+  <!-- ── Socket.IO + Logic ────────────────────────────────── -->
   <script src="/socket.io/socket.io.js"></script>
   <script>
     const socket = io();
@@ -319,260 +361,167 @@
       btcPrice: $('btcPrice'), btcMomentum: $('btcMomentum'),
       ethPrice: $('ethPrice'), ethMomentum: $('ethMomentum'),
       solPrice: $('solPrice'), solMomentum: $('solMomentum'),
-      marketCount: $('marketCount'), marketCards: $('marketCards'),
     };
 
-    // ── Session Awareness ─────────────────────────────────────
+    // ── Session Awareness ─────────────────────────────────
     const TRADING_WINDOWS = [
       { start: 9, end: 11, label: 'London Session' },
       { start: 18, end: 21, label: 'New York Session' },
     ];
-
     let isInSession = false;
     let lastKnownStatus = null;
 
     function getSessionState() {
       const now = new Date();
-      const utcH = now.getUTCHours();
-      const utcM = now.getUTCMinutes();
-      const utcS = now.getUTCSeconds();
+      const utcH = now.getUTCHours(), utcM = now.getUTCMinutes(), utcS = now.getUTCSeconds();
       const currentMins = utcH * 60 + utcM;
-
       for (const w of TRADING_WINDOWS) {
         if (utcH >= w.start && utcH < w.end) {
-          const endMins = w.end * 60;
-          const remainSec = (endMins - currentMins) * 60 - utcS;
-          return { active: true, label: w.label, remainSec };
+          return { active: true, label: w.label, remainSec: (w.end * 60 - currentMins) * 60 - utcS };
         }
       }
-
-      // Find next window
-      let nextWindow = null;
-      let minMinsAway = Infinity;
+      let nextWindow = null, minMinsAway = Infinity;
       for (const w of TRADING_WINDOWS) {
-        let startMins = w.start * 60;
-        let minsAway = startMins - currentMins;
-        if (minsAway <= 0) minsAway += 1440; // wrap to next day
-        if (minsAway < minMinsAway) {
-          minMinsAway = minsAway;
-          nextWindow = w;
-        }
+        let minsAway = w.start * 60 - currentMins;
+        if (minsAway <= 0) minsAway += 1440;
+        if (minsAway < minMinsAway) { minMinsAway = minsAway; nextWindow = w; }
       }
-
-      const remainSec = minMinsAway * 60 - utcS;
-      return { active: false, label: nextWindow?.label || 'Next Session', remainSec };
+      return { active: false, label: nextWindow?.label || 'Next Session', remainSec: minMinsAway * 60 - utcS };
     }
 
     function fmtCountdown(sec) {
-      const h = Math.floor(sec / 3600);
-      const m = Math.floor((sec % 3600) / 60);
-      const s = sec % 60;
-      if (h > 0) return `${h}h ${String(m).padStart(2,'0')}m ${String(s).padStart(2,'0')}s`;
-      return `${m}m ${String(s).padStart(2,'0')}s`;
+      const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+      return h > 0 ? `${h}h ${String(m).padStart(2,'0')}m` : `${m}m ${String(s).padStart(2,'0')}s`;
     }
 
     function updateSessionUI() {
       const state = getSessionState();
-      const dot = $('sessionDot');
-      const label = $('sessionLabel');
-      const badge = $('sessionBadge');
-      const countdown = $('sessionCountdown');
-      const lastLabel = $('lastSessionLabel');
+      const dot = $('sessionDot'), label = $('sessionLabel'), badge = $('sessionBadge'), countdown = $('sessionCountdown');
       isInSession = state.active;
-
       if (state.active) {
-        dot.className = 'session-dot active';
-        label.innerHTML = `${state.label} <span class="badge active" id="sessionBadge">Active</span>`;
-        countdown.textContent = `Session ends in ${fmtCountdown(state.remainSec)}`;
-        if (lastLabel) lastLabel.style.display = 'none';
+        dot.className = 'size-2 rounded-full bg-profit shadow-[0_0_8px_rgba(52,211,153,0.6)] animate-pulse-glow';
+        label.textContent = state.label;
+        badge.textContent = 'Active'; badge.className = 'rounded-full bg-profit/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-profit';
+        countdown.textContent = `ends in ${fmtCountdown(state.remainSec)}`;
+        const ll = $('lastSessionLabel'); if (ll) ll.classList.add('hidden');
       } else {
-        dot.className = 'session-dot resting';
-        label.innerHTML = `Between Sessions <span class="badge resting" id="sessionBadge">Resting</span>`;
-        countdown.textContent = `${state.label} opens in ${fmtCountdown(state.remainSec)}`;
-        if (lastLabel) lastLabel.style.display = 'inline';
+        dot.className = 'size-2 rounded-full bg-gray-600 animate-pulse-glow';
+        label.textContent = 'Between Sessions';
+        badge.textContent = 'Resting'; badge.className = 'rounded-full bg-gray-700/50 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-gray-500';
+        countdown.textContent = `${state.label} in ${fmtCountdown(state.remainSec)}`;
+        const ll = $('lastSessionLabel'); if (ll) ll.classList.remove('hidden');
       }
     }
-
-    // Update session every second
     setInterval(updateSessionUI, 1000);
     updateSessionUI();
 
-    // ── PIN Toggle ────────────────────────────────────────────
+    // ── PIN Toggle ────────────────────────────────────────
     let cachedPin = null;
     els.tradingToggle.addEventListener('change', (e) => {
       e.preventDefault();
-      if (!cachedPin) {
-        cachedPin = prompt('Enter your dashboard PIN:');
-        if (!cachedPin) {
-          els.tradingToggle.checked = !els.tradingToggle.checked;
-          return;
-        }
-      }
+      if (!cachedPin) { cachedPin = prompt('Enter your dashboard PIN:'); if (!cachedPin) { els.tradingToggle.checked = !els.tradingToggle.checked; return; } }
       socket.emit('toggle', { pin: cachedPin });
     });
-
-    socket.on('pin-error', () => {
-      cachedPin = null;
-      els.tradingToggle.checked = !els.tradingToggle.checked;
-      alert('Wrong PIN. Try again.');
-    });
+    socket.on('pin-error', () => { cachedPin = null; els.tradingToggle.checked = !els.tradingToggle.checked; alert('Wrong PIN. Try again.'); });
 
     socket.on('update', (data) => {
       lastKnownStatus = data;
       updateDashboard(data);
-      if (data.backtestResults && !$('backtestResults').dataset.loaded) {
-        renderBacktest(data.backtestResults);
-        $('backtestResults').dataset.loaded = '1';
-      }
+      if (data.backtestResults && !$('backtestResults').dataset.loaded) { renderBacktest(data.backtestResults); $('backtestResults').dataset.loaded = '1'; }
     });
     socket.on('activity', (entry) => addActivity(entry));
-    socket.on('disconnect', () => {
-      els.connectionDot.className = 'connection-dot disconnected';
-      els.connectionText.textContent = 'Disconnected';
-    });
+    socket.on('disconnect', () => { els.connectionDot.className = 'size-2 rounded-full bg-red-400'; els.connectionText.textContent = 'Disconnected'; });
 
     function updateDashboard(data) {
       const { status, trades, binanceStatus, prices, isLive } = data;
-
-      // Mode
       els.modeBadge.textContent = isLive ? 'Live' : 'Paper';
-      els.modeBadge.className = 'mode-badge ' + (isLive ? 'live' : 'paper');
-
-      // Connection
-      if (binanceStatus && binanceStatus.allConnected) {
-        els.connectionDot.className = 'connection-dot connected';
-        els.connectionText.textContent = 'Connected';
-      } else {
-        els.connectionDot.className = 'connection-dot disconnected';
-        els.connectionText.textContent = 'Disconnected';
-      }
-
-      // Toggle
+      els.modeBadge.className = isLive ? 'rounded-full bg-loss/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-widest text-loss' : 'rounded-full bg-brand-950/60 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-widest text-brand-400';
+      if (binanceStatus?.allConnected) { els.connectionDot.className = 'size-2 rounded-full bg-profit shadow-[0_0_6px_rgba(52,211,153,0.5)] animate-pulse-glow'; els.connectionText.textContent = 'Connected'; }
+      else { els.connectionDot.className = 'size-2 rounded-full bg-red-400'; els.connectionText.textContent = 'Disconnected'; }
       els.tradingToggle.checked = !status.isPaused;
       els.toggleLabel.textContent = status.isPaused ? 'OFF' : 'ON';
 
-      // Banners — only show during active sessions or if genuinely triggered
       const showBanners = isInSession || status.isKilled || status.isHalted;
-      els.killBanner.classList.toggle('visible', status.isKilled);
-      els.haltBanner.classList.toggle('visible', status.isHalted);
-      if (status.isHalted && status.haltedUntil) {
-        const r = new Date(status.haltedUntil) - new Date();
-        els.haltTimer.textContent = `${Math.floor(r/3600000)}h ${Math.floor((r%3600000)/60000)}m`;
-      }
-      els.drawdownWarning.classList.toggle('visible', showBanners && status.drawdownWarning && !status.isKilled);
-      els.dailyLossWarning.classList.toggle('visible', showBanners && status.dailyLossWarning && !status.isHalted);
+      els.killBanner.classList.toggle('hidden', !status.isKilled);
+      els.haltBanner.classList.toggle('hidden', !status.isHalted);
+      if (status.isHalted && status.haltedUntil) { const r = new Date(status.haltedUntil) - new Date(); els.haltTimer.textContent = `${Math.floor(r/3600000)}h ${Math.floor((r%3600000)/60000)}m`; }
+      els.drawdownWarning.classList.toggle('hidden', !(showBanners && status.drawdownWarning && !status.isKilled));
+      els.dailyLossWarning.classList.toggle('hidden', !(showBanners && status.dailyLossWarning && !status.isHalted));
 
-      // Hero balance
       els.portfolioValue.textContent = fmtUsd(status.portfolio);
       els.portfolioStart.textContent = `Started at ${fmtUsd(status.startingPortfolio)}`;
-
-      // Stats
       els.todayPnl.textContent = (status.todayPnl >= 0 ? '+' : '') + fmtUsd(status.todayPnl);
-      els.todayPnl.className = 'stat-value ' + pnlClass(status.todayPnl);
+      els.todayPnl.className = 'mt-2 text-2xl font-bold tracking-tight ' + pnlColor(status.todayPnl);
       els.todayTrades.textContent = `${status.todayTradeCount} trade${status.todayTradeCount !== 1 ? 's' : ''} today`;
       els.winRate.textContent = status.winRate + '%';
       els.totalTrades.textContent = `${status.totalTrades} total (${status.totalWins}W)`;
 
-      // Prices
-      if (prices.btcusdt && prices.btcusdt.price) {
-        els.btcPrice.textContent = fmtUsd(prices.btcusdt.price);
-        setMomentum(els.btcMomentum, prices.btcusdt.momentum);
-      }
-      if (prices.ethusdt && prices.ethusdt.price) {
-        els.ethPrice.textContent = fmtUsd(prices.ethusdt.price);
-        setMomentum(els.ethMomentum, prices.ethusdt.momentum);
-      }
-      if (prices.solusdt && prices.solusdt.price) {
-        els.solPrice.textContent = fmtUsd(prices.solusdt.price);
-        setMomentum(els.solMomentum, prices.solusdt.momentum);
-      }
+      if (prices.btcusdt?.price) { els.btcPrice.textContent = fmtUsd(prices.btcusdt.price); setMomentum(els.btcMomentum, prices.btcusdt.momentum); }
+      if (prices.ethusdt?.price) { els.ethPrice.textContent = fmtUsd(prices.ethusdt.price); setMomentum(els.ethMomentum, prices.ethusdt.momentum); }
+      if (prices.solusdt?.price) { els.solPrice.textContent = fmtUsd(prices.solusdt.price); setMomentum(els.solMomentum, prices.solusdt.momentum); }
 
-
-
-      // Scalper
       updateScalper(data);
     }
 
-    // ── Scalper UI ──────────────────────────────────────────────
+    // ── Scalper UI ──────────────────────────────────────────
     function updateScalper(data) {
       const { scalper, binancePortfolio, isLive } = data;
       const sm = $('scalperMode');
-      if (sm) { sm.textContent = isLive ? 'Live' : 'Paper'; sm.className = 'mode-badge ' + (isLive ? 'live' : 'paper'); }
+      if (sm) { sm.textContent = isLive ? 'Live' : 'Paper'; sm.className = isLive ? 'rounded-full bg-loss/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-loss' : 'rounded-full bg-brand-950/60 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-brand-400'; }
 
       if (binancePortfolio) {
         const b = $('scalperBalance'), p = $('scalperPnl'), w = $('scalperWinRate'), t = $('scalperTradeCount');
-        if (b) { b.textContent = fmtUsd(binancePortfolio.balance); b.className = 'stat-value ' + pnlClass(binancePortfolio.totalPnl); }
-        if (p) {
-          const s = binancePortfolio.totalPnl >= 0 ? '+' : '';
-          p.textContent = `P&L: ${s}${fmtUsd(binancePortfolio.totalPnl)} (${s}${binancePortfolio.totalPnlPct.toFixed(1)}%)`;
-          p.className = 'pnl-inline ' + pnlClass(binancePortfolio.totalPnl);
-        }
-        if (w) { w.textContent = binancePortfolio.winRate.toFixed(1) + '%'; w.className = 'stat-value ' + (binancePortfolio.winRate >= 50 ? 'positive' : binancePortfolio.totalTrades > 0 ? 'negative' : 'neutral'); }
+        if (b) { b.textContent = fmtUsd(binancePortfolio.balance); b.className = 'mt-2 text-2xl font-bold tracking-tight ' + pnlColor(binancePortfolio.totalPnl); }
+        if (p) { const s = binancePortfolio.totalPnl >= 0 ? '+' : ''; p.textContent = `P&L: ${s}${fmtUsd(binancePortfolio.totalPnl)} (${s}${binancePortfolio.totalPnlPct.toFixed(1)}%)`; p.className = 'font-semibold ' + pnlColor(binancePortfolio.totalPnl); }
+        if (w) { w.textContent = binancePortfolio.winRate.toFixed(1) + '%'; w.className = 'mt-2 text-2xl font-bold tracking-tight ' + (binancePortfolio.winRate >= 50 ? 'text-profit' : binancePortfolio.totalTrades > 0 ? 'text-loss' : 'text-white'); }
         if (t) t.textContent = `${binancePortfolio.totalTrades} (${binancePortfolio.wins}W / ${binancePortfolio.losses}L)`;
 
-        // Open positions count — dynamic across all symbols
         const allSymbols = ['btcusdt', 'ethusdt', 'solusdt'];
         const openCount = allSymbols.filter(s => scalper?.positions?.[s]).length;
-
-        const op = $('openPositions');
-        if (op) op.textContent = openCount + ' open';
-
-        // Max positions display
-        const mp = $('maxPositions');
-        if (mp) {
-          mp.textContent = openCount;
-          mp.className = 'stat-value ' + (openCount > 0 ? 'positive' : 'neutral');
-        }
+        const op = $('openPositions'); if (op) op.textContent = openCount + ' open';
+        const mp = $('maxPositions'); if (mp) { mp.textContent = openCount; mp.className = 'mt-1.5 text-xl font-bold ' + (openCount > 0 ? 'text-profit' : 'text-white'); }
 
         const stc = $('scalperTradesCount'), stf = $('scalperTradeFeed');
         if (stc) stc.textContent = binancePortfolio.recentTrades.length;
         if (stf && binancePortfolio.recentTrades.length > 0) {
           stf.innerHTML = binancePortfolio.recentTrades.map(t => {
             const icon = t.type === 'BUY' ? '📈' : t.pnl >= 0 ? '✅' : '❌';
-            const cls = t.pnl > 0 ? 'win' : t.pnl < 0 ? 'loss' : 'pending';
-            const pnlStr = t.pnl != null
-              ? `<span class="trade-amount ${pnlClass(t.pnl)}">${t.pnl >= 0 ? '+' : ''}${fmtUsd(t.pnl)}</span>`
-              : `<span class="trade-amount">${fmtUsd(t.cost || 0)}</span>`;
-            return `<div class="trade-item">
-              <div class="trade-status-icon ${cls}">${icon}</div>
-              <div class="trade-info">
-                <div class="trade-symbol">${t.type} ${t.symbol} · ${t.mode}</div>
-                <div class="trade-detail">@ $${Number(t.price).toLocaleString('en-US', {minimumFractionDigits: 2})}</div>
-              </div>${pnlStr}
-              <div class="trade-time">${fmtTime(t.timestamp)}</div>
+            const pnlStr = t.pnl != null ? `<span class="text-sm font-bold ${pnlColor(t.pnl)}">${t.pnl >= 0 ? '+' : ''}${fmtUsd(t.pnl)}</span>` : `<span class="text-sm font-bold text-gray-400">${fmtUsd(t.cost || 0)}</span>`;
+            return `<div class="flex items-center gap-3 px-4 py-3 hover:bg-white/[0.02] transition-colors">
+              <span class="flex size-8 items-center justify-center rounded-lg ${t.pnl > 0 ? 'bg-profit/10' : t.pnl < 0 ? 'bg-loss/10' : 'bg-white/5'} text-sm">${icon}</span>
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-medium text-white truncate">${t.type} ${t.symbol} · ${t.mode}</p>
+                <p class="text-xs text-gray-500 truncate">@ $${Number(t.price).toLocaleString('en-US', {minimumFractionDigits: 2})}</p>
+              </div>
+              ${pnlStr}
+              <span class="text-[10px] text-gray-600 shrink-0">${fmtTime(t.timestamp)}</span>
             </div>`;
           }).join('');
         }
       }
 
-      if (scalper && scalper.signals) {
+      if (scalper?.signals) {
         updateSignalCard('btc', scalper.signals.btcusdt, scalper.positions?.btcusdt);
         updateSignalCard('eth', scalper.signals.ethusdt, scalper.positions?.ethusdt);
         updateSignalCard('sol', scalper.signals.solusdt, scalper.positions?.solusdt);
 
         const posDiv = $('scalperPositions'), posList = $('positionsList');
-        const allPos = [
-          ['BTC', scalper.positions?.btcusdt, scalper.signals.btcusdt],
-          ['ETH', scalper.positions?.ethusdt, scalper.signals.ethusdt],
-          ['SOL', scalper.positions?.solusdt, scalper.signals.solusdt],
-        ];
+        const allPos = [['BTC', scalper.positions?.btcusdt, scalper.signals.btcusdt], ['ETH', scalper.positions?.ethusdt, scalper.signals.ethusdt], ['SOL', scalper.positions?.solusdt, scalper.signals.solusdt]];
         const hasPos = allPos.some(([,p]) => p);
-        if (posDiv) posDiv.style.display = hasPos ? 'block' : 'none';
+        if (posDiv) posDiv.classList.toggle('hidden', !hasPos);
         if (posList && hasPos) {
           posList.innerHTML = allPos.map(([sym, pos, sig]) => {
             if (!pos) return '';
             const cp = sig?.price || pos.entryPrice;
             const dir = pos.direction || 'LONG';
-            const pnlMul = dir === 'SHORT' ? -1 : 1;
-            const pnl = pnlMul * ((cp - pos.entryPrice) / pos.entryPrice) * 100;
-            const dirIcon = dir === 'SHORT' ? '🔻' : '📊';
-            return `<div class="trade-item">
-              <div class="trade-status-icon pending">${dirIcon}</div>
-              <div class="trade-info">
-                <div class="trade-symbol">${dir} ${sym}USDT</div>
-                <div class="trade-detail">Entry $${pos.entryPrice.toFixed(2)} · SL $${pos.dynamicStop?.toFixed(2) || '—'} · TP $${pos.takeProfit?.toFixed(2) || '—'}${pos.breakevenStop ? ' · 🛡️ BE' : ''}</div>
+            const pnl = (dir === 'SHORT' ? -1 : 1) * ((cp - pos.entryPrice) / pos.entryPrice) * 100;
+            return `<div class="flex items-center gap-3 px-4 py-3">
+              <span class="flex size-8 items-center justify-center rounded-lg bg-brand-500/10 text-sm">${dir === 'SHORT' ? '🔻' : '📊'}</span>
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-medium text-white">${dir} ${sym}USDT</p>
+                <p class="text-xs text-gray-500 truncate">Entry $${pos.entryPrice.toFixed(2)} · SL $${pos.dynamicStop?.toFixed(2) || '—'} · TP $${pos.takeProfit?.toFixed(2) || '—'}${pos.breakevenStop ? ' · 🛡️ BE' : ''}</p>
               </div>
-              <span class="trade-amount ${pnl >= 0 ? 'positive' : 'negative'}">${pnl >= 0 ? '+' : ''}${pnl.toFixed(2)}%</span>
+              <span class="text-sm font-bold ${pnl >= 0 ? 'text-profit' : 'text-loss'}">${pnl >= 0 ? '+' : ''}${pnl.toFixed(2)}%</span>
             </div>`;
           }).join('');
         }
@@ -582,245 +531,131 @@
     function updateSignalCard(prefix, signal, position) {
       const sigEl = $(prefix + 'Signal'), indEl = $(prefix + 'Indicators');
       if (!sigEl || !indEl) return;
-
       if (!signal || signal.signal === 'WAIT') {
         const pct = signal ? Math.min(100, Math.round((signal.candleCount / 38) * 100)) : 0;
-        const count = signal?.candleCount || 0;
-        sigEl.textContent = 'WAIT';
-        sigEl.className = 'stat-value neutral';
-        let info = `<div style="background:var(--bg-elevated);border-radius:4px;height:4px;margin:6px 0;overflow:hidden"><div style="background:var(--accent);height:100%;width:${pct}%;transition:width 0.5s"></div></div>`;
+        sigEl.textContent = 'WAIT'; sigEl.className = 'mt-1.5 text-xl font-bold text-gray-400';
+        let info = `<div class="w-full bg-gray-700/50 rounded-full h-1 mt-2 mb-1"><div class="bg-brand-500 h-1 rounded-full transition-all" style="width:${pct}%"></div></div>`;
         if (signal?.price) info += `$${signal.price.toLocaleString('en-US',{minimumFractionDigits:2})} · `;
         if (signal?.rsi) info += `RSI:${Math.round(signal.rsi)} · `;
         if (signal?.volumeRatio) info += `Vol:${signal.volumeRatio.toFixed(1)}x · `;
-        info += `${count}/38 candles`;
-        indEl.innerHTML = info;
-        return;
+        info += `${signal?.candleCount || 0}/38 candles`;
+        indEl.innerHTML = info; return;
       }
-
       const sig = position ? 'IN TRADE' : signal.signal;
-      sigEl.textContent = sig;
-      sigEl.className = 'stat-value ' + (sig === 'BUY' ? 'positive' : sig === 'IN TRADE' ? 'positive' : 'neutral');
-      if (signal.lastSkipReason) {
-        indEl.textContent = signal.lastSkipReason;
-      } else {
-        indEl.textContent = `RSI:${signal.rsi?.toFixed(0)} · MACD:${signal.macdHist?.toFixed(3)} · Vol:${signal.volumeRatio?.toFixed(1)}x`;
-      }
+      sigEl.textContent = sig; sigEl.className = 'mt-1.5 text-xl font-bold ' + (sig === 'BUY' || sig === 'IN TRADE' ? 'text-profit' : 'text-white');
+      indEl.textContent = signal.lastSkipReason || `RSI:${signal.rsi?.toFixed(0)} · MACD:${signal.macdHist?.toFixed(3)} · Vol:${signal.volumeRatio?.toFixed(1)}x`;
     }
 
-    // ── Live Ticker ────────────────────────────────────────────
+    // ── Live Ticker ────────────────────────────────────────
     socket.on('candle-eval', (data) => {
-      const ticker = $('tickerText');
-      const tickerTime = $('tickerTime');
-      const dot = document.querySelector('.ticker-dot');
+      const ticker = $('tickerText'), tickerTime = $('tickerTime'), dot = document.querySelector('.ticker-dot');
       if (!ticker) return;
-
       const coin = data.symbol.replace('usdt', '').toUpperCase();
-      const status = data.hasPosition ? '📊 monitoring' : '🔍 scanning';
-      ticker.textContent = `${coin} $${data.price.toLocaleString('en-US',{minimumFractionDigits:2})} · RSI:${data.rsi} · MACD:${data.macdHist?.toFixed(3)} · Vol:${data.volumeRatio}x · ${status}`;
+      ticker.textContent = `${coin} $${data.price.toLocaleString('en-US',{minimumFractionDigits:2})} · RSI:${data.rsi} · MACD:${data.macdHist?.toFixed(3)} · Vol:${data.volumeRatio}x · ${data.hasPosition ? '📊 monitoring' : '🔍 scanning'}`;
       tickerTime.textContent = new Date().toLocaleTimeString('en-US', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
-
-      if (dot) { dot.classList.remove('pulse'); void dot.offsetWidth; dot.classList.add('pulse'); }
+      if (dot) { dot.classList.remove('animate-ticker-flash'); void dot.offsetWidth; dot.classList.add('animate-ticker-flash'); }
     });
 
-    // ── Activity Log ───────────────────────────────────────────
+    // ── Activity Log ───────────────────────────────────────
     const activityEntries = [];
-
-    function addActivity(entry) {
-      activityEntries.unshift(entry);
-      if (activityEntries.length > 50) activityEntries.pop();
-      renderActivityLog();
-    }
-
+    function addActivity(entry) { activityEntries.unshift(entry); if (activityEntries.length > 50) activityEntries.pop(); renderActivityLog(); }
     function renderActivityLog() {
-      const el = $('activityLog');
-      const cnt = $('activityCount');
+      const el = $('activityLog'), cnt = $('activityCount');
       if (!el) return;
       if (cnt) cnt.textContent = activityEntries.length;
       if (activityEntries.length === 0) return;
-
+      const icons = { buy: '🟢', sell: '🔴', skip: '⚪', info: '🔵' };
+      const bgCls = { buy: 'bg-profit/10', sell: 'bg-loss/10', skip: 'bg-white/5', info: 'bg-brand-500/10' };
+      const tagColors = { regime:'#fbbf24', rsi:'#f87171', ema:'#34d399', tp:'#34d399', sl:'#f87171', breakeven:'#fbbf24', cooldown:'#6b7280', correlation:'#fbbf24' };
       el.innerHTML = activityEntries.map(e => {
-        const icons = { buy: '🟢', sell: '🔴', skip: '⚪', info: '🔵' };
-        const cls = { buy: 'win', sell: e.message?.includes('+') ? 'win' : 'loss', skip: 'skipped', info: 'pending' };
-        const tagColors = { regime:'#ff9f0a', rsi:'#ff453a', ema:'#00d4aa', tp:'#00d4aa', sl:'#ff4d4d', breakeven:'#ff9f0a', cooldown:'#636366', correlation:'#ff9f0a' };
-        const tag = e.tag ? `<span style="background:${tagColors[e.tag] || 'var(--accent)'}22;color:${tagColors[e.tag] || 'var(--accent)'};padding:2px 8px;border-radius:4px;font-size:0.65rem;font-weight:600;margin-left:6px">${e.tag}</span>` : '';
-        const reasonLine = e.reason ? `<div class="trade-detail" style="color:var(--text-secondary);margin-top:2px">↳ ${e.reason}</div>` : '';
-        return `<div class="trade-item">
-          <div class="trade-status-icon ${cls[e.type] || 'pending'}">${icons[e.type] || '🔵'}</div>
-          <div class="trade-info">
-            <div class="trade-symbol">${e.coin ? e.coin + ' · ' : ''}${e.type.toUpperCase()}${tag}</div>
-            <div class="trade-detail">${e.message}</div>
-            ${reasonLine}
+        const tag = e.tag ? `<span class="inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold" style="background:${tagColors[e.tag] || '#6366f1'}15;color:${tagColors[e.tag] || '#818cf8'}">${e.tag}</span>` : '';
+        const reason = e.reason ? `<p class="text-xs text-gray-600 mt-0.5">↳ ${e.reason}</p>` : '';
+        return `<div class="flex items-start gap-3 px-4 py-3 hover:bg-white/[0.02] transition-colors">
+          <span class="flex size-7 items-center justify-center rounded-lg ${bgCls[e.type] || 'bg-white/5'} text-xs mt-0.5 shrink-0">${icons[e.type] || '🔵'}</span>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2"><span class="text-xs font-semibold text-gray-300">${e.coin ? e.coin + ' · ' : ''}${e.type.toUpperCase()}</span>${tag}</div>
+            <p class="text-xs text-gray-500 mt-0.5 truncate">${e.message}</p>${reason}
           </div>
-          <div class="trade-time">${e.time || ''}</div>
+          <span class="text-[10px] text-gray-600 shrink-0 mt-0.5">${e.time || ''}</span>
         </div>`;
       }).join('');
     }
 
-    // ── Helpers ─────────────────────────────────────────────────
-    function renderTrade(t) {
-      const cls = t.pnl > 0 ? 'win' : t.pnl < 0 ? 'loss' : (t.status === 'skipped' || t.status === 'failed') ? 'skipped' : 'pending';
-      const icon = t.pnl > 0 ? '✅' : t.pnl < 0 ? '❌' : t.status === 'skipped' ? '⏭️' : '⏳';
-      const amt = t.pnl != null ? `<span class="trade-amount ${pnlClass(t.pnl)}">${t.pnl >= 0 ? '+' : ''}${fmtUsd(t.pnl)}</span>` : '';
-      return `<div class="trade-item">
-        <div class="trade-status-icon ${cls}">${icon}</div>
-        <div class="trade-info">
-          <div class="trade-symbol">${t.side} ${t.symbol}</div>
-          <div class="trade-detail">${t.reasoning ? t.reasoning.split('\\n')[0] : t.status}</div>
-        </div>${amt}
-        <div class="trade-time">${fmtTime(t.timestamp)}</div>
-      </div>`;
-    }
-
+    // ── Helpers ─────────────────────────────────────────────
     function fmtUsd(v) { return v == null ? '$0.00' : '$' + Number(v).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2}); }
-    function pnlClass(v) { return v > 0 ? 'positive' : v < 0 ? 'negative' : 'neutral'; }
+    function pnlColor(v) { return v > 0 ? 'text-profit' : v < 0 ? 'text-loss' : 'text-white'; }
     function fmtTime(ts) { return ts ? new Date(ts).toLocaleTimeString('en-US', {hour:'2-digit',minute:'2-digit'}) : ''; }
-    function setMomentum(el, val) {
-      const v = val || 0;
-      el.textContent = (v >= 0 ? '+' : '') + v.toFixed(3) + '%';
-      el.className = 'price-momentum ' + (v >= 0 ? 'up' : 'down');
-    }
+    function setMomentum(el, val) { const v = val || 0; el.textContent = (v >= 0 ? '+' : '') + v.toFixed(3) + '%'; el.className = 'text-xs font-semibold ' + (v >= 0 ? 'text-profit' : 'text-loss'); }
 
-    // ── Market Cards ───────────────────────────────────────────
-    function renderMarketCards(cards) {
-      const container = $('marketCards');
-      const countEl = $('marketCount');
-      if (!container) return;
-
-      const allMarkets = Object.values(cards).flat();
-      if (countEl) countEl.textContent = allMarkets.length;
-
-      if (allMarkets.length === 0) return;
-
-      const catIcons = { 'Politics': '🏛️', 'Macro': '📊', 'AI & Tech': '🤖', 'Crypto': '₿', 'Other': '🔮' };
-      const catColors = { 'Politics': '#ff4d4d', 'Macro': '#ff9f0a', 'AI & Tech': '#00d4aa', 'Crypto': '#ff9f0a', 'Other': '#a1a1a6' };
-
-      let html = '';
-      for (const [category, markets] of Object.entries(cards)) {
-        if (!markets || markets.length === 0) continue;
-
-        const icon = catIcons[category] || '📊';
-        const color = catColors[category] || '#a1a1a6';
-
-        html += `<div style="margin-bottom:8px"><span class="section-title">${icon} ${category} <span class="count">${markets.length}</span></span></div>`;
-        html += '<div class="trade-feed" style="margin-bottom:16px">';
-
-        for (const m of markets) {
-          const edgeColor = m.edgeScore >= 60 ? 'var(--green)' : m.edgeScore >= 40 ? 'var(--orange)' : 'var(--text-tertiary)';
-          const edgeBg = m.edgeScore >= 60 ? 'var(--green-dim)' : m.edgeScore >= 40 ? 'var(--orange-dim)' : 'var(--bg-elevated)';
-
-          html += `<div class="trade-item">
-            <div class="trade-status-icon pending" style="background:${color}22;font-size:0.85rem">${icon}</div>
-            <div class="trade-info">
-              <div class="trade-symbol">${m.question}</div>
-              <div class="trade-detail" style="margin-top:4px">
-                <span style="color:var(--green);font-weight:600">YES ${m.yesPct}¢</span>
-                <span style="margin:0 6px;color:var(--text-tertiary)">·</span>
-                <span style="color:var(--red);font-weight:600">NO ${m.noPct}¢</span>
-                <span style="margin:0 6px;color:var(--text-tertiary)">·</span>
-                <span style="color:var(--text-secondary)">${m.volumeStr} vol</span>
-                <span style="margin:0 6px;color:var(--text-tertiary)">·</span>
-                <span style="color:var(--text-tertiary)">Ends: ${m.endDateStr}</span>
-              </div>
-            </div>
-            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
-              <span style="background:${edgeBg};color:${edgeColor};padding:2px 8px;border-radius:6px;font-size:0.7rem;font-weight:600">Edge ${m.edgeScore}</span>
-            </div>
-          </div>`;
-        }
-        html += '</div>';
-      }
-
-      container.innerHTML = html;
-    }
-
-    // ── Info Icons ─────────────────────────────────────────────
+    // ── Info Icons ─────────────────────────────────────────
     const infoTexts = {
-      portfolio: { title: 'Portfolio', body: "Your total account balance. This is how much virtual money the bot is managing — think of it like your bank balance for trading." },
-      pnl: { title: "Today's P&L", body: "Profit and Loss today. Green means the bot made money today, red means it lost money. This resets every day at midnight." },
-      winrate: { title: 'Win Rate', body: "The percentage of trades that made a profit. Above 50% means the bot wins more often than it loses. A good bot typically aims for 55%+." },
-      positions: { title: 'Open Positions', body: "How many trades are currently active (bought but not yet sold). The bot is watching these and will sell when the right moment comes." },
-      ticker: { title: 'Live Ticker', body: "Real-time data from each coin, updated every minute. RSI, MACD, and Volume are technical indicators the bot uses to decide when to trade." },
-      signals: { title: 'Strategy', body: "The bot checks each coin every minute using 8 different tests. WAIT = still loading data. HOLD = watching but no opportunity yet. BUY = all 8 tests passed. IN TRADE = currently holding a position." },
-      scalperbal: { title: 'Scalper Balance', body: "The virtual money the scalper is managing. P&L shows total profit or loss since the bot started running." },
-      activity: { title: 'Activity Log', body: "A live feed of everything the bot is doing — signals it checked, trades it took, and reasons it skipped opportunities." },
-      polymarket: { title: 'Polymarket Markets', body: "Prediction markets the bot is monitoring. These are real-world events people bet on. The Edge Score shows how likely the bot thinks there's a pricing opportunity worth acting on." },
-      backtest: { title: 'Backtest Results', body: "A historical simulation that replays the trading strategy against the last 30 days of real price data. It shows how the bot would have performed if it had been running. Use this to judge whether the strategy is profitable before risking real money." },
+      pnl: { title: "Today's P&L", body: "Profit and Loss today. Green = profit, red = loss. Resets at midnight." },
+      winrate: { title: 'Win Rate', body: "Percentage of trades that made a profit. Above 50% = winning more than losing." },
+      positions: { title: 'Open Positions', body: "How many trades are currently active (bought but not yet sold)." },
+      ticker: { title: 'Live Ticker', body: "Real-time data from each coin, updated every minute. RSI, MACD, and Volume are technical indicators." },
+      signals: { title: 'Strategy', body: "The bot checks each coin every minute using 8 different tests. WAIT = loading. HOLD = watching. BUY = all tests passed. IN TRADE = holding." },
+      scalperbal: { title: 'Scalper Balance', body: "The virtual money the scalper is managing. P&L shows total profit or loss since start." },
+      activity: { title: 'Activity Log', body: "Live feed of everything the bot is doing — signals, trades, and reasons it skipped." },
+      backtest: { title: 'Backtest Results', body: "Historical simulation replaying the strategy against 30 days of real price data." },
     };
-
     document.addEventListener('click', (e) => {
       const icon = e.target.closest('.info-icon');
-      if (!icon) return;
-      e.stopPropagation();
-      const key = icon.dataset.info;
-      const info = infoTexts[key];
-      if (!info) return;
-      $('infoTitle').textContent = info.title;
-      $('infoBody').textContent = info.body;
-      $('infoOverlay').style.display = 'flex';
+      if (!icon) return; e.stopPropagation();
+      const info = infoTexts[icon.dataset.info]; if (!info) return;
+      $('infoTitle').textContent = info.title; $('infoBody').textContent = info.body; $('infoOverlay').style.display = 'flex';
     });
+    $('infoOverlay').addEventListener('click', (e) => { if (e.target === $('infoOverlay') || e.target === $('infoClose')) $('infoOverlay').style.display = 'none'; });
 
-    $('infoOverlay').addEventListener('click', (e) => {
-      if (e.target === $('infoOverlay') || e.target === $('infoClose')) {
-        $('infoOverlay').style.display = 'none';
-      }
-    });
-
-    // ── Backtest ───────────────────────────────────────────────
+    // ── Backtest ───────────────────────────────────────────
     $('runBacktestBtn').addEventListener('click', async () => {
-      const btn = $('runBacktestBtn');
-      const status = $('backtestStatus');
-      btn.disabled = true;
-      btn.textContent = '⏳ Running...';
+      const btn = $('runBacktestBtn'), status = $('backtestStatus');
+      btn.disabled = true; btn.textContent = '⏳ Running...';
       status.textContent = 'Fetching 30 days of data & replaying strategy...';
-
       try {
-        const res = await fetch('/api/backtest');
-        const data = await res.json();
+        const res = await fetch('/api/backtest'); const data = await res.json();
         if (data.error) throw new Error(data.error);
-        renderBacktest(data);
-        btn.textContent = '✅ Backtest Complete';
+        renderBacktest(data); btn.textContent = '✅ Complete';
         status.textContent = data.cached ? '(cached result)' : `Ran at ${new Date(data.ranAt).toLocaleTimeString()}`;
-      } catch (err) {
-        btn.textContent = '❌ Failed';
-        status.textContent = err.message;
-      }
+      } catch (err) { btn.textContent = '❌ Failed'; status.textContent = err.message; }
       setTimeout(() => { btn.disabled = false; btn.textContent = '▶ Run 30-Day Backtest'; }, 5000);
     });
 
     function renderBacktest(data) {
-      $('backtestResults').style.display = 'block';
-      $('backtestTradeCount').textContent = data.totalTrades;
-
+      $('backtestResults').classList.remove('hidden'); $('backtestTradeCount').textContent = data.totalTrades;
       $('backtestStats').innerHTML = [
-        { label: 'Win Rate', value: data.winRate + '%', cls: data.winRate >= 50 ? 'positive' : 'negative' },
-        { label: 'Total P&L', value: (data.totalPnlUsd >= 0 ? '+' : '') + fmtUsd(data.totalPnlUsd) + ` (${data.totalPnlPct >= 0 ? '+' : ''}${data.totalPnlPct}%)`, cls: data.totalPnlUsd >= 0 ? 'positive' : 'negative' },
-        { label: 'Max Drawdown', value: fmtUsd(data.maxDrawdown) + ` (${data.maxDrawdownPct}%)`, cls: 'negative' },
-        { label: 'Trades', value: `${data.totalTrades} (${data.wins}W / ${data.losses}L)`, cls: 'neutral' },
-        { label: 'Avg Win', value: fmtUsd(data.avgWin), cls: 'positive' },
-        { label: 'Avg Loss', value: fmtUsd(data.avgLoss), cls: 'negative' },
-      ].map(s => `<div class="stat-card"><div class="stat-label">${s.label}</div><div class="stat-value ${s.cls}">${s.value}</div></div>`).join('');
+        { label: 'Win Rate', value: data.winRate + '%', cls: data.winRate >= 50 ? 'text-profit' : 'text-loss' },
+        { label: 'Total P&L', value: (data.totalPnlUsd >= 0 ? '+' : '') + fmtUsd(data.totalPnlUsd) + ` (${data.totalPnlPct >= 0 ? '+' : ''}${data.totalPnlPct}%)`, cls: data.totalPnlUsd >= 0 ? 'text-profit' : 'text-loss' },
+        { label: 'Max Drawdown', value: fmtUsd(data.maxDrawdown) + ` (${data.maxDrawdownPct}%)`, cls: 'text-loss' },
+        { label: 'Trades', value: `${data.totalTrades} (${data.wins}W / ${data.losses}L)`, cls: 'text-white' },
+        { label: 'Avg Win', value: fmtUsd(data.avgWin), cls: 'text-profit' },
+        { label: 'Avg Loss', value: fmtUsd(data.avgLoss), cls: 'text-loss' },
+      ].map(s => `<div class="rounded-xl bg-gray-800/60 ring-1 ring-white/5 px-4 py-3"><dt class="text-[10px] font-medium uppercase tracking-wider text-gray-500">${s.label}</dt><dd class="mt-1 text-lg font-bold ${s.cls}">${s.value}</dd></div>`).join('');
 
-      const symbols = Object.entries(data.perSymbol || {});
-      $('backtestPerSymbol').innerHTML = symbols.map(([sym, d]) => {
+      $('backtestPerSymbol').innerHTML = Object.entries(data.perSymbol || {}).map(([sym, d]) => {
         const wr = d.trades > 0 ? (d.wins / d.trades * 100).toFixed(0) : 0;
-        return `<div class="stat-card"><div class="stat-label">${sym}</div><div class="stat-value ${d.totalPnl >= 0 ? 'positive' : 'negative'}">${d.totalPnl >= 0 ? '+' : ''}${fmtUsd(d.totalPnl)}</div><div class="stat-sub">${d.trades} trades · ${wr}% win</div></div>`;
+        return `<div class="rounded-xl bg-gray-800/60 ring-1 ring-white/5 px-4 py-3"><dt class="text-xs font-medium text-gray-400">${sym}</dt><dd class="mt-1 text-lg font-bold ${d.totalPnl >= 0 ? 'text-profit' : 'text-loss'}">${d.totalPnl >= 0 ? '+' : ''}${fmtUsd(d.totalPnl)}</dd><p class="text-xs text-gray-500">${d.trades} trades · ${wr}% win</p></div>`;
       }).join('');
 
-      $('backtestTradeFeed').innerHTML = (data.trades || []).map(t => {
-        const icon = t.pnlUsd >= 0 ? '✅' : '❌';
-        const cls = t.pnlUsd >= 0 ? 'win' : 'loss';
-        return `<div class="trade-item">
-          <div class="trade-status-icon ${cls}">${icon}</div>
-          <div class="trade-info">
-            <div class="trade-symbol">${t.symbol} · ${t.reason}</div>
-            <div class="trade-detail">$${t.entryPrice.toLocaleString()} → $${t.exitPrice.toLocaleString()} · Cost: ${fmtUsd(t.cost)}</div>
-          </div>
-          <span class="trade-amount ${t.pnlUsd >= 0 ? 'positive' : 'negative'}">${t.pnlUsd >= 0 ? '+' : ''}${fmtUsd(t.pnlUsd)} (${t.pnlPct >= 0 ? '+' : ''}${t.pnlPct}%)</span>
-          <div class="trade-time">${new Date(t.entryTime).toLocaleDateString('en-GB', {day:'numeric',month:'short'})}</div>
-        </div>`;
-      }).join('');
+      $('backtestTradeFeed').innerHTML = (data.trades || []).map(t => `<div class="flex items-center gap-3 px-4 py-3">
+        <span class="flex size-7 items-center justify-center rounded-lg ${t.pnlUsd >= 0 ? 'bg-profit/10' : 'bg-loss/10'} text-xs">${t.pnlUsd >= 0 ? '✅' : '❌'}</span>
+        <div class="flex-1 min-w-0"><p class="text-xs font-medium text-white">${t.symbol} · ${t.reason}</p><p class="text-[11px] text-gray-500">$${t.entryPrice.toLocaleString()} → $${t.exitPrice.toLocaleString()} · Cost: ${fmtUsd(t.cost)}</p></div>
+        <span class="text-xs font-bold ${t.pnlUsd >= 0 ? 'text-profit' : 'text-loss'}">${t.pnlUsd >= 0 ? '+' : ''}${fmtUsd(t.pnlUsd)} (${t.pnlPct >= 0 ? '+' : ''}${t.pnlPct}%)</span>
+        <span class="text-[10px] text-gray-600">${new Date(t.entryTime).toLocaleDateString('en-GB', {day:'numeric',month:'short'})}</span>
+      </div>`).join('');
     }
   </script>
 
+  <!-- Info icon micro-styles (not worth Tailwind utility for) -->
+  <style>
+    .info-icon {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 15px; height: 15px; border-radius: 50%;
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+      color: rgba(255,255,255,0.25); font-size: 9px; font-weight: 700;
+      font-style: italic; font-family: Georgia, serif; cursor: pointer;
+      transition: all 0.2s; flex-shrink: 0; line-height: 1;
+    }
+    .info-icon:hover { background: rgba(99,102,241,0.15); border-color: rgba(99,102,241,0.3); color: #818cf8; }
+  </style>
 </body>
 </html>

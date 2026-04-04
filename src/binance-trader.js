@@ -26,8 +26,8 @@ export class BinanceTrader {
 
     // Portfolio tracking
     this.portfolio = {
-      startingBalance: options.startingBalance || 99,
-      balance: options.startingBalance || 99,  // USDT available
+      startingBalance: options.startingBalance || 100,
+      balance: options.startingBalance || 100,  // USDT available
       totalPnl: 0,
       trades: [],
       wins: 0,
