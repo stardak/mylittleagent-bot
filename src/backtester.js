@@ -1,5 +1,5 @@
 // ══════════════════════════════════════════════════════════════════════════════
-// BACKTESTING ENGINE v4 — Regime-Adaptive Strategy
+// BACKTESTING ENGINE v5 — Regime-Adaptive Strategy (Profitability Overhaul)
 // ══════════════════════════════════════════════════════════════════════════════
 // Tests the dual strategy (Mean Reversion + Breakout) against historical data.
 //
@@ -13,40 +13,45 @@ const INTERVAL = '15m';
 const DAYS = 30;
 const KLINE_LIMIT = 1000; // Binance max per request
 
-// Strategy params (must match scalper.js v4)
+// Strategy params (must match scalper.js v5)
 const SMA_PERIOD = 20;
 const SMA50_PERIOD = 50;
 const BB_STD_DEV = 2.0;
 const RSI_PERIOD = 14;
 const ATR_PERIOD = 14;
 const ADX_PERIOD = 14;
+const MACD_FAST = 12;
+const MACD_SLOW = 26;
+const MACD_SIGNAL = 9;
 const VOL_AVG_PERIOD = 20;
 const DONCHIAN_PERIOD = 20;
 
-// Regime thresholds
-const ADX_TRENDING = 35;
+// Regime thresholds (v5)
+const ADX_TRENDING = 40;  // was 35
 const ADX_RANGING = 25;
 
-// Mean Reversion params
-const MR_RSI_ENTRY = 30;
-const MR_RSI_SHORT = 70;
-const MR_VOL_MULT = 0.8;
-const MR_STOP_ATR = 2.0;
+// Mean Reversion params (v5 — R:R optimised)
+const MR_RSI_ENTRY = 30;     // kept at 30
+const MR_RSI_SHORT = 70;     // kept at 70
+const MR_VOL_MULT = 1.0;     // was 0.8
+const MR_STOP_ATR = 1.0;     // was 2.0 (halved!)
 const MR_MAX_POS = 0.06;
-const MR_MIN_BB_DISTANCE = 0.001;
-const MR_MAX_BARS_HELD = 30;
-const MR_TARGET_REVERSION = 0.5;
+const MR_MIN_BB_DISTANCE = 0.002; // was 0.001
+const MR_MAX_BARS_HELD = 20; // was 30
+const MR_TARGET_REVERSION = 1.0; // was 0.5 (full reversion!)
+const MR_BREAKEVEN_ATR = 0.5; // move stop to entry after this × ATR profit
 
-// Breakout params
-const BO_VOL_MULT = 1.5;
+// Breakout params (v5 — nerfed)
+const BO_VOL_MULT = 2.0;     // was 1.5
 const BO_TRAIL_ATR = 2.5;
 const BO_TP_PCT = 4.0;
-const BO_MAX_POS = 0.10;
+const BO_MAX_POS = 0.05;     // was 0.10
+const MAX_CONCURRENT = 2;    // correlation guard
 
 // General
 const FEE_PCT = 0.001; // 0.1% per side
 const COOLDOWN_BARS = 3; // 3 candles cooldown between trades per symbol
-const MIN_CANDLES = Math.max(ADX_PERIOD * 2 + 2, SMA50_PERIOD + 5, DONCHIAN_PERIOD + 2);
+const MIN_CANDLES = Math.max(ADX_PERIOD * 2 + 2, SMA50_PERIOD + 5, DONCHIAN_PERIOD + 2, MACD_SLOW + MACD_SIGNAL + 5);
 
 // ── Indicator Functions ──────────────────────────────────────────────────────
 
@@ -116,6 +121,32 @@ function donchianChannel(candles, period) {
     high: Math.max(...lookback.map(c => c.high)),
     low: Math.min(...lookback.map(c => c.low)),
   };
+}
+
+// MACD (v5)
+function macd(prices, fastPeriod, slowPeriod, signalPeriod) {
+  if (prices.length < slowPeriod + signalPeriod) return null;
+  const kFast = 2 / (fastPeriod + 1);
+  const kSlow = 2 / (slowPeriod + 1);
+  const macdLine = [];
+  let runFast = prices.slice(0, fastPeriod).reduce((a, b) => a + b, 0) / fastPeriod;
+  let runSlow = prices.slice(0, slowPeriod).reduce((a, b) => a + b, 0) / slowPeriod;
+  for (let i = slowPeriod; i < prices.length; i++) {
+    runFast = prices[i] * kFast + runFast * (1 - kFast);
+    runSlow = prices[i] * kSlow + runSlow * (1 - kSlow);
+    macdLine.push(runFast - runSlow);
+  }
+  if (macdLine.length < signalPeriod) return null;
+  const kSig = 2 / (signalPeriod + 1);
+  let signal = macdLine.slice(0, signalPeriod).reduce((a, b) => a + b, 0) / signalPeriod;
+  for (let i = signalPeriod; i < macdLine.length; i++) {
+    signal = macdLine[i] * kSig + signal * (1 - kSig);
+  }
+  const latestMacd = macdLine[macdLine.length - 1];
+  const prevMacd = macdLine.length >= 2 ? macdLine[macdLine.length - 2] : latestMacd;
+  const histogram = latestMacd - signal;
+  const prevHistogram = prevMacd - signal;
+  return { histogram, rising: histogram > prevHistogram };
 }
 
 function adx(candles, period) {
@@ -256,6 +287,7 @@ function backtestSymbol(candles, symbol, startingBalance) {
     const rsiVal = rsi(closes, RSI_PERIOD);
     const atrVal = atr(buffer, ATR_PERIOD);
     const adxData = adx(buffer, ADX_PERIOD);
+    const macdData = macd(closes, MACD_FAST, MACD_SLOW, MACD_SIGNAL);
     const donch = donchianChannel(buffer, DONCHIAN_PERIOD);
     const avgVol = avgVolume(buffer, VOL_AVG_PERIOD);
     const sma50Val = sma(closes, SMA50_PERIOD);
@@ -295,10 +327,22 @@ function backtestSymbol(candles, symbol, startingBalance) {
       let exitReason = null;
 
       if (position.strategy === 'MEAN_REVERSION') {
+        // v5: breakeven stop logic
+        if (!position.breakevenStop) {
+          const beThreshold = atrVal * MR_BREAKEVEN_ATR;
+          const inProfit = isLong
+            ? (price - position.entryPrice) >= beThreshold
+            : (position.entryPrice - price) >= beThreshold;
+          if (inProfit) {
+            position.stopPrice = position.entryPrice;
+            position.breakevenStop = true;
+          }
+        }
+
         if (isLong && price >= position.targetPrice) exitReason = 'TARGET_HIT';
         else if (!isLong && price <= position.targetPrice) exitReason = 'TARGET_HIT';
-        else if (isLong && price <= position.stopPrice) exitReason = 'STOP_LOSS';
-        else if (!isLong && price >= position.stopPrice) exitReason = 'STOP_LOSS';
+        else if (isLong && price <= position.stopPrice) exitReason = position.breakevenStop ? 'BREAKEVEN_EXIT' : 'STOP_LOSS';
+        else if (!isLong && price >= position.stopPrice) exitReason = position.breakevenStop ? 'BREAKEVEN_EXIT' : 'STOP_LOSS';
         else if (i - position.entryBar >= MR_MAX_BARS_HELD) exitReason = 'TIME_EXIT';
       } else {
         // BREAKOUT
@@ -350,20 +394,22 @@ function backtestSymbol(candles, symbol, startingBalance) {
     // ── Route by regime ──
     if (regime === 'RANGING') {
       const volOk = volumeRatio >= MR_VOL_MULT;
+      const macdBullish = macdData ? macdData.rising : true;
+      const macdBearish = macdData ? !macdData.rising : true;
 
-      // LONG: buy below lower BB + RSI oversold
+      // LONG: buy below lower BB + RSI oversold + MACD confirming
       const belowBB = price < bb.lower;
       const bbDistLong = (bb.lower - price) / price;
       const bbDistLongOk = bbDistLong >= MR_MIN_BB_DISTANCE;
       const rsiOversold = rsiVal < MR_RSI_ENTRY;
 
-      // SHORT: sell above upper BB + RSI overbought
+      // SHORT: sell above upper BB + RSI overbought + MACD confirming
       const aboveBB = price > bb.upper;
       const bbDistShort = (price - bb.upper) / price;
       const bbDistShortOk = bbDistShort >= MR_MIN_BB_DISTANCE;
       const rsiOverbought = rsiVal > MR_RSI_SHORT;
 
-      if (belowBB && bbDistLongOk && rsiOversold && volOk) {
+      if (belowBB && bbDistLongOk && rsiOversold && volOk && macdBullish) {
         // MR LONG
         const stopPrice = price - atrVal * MR_STOP_ATR;
         const targetPrice = price + (bb.middle - price) * MR_TARGET_REVERSION;
@@ -377,9 +423,10 @@ function backtestSymbol(candles, symbol, startingBalance) {
           entryTime: candle.openTime, entryBar: i,
           stopPrice, targetPrice,
           highestSinceEntry: price, lowestSinceEntry: price, trailingStop: null,
+          breakevenStop: false,
         };
         lastTradeBar = i;
-      } else if (aboveBB && bbDistShortOk && rsiOverbought && volOk) {
+      } else if (aboveBB && bbDistShortOk && rsiOverbought && volOk && macdBearish) {
         // MR SHORT
         const stopPrice = price + atrVal * MR_STOP_ATR;
         const targetPrice = price - (price - bb.middle) * MR_TARGET_REVERSION;
@@ -393,6 +440,7 @@ function backtestSymbol(candles, symbol, startingBalance) {
           entryTime: candle.openTime, entryBar: i,
           stopPrice, targetPrice,
           highestSinceEntry: price, lowestSinceEntry: price, trailingStop: null,
+          breakevenStop: false,
         };
         lastTradeBar = i;
       }

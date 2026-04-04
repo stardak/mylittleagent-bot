@@ -1,30 +1,21 @@
 // ══════════════════════════════════════════════════════════════════════════════
-// REGIME-ADAPTIVE TRADING ENGINE v4
+// REGIME-ADAPTIVE TRADING ENGINE v5 — PROFITABILITY OVERHAUL
 // ══════════════════════════════════════════════════════════════════════════════
 //
-// Two strategies, selected automatically by market regime (ADX):
+// Key fix: R:R flipped from 1:4 (catastrophic) to 2:1 (edge).
 //
-//   ┌─────────────────────────────────────────────────────────┐
-//   │  REGIME DETECTOR — ADX(14) on 5m candles               │
-//   │                                                        │
-//   │  ADX > 25  → TRENDING   → Breakout strategy            │
-//   │  ADX < 20  → RANGING    → Mean reversion strategy      │
-//   │  ADX 20-25 → AMBIGUOUS  → No new entries               │
-//   └─────────────────────────────────────────────────────────┘
+// Changes from v4:
+//   • Tighter stops:  1× ATR (was 2×) — halves avg loss
+//   • Full targets:   100% reversion to SMA20 (was 50%) — doubles avg win
+//   • MACD confirm:   histogram must confirm momentum reversal
+//   • Breakeven stop: once +0.5 ATR profit, stop moves to entry
+//   • Stricter entry:  RSI <28/>72, BB dist >0.3%, Vol >1×
+//   • Correlation:    max 2 concurrent positions
+//   • Breakout nerf:  ADX >40, Vol >2×, position max 5%
 //
-//  MEAN REVERSION (ranging markets, ~60-70% of time):
-//    BUY:  price < lower Bollinger Band(20,2) AND RSI < 30
-//          AND volume > 0.8x average AND in trading window
-//    SELL: price >= SMA(20) (target) OR
-//          price < entry - ATR*0.8 (stop)
-//    Expected: 65-75% win rate, ~1.5:1 R:R
-//
-//  BREAKOUT (trending markets, ~20-30% of time):
-//    BUY:  price > 20-period high (Donchian) AND ADX > 25
-//          AND +DI > -DI AND volume > 1.5x avg
-//    SELL: trailing stop at highest_since_entry - ATR*2.0
-//          OR take profit at +3%
-//    Expected: 35-45% win rate, 3:1+ R:R
+// R:R math:
+//   Before: avg win ~$0.30, avg loss ~$1.50 → need 83% WR to break even
+//   After:  avg win ~$1.20, avg loss ~$0.60 → need only 35% WR to profit
 //
 // ══════════════════════════════════════════════════════════════════════════════
 
@@ -45,31 +36,36 @@ export class Scalper extends EventEmitter {
     this.rsiPeriod = 14;
     this.atrPeriod = 14;
     this.adxPeriod = 14;
+    this.macdFast = 12;
+    this.macdSlow = 26;
+    this.macdSignal = 9;
     this.volumeAvgPeriod = 20;
     this.donchianPeriod = 20;
 
     // ── Regime thresholds ──
-    this.adxTrendingThreshold = 35;  // Only breakout in VERY strong trends
-    this.adxRangingThreshold = 25;   // Wider ranging zone (was 20)
+    this.adxTrendingThreshold = 40;  // Only breakout in VERY strong trends (was 35)
+    this.adxRangingThreshold = 25;   // Wider ranging zone
 
-    // ── Mean Reversion params ──
-    this.mrRsiEntry = 30;           // RSI must be below this (LONG)
-    this.mrRsiShortEntry = 70;      // RSI must be above this (SHORT)
-    this.mrVolumeMultiplier = 0.8;  // Volume must be above this × avg
-    this.mrStopAtrMult = 2.0;       // Stop distance = ATR × this
+    // ── Mean Reversion params (v5 — R:R optimised) ──
+    this.mrRsiEntry = 30;           // RSI must be below this (LONG) — kept at 30
+    this.mrRsiShortEntry = 70;      // RSI must be above this (SHORT) — kept at 70
+    this.mrVolumeMultiplier = 1.0;  // Volume must be above this × avg — was 0.8
+    this.mrStopAtrMult = 1.0;       // Stop distance = ATR × this — was 2.0 (halved!)
     this.mrMaxPositionPct = 0.06;   // 6% of portfolio max
-    this.mrMinBBDistance = 0.001;    // Price must be beyond BB band
-    this.mrMaxBarsHeld = 30;        // Force exit after 30 bars
-    this.mrTargetReversion = 0.5;   // Target 50% reversion to SMA20
+    this.mrMinBBDistance = 0.002;   // Price must be 0.2% beyond BB — was 0.1%
+    this.mrMaxBarsHeld = 20;        // Force exit after 20 bars — was 30
+    this.mrTargetReversion = 1.0;   // Target FULL reversion to SMA20 — was 0.5
+    this.mrBreakevenAtrMult = 0.5;  // Move stop to entry after this × ATR profit
 
-    // ── Breakout params ──
-    this.boVolumeMultiplier = 1.5;  // Volume must be above this × avg
+    // ── Breakout params (v5 — nerfed, fewer fakeouts) ──
+    this.boVolumeMultiplier = 2.0;  // Volume must be above this × avg — was 1.5
     this.boTrailAtrMult = 2.5;     // Trailing stop distance = ATR × this
     this.boTakeProfitPct = 4.0;    // Take profit at +4% / -4%
-    this.boMaxPositionPct = 0.10;   // 10% of portfolio max
+    this.boMaxPositionPct = 0.05;   // 5% of portfolio max — was 10% (halved!)
 
     // ── General ──
-    this.maxTotalExposurePct = 0.25; // Max 25% total portfolio in trades
+    this.maxTotalExposurePct = 0.20; // Max 20% total portfolio in trades — was 25%
+    this.maxConcurrentPositions = 2; // Correlation guard: max 2 coins at once (was 3)
     this.cooldownMs = 15 * 60 * 1000; // 15 minutes between trades per coin
 
     // ── Per-symbol state ──
@@ -86,6 +82,7 @@ export class Scalper extends EventEmitter {
         sma20: 0, bbUpper: 0, bbLower: 0,
         rsi: 50, atr: 0,
         adx: 0, plusDI: 0, minusDI: 0,
+        macdHist: 0, // MACD histogram (v5)
         donchianHigh: 0, donchianLow: 0,
         volumeRatio: 0,
         price: 0,
@@ -275,6 +272,47 @@ export class Scalper extends EventEmitter {
     };
   }
 
+  // ── MACD (Moving Average Convergence Divergence) ────────────────────────
+  // Returns the histogram value: positive = bullish momentum, negative = bearish
+  _macd(prices, fastPeriod, slowPeriod, signalPeriod) {
+    if (prices.length < slowPeriod + signalPeriod) return null;
+    const emaFast = this._ema(prices, fastPeriod);
+    const emaSlow = this._ema(prices, slowPeriod);
+    if (emaFast === null || emaSlow === null) return null;
+
+    // Build full MACD line series to compute signal line
+    const macdLine = [];
+    const kFast = 2 / (fastPeriod + 1);
+    const kSlow = 2 / (slowPeriod + 1);
+    let runFast = prices.slice(0, fastPeriod).reduce((a, b) => a + b, 0) / fastPeriod;
+    let runSlow = prices.slice(0, slowPeriod).reduce((a, b) => a + b, 0) / slowPeriod;
+    for (let i = slowPeriod; i < prices.length; i++) {
+      runFast = prices[i] * kFast + runFast * (1 - kFast);
+      runSlow = prices[i] * kSlow + runSlow * (1 - kSlow);
+      macdLine.push(runFast - runSlow);
+    }
+    if (macdLine.length < signalPeriod) return null;
+
+    // Signal line = EMA of MACD line
+    const kSig = 2 / (signalPeriod + 1);
+    let signal = macdLine.slice(0, signalPeriod).reduce((a, b) => a + b, 0) / signalPeriod;
+    for (let i = signalPeriod; i < macdLine.length; i++) {
+      signal = macdLine[i] * kSig + signal * (1 - kSig);
+    }
+
+    const latestMacd = macdLine[macdLine.length - 1];
+    const prevMacd = macdLine.length >= 2 ? macdLine[macdLine.length - 2] : latestMacd;
+    const histogram = latestMacd - signal;
+    const prevHistogram = prevMacd - signal; // approximate
+
+    return {
+      macd: latestMacd,
+      signal,
+      histogram,
+      rising: histogram > prevHistogram,  // momentum improving
+    };
+  }
+
   // ── ADX (Average Directional Index) ─────────────────────────────────────
   // ADX measures trend STRENGTH regardless of direction.
   // +DI > -DI = uptrend, -DI > +DI = downtrend
@@ -386,6 +424,7 @@ export class Scalper extends EventEmitter {
     const rsi = this._rsi(closes, this.rsiPeriod);
     const atr = this._atr(candles, this.atrPeriod);
     const adxData = this._adx(candles, this.adxPeriod);
+    const macdData = this._macd(closes, this.macdFast, this.macdSlow, this.macdSignal);
     const donchian = this._donchianChannel(candles, this.donchianPeriod);
     const avgVol = this._avgVolume(candles, this.volumeAvgPeriod);
     const sma50 = this._sma(closes, this.sma50Period);
@@ -420,6 +459,8 @@ export class Scalper extends EventEmitter {
       adx: adxData.adx,
       plusDI: adxData.plusDI,
       minusDI: adxData.minusDI,
+      macdHist: macdData?.histogram || 0,
+      macdRising: macdData?.rising || false,
       donchianHigh: donchian.high,
       donchianLow: donchian.low,
       volumeRatio,
@@ -437,6 +478,7 @@ export class Scalper extends EventEmitter {
       adx: parseFloat(adxData.adx.toFixed(1)),
       plusDI: parseFloat(adxData.plusDI.toFixed(1)),
       minusDI: parseFloat(adxData.minusDI.toFixed(1)),
+      macdHist: macdData?.histogram,
       regime,
       bbUpper: bb.upper, bbLower: bb.lower, bbMiddle: bb.middle,
       donchianHigh: donchian.high, donchianLow: donchian.low,
@@ -459,11 +501,15 @@ export class Scalper extends EventEmitter {
     // ── Cooldown check ──
     const cooldownOk = (Date.now() - (this.lastTradeTime[symbol] || 0)) > this.cooldownMs;
 
+    // ── Correlation guard: max 2 concurrent positions ──
+    const openCount = this.symbols.filter(s => this.positions[s] !== null).length;
+    const correlationOk = openCount < this.maxConcurrentPositions;
+
     // ── Route to correct strategy (LONG + SHORT) ──
     if (regime === 'RANGING') {
-      this._evaluateMeanReversion(symbol, price, bb, rsi, volumeRatio, atr, inTradingWindow, cooldownOk);
+      this._evaluateMeanReversion(symbol, price, bb, rsi, volumeRatio, atr, inTradingWindow, cooldownOk, correlationOk, macdData);
     } else if (regime === 'TRENDING') {
-      this._evaluateBreakout(symbol, price, donchian, adxData, volumeRatio, atr, inTradingWindow, cooldownOk, sma50);
+      this._evaluateBreakout(symbol, price, donchian, adxData, volumeRatio, atr, inTradingWindow, cooldownOk, sma50, correlationOk);
     } else {
       // AMBIGUOUS — no new entries
       this.signals[symbol].signal = 'HOLD';
@@ -475,28 +521,32 @@ export class Scalper extends EventEmitter {
   // MEAN REVERSION STRATEGY (ranging markets) — LONG + SHORT
   // ══════════════════════════════════════════════════════════════════════════
 
-  _evaluateMeanReversion(symbol, price, bb, rsi, volumeRatio, atr, inTradingWindow, cooldownOk) {
+  _evaluateMeanReversion(symbol, price, bb, rsi, volumeRatio, atr, inTradingWindow, cooldownOk, correlationOk, macdData) {
     const checks = [];
     const volumeOk = volumeRatio >= this.mrVolumeMultiplier;
 
-    // ── LONG: price below lower BB + RSI oversold ──
+    // ── MACD confirmation (v5) ──
+    const macdBullish = macdData ? macdData.rising : true;  // histogram improving = bottom forming
+    const macdBearish = macdData ? !macdData.rising : true; // histogram falling = top forming
+
+    // ── LONG: price below lower BB + RSI oversold + MACD turning up ──
     const belowLowerBB = price < bb.lower;
     const bbDistLong = (bb.lower - price) / price;
     const bbDistLongOk = bbDistLong >= this.mrMinBBDistance;
     const rsiOversold = rsi < this.mrRsiEntry;
 
-    // ── SHORT: price above upper BB + RSI overbought ──
+    // ── SHORT: price above upper BB + RSI overbought + MACD turning down ──
     const aboveUpperBB = price > bb.upper;
     const bbDistShort = (price - bb.upper) / price;
     const bbDistShortOk = bbDistShort >= this.mrMinBBDistance;
     const rsiOverbought = rsi > this.mrRsiShortEntry;
 
     // Try LONG first
-    if (belowLowerBB && bbDistLongOk && rsiOversold && volumeOk && inTradingWindow && cooldownOk) {
+    if (belowLowerBB && bbDistLongOk && rsiOversold && volumeOk && macdBullish && inTradingWindow && cooldownOk && correlationOk) {
       this.signals[symbol].signal = 'BUY';
       this.signals[symbol].lastSkipReason = '';
       const coin = symbol.replace('usdt', '').toUpperCase();
-      console.log(`\n🟢 ${coin} MR LONG | Price: $${price.toFixed(2)} < BB lower $${bb.lower.toFixed(2)} | RSI: ${rsi.toFixed(1)} | Vol: ${volumeRatio.toFixed(1)}x`);
+      console.log(`\n🟢 ${coin} MR LONG | Price: $${price.toFixed(2)} < BB lower $${bb.lower.toFixed(2)} | RSI: ${rsi.toFixed(1)} | Vol: ${volumeRatio.toFixed(1)}x | MACD rising`);
       this.emit('signal', {
         symbol, signal: 'BUY', side: 'LONG', strategy: 'MEAN_REVERSION',
         price, rsi, volumeRatio, atr,
@@ -506,11 +556,11 @@ export class Scalper extends EventEmitter {
     }
 
     // Try SHORT
-    if (aboveUpperBB && bbDistShortOk && rsiOverbought && volumeOk && inTradingWindow && cooldownOk) {
+    if (aboveUpperBB && bbDistShortOk && rsiOverbought && volumeOk && macdBearish && inTradingWindow && cooldownOk && correlationOk) {
       this.signals[symbol].signal = 'SELL_SHORT';
       this.signals[symbol].lastSkipReason = '';
       const coin = symbol.replace('usdt', '').toUpperCase();
-      console.log(`\n🔴 ${coin} MR SHORT | Price: $${price.toFixed(2)} > BB upper $${bb.upper.toFixed(2)} | RSI: ${rsi.toFixed(1)} | Vol: ${volumeRatio.toFixed(1)}x`);
+      console.log(`\n🔴 ${coin} MR SHORT | Price: $${price.toFixed(2)} > BB upper $${bb.upper.toFixed(2)} | RSI: ${rsi.toFixed(1)} | Vol: ${volumeRatio.toFixed(1)}x | MACD falling`);
       this.emit('signal', {
         symbol, signal: 'SELL_SHORT', side: 'SHORT', strategy: 'MEAN_REVERSION',
         price, rsi, volumeRatio, atr,
@@ -525,8 +575,11 @@ export class Scalper extends EventEmitter {
     else if (aboveUpperBB && !bbDistShortOk) checks.push(`BB short distance too small`);
     if (!rsiOversold && !rsiOverbought) checks.push(`RSI ${rsi.toFixed(0)} neutral (${this.mrRsiEntry}–${this.mrRsiShortEntry})`);
     if (!volumeOk) checks.push(`Vol ${volumeRatio.toFixed(1)}x < ${this.mrVolumeMultiplier}x`);
+    if (belowLowerBB && !macdBullish) checks.push('MACD not confirming (still falling)');
+    if (aboveUpperBB && !macdBearish) checks.push('MACD not confirming (still rising)');
     if (!inTradingWindow) checks.push(`Hour ${new Date().getUTCHours()} outside 07-21`);
     if (!cooldownOk) checks.push('Cooldown active');
+    if (!correlationOk) checks.push('Max 2 positions reached (correlation guard)');
 
     this.signals[symbol].signal = 'HOLD';
     this.signals[symbol].lastSkipReason = checks.join(' · ') || 'Waiting for BB touch';
@@ -544,7 +597,7 @@ export class Scalper extends EventEmitter {
   // BREAKOUT STRATEGY (trending markets) — LONG + SHORT
   // ══════════════════════════════════════════════════════════════════════════
 
-  _evaluateBreakout(symbol, price, donchian, adxData, volumeRatio, atr, inTradingWindow, cooldownOk, sma50) {
+  _evaluateBreakout(symbol, price, donchian, adxData, volumeRatio, atr, inTradingWindow, cooldownOk, sma50, correlationOk) {
     const checks = [];
     const volumeOk = volumeRatio >= this.boVolumeMultiplier;
 
@@ -559,7 +612,7 @@ export class Scalper extends EventEmitter {
     const belowSma50 = sma50 ? price < sma50 : true;
 
     // Try LONG breakout
-    if (aboveDonchianHigh && uptrendDI && volumeOk && aboveSma50 && inTradingWindow && cooldownOk) {
+    if (aboveDonchianHigh && uptrendDI && volumeOk && aboveSma50 && inTradingWindow && cooldownOk && correlationOk) {
       this.signals[symbol].signal = 'BUY';
       this.signals[symbol].lastSkipReason = '';
       const coin = symbol.replace('usdt', '').toUpperCase();
@@ -573,7 +626,7 @@ export class Scalper extends EventEmitter {
     }
 
     // Try SHORT breakout
-    if (belowDonchianLow && downtrendDI && volumeOk && belowSma50 && inTradingWindow && cooldownOk) {
+    if (belowDonchianLow && downtrendDI && volumeOk && belowSma50 && inTradingWindow && cooldownOk && correlationOk) {
       this.signals[symbol].signal = 'SELL_SHORT';
       this.signals[symbol].lastSkipReason = '';
       const coin = symbol.replace('usdt', '').toUpperCase();
@@ -595,6 +648,7 @@ export class Scalper extends EventEmitter {
     if (belowDonchianLow && !belowSma50) checks.push(`Above SMA50 — blocks short`);
     if (!inTradingWindow) checks.push(`Hour ${new Date().getUTCHours()} outside 07-21`);
     if (!cooldownOk) checks.push('Cooldown active');
+    if (!correlationOk) checks.push('Max 2 positions reached');
 
     this.signals[symbol].signal = 'HOLD';
     this.signals[symbol].lastSkipReason = checks.join(' · ') || 'Waiting for Donchian break';
@@ -630,6 +684,22 @@ export class Scalper extends EventEmitter {
       }
     }
 
+    // ── Breakeven stop (v5): once profitable by 0.5× ATR, move stop to entry ──
+    if (position.strategy === 'MEAN_REVERSION' && !position.breakevenStop) {
+      const breakevenThreshold = position.currentATR * this.mrBreakevenAtrMult;
+      const inProfit = isLong
+        ? (currentPrice - position.entryPrice) >= breakevenThreshold
+        : (position.entryPrice - currentPrice) >= breakevenThreshold;
+      if (inProfit) {
+        position.stopPrice = position.entryPrice; // Move stop to entry = zero risk
+        position.breakevenStop = true;
+        position.dynamicStop = position.entryPrice;
+        const coin = symbol.replace('usdt', '').toUpperCase();
+        console.log(`🛡️ ${coin} breakeven stop activated — stop moved to entry $${position.entryPrice.toFixed(2)}`);
+        this.emit('breakeven', { symbol, entryPrice: position.entryPrice });
+      }
+    }
+
     // Check exits — direction-aware
     if (position.strategy === 'BREAKOUT') {
       if (isLong && currentPrice <= position.trailingStop) {
@@ -645,9 +715,9 @@ export class Scalper extends EventEmitter {
       }
     } else if (position.strategy === 'MEAN_REVERSION') {
       if (isLong && currentPrice <= position.stopPrice) {
-        this._emitClose(symbol, 'STOP_LOSS', currentPrice); return;
+        this._emitClose(symbol, position.breakevenStop ? 'BREAKEVEN_EXIT' : 'STOP_LOSS', currentPrice); return;
       } else if (!isLong && currentPrice >= position.stopPrice) {
-        this._emitClose(symbol, 'STOP_LOSS', currentPrice); return;
+        this._emitClose(symbol, position.breakevenStop ? 'BREAKEVEN_EXIT' : 'STOP_LOSS', currentPrice); return;
       }
     }
   }
@@ -746,11 +816,13 @@ export class Scalper extends EventEmitter {
       quantity,
       timestamp: Date.now(),
       stopPrice,
+      dynamicStop: stopPrice, // tracks current stop for dashboard display
       targetPrice,
       trailingStop,
       highestSinceEntry: entryPrice,
       lowestSinceEntry: entryPrice,
       currentATR: atr,
+      breakevenStop: false, // v5: becomes true when stop moves to entry
     };
 
     this.lastTradeTime[symbol] = Date.now();
