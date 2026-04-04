@@ -38,9 +38,55 @@
     }
     .animate-pulse-glow { animation: pulse-glow 2.5s ease-in-out infinite; }
     .animate-ticker-flash { animation: ticker-flash 0.4s ease-out; }
+
+    /* Bloomberg ticker */
+    @keyframes ticker-scroll {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+    .ticker-strip {
+      font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'JetBrains Mono', 'Consolas', monospace;
+      display: flex;
+      width: max-content;
+      animation: ticker-scroll 45s linear infinite;
+      white-space: nowrap;
+    }
+    .ticker-strip:hover { animation-play-state: paused; }
+    .ticker-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 14px;
+      padding: 0 28px;
+      border-right: 1px solid rgba(255,255,255,0.08);
+    }
+    .ticker-coin { color: #fecaca; font-weight: 800; font-size: 13px; letter-spacing: 0.06em; }
+    .ticker-price { color: #fef2f2; font-weight: 700; font-size: 13px; }
+    .ticker-change { font-weight: 700; font-size: 11px; padding: 2px 6px; border-radius: 3px; }
+    .ticker-change.up { color: #34d399; background: rgba(52,211,153,0.15); }
+    .ticker-change.down { color: #fca5a5; background: rgba(252,165,165,0.12); }
+    .ticker-label { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; padding: 2px 6px; border-radius: 3px; }
+    .ticker-label.ranging { color: #fbbf24; background: rgba(251,191,36,0.12); }
+    .ticker-label.trending { color: #c4b5fd; background: rgba(196,181,253,0.12); }
+    .ticker-label.oversold { color: #6ee7b7; background: rgba(110,231,183,0.12); }
+    .ticker-label.overbought { color: #fca5a5; background: rgba(252,165,165,0.12); }
+    .ticker-label.neutral { color: #d1d5db; background: rgba(209,213,219,0.08); }
+    .ticker-val { color: #d1d5db; font-size: 11px; font-weight: 500; }
+    .ticker-session { color: #93c5fd; font-size: 11px; font-weight: 700; }
+    .ticker-divider { color: rgba(255,255,255,0.12); font-size: 11px; padding: 0 4px; }
   </style>
 </head>
 <body class="h-full font-sans antialiased text-gray-100">
+
+  <!-- ── Bloomberg-Style Ticker Bar ──────────────────────── -->
+  <div id="tickerBar" class="sticky top-0 z-50 overflow-hidden" style="height: 38px; background: linear-gradient(180deg, #1a0a0a 0%, #0f0505 100%); border-bottom: 1px solid rgba(220,38,38,0.2);">
+    <div class="ticker-strip" id="tickerStrip">
+      <div id="tickerContent" class="flex items-center" style="height: 38px;">
+        <div class="ticker-item">
+          <span class="ticker-val" style="color: rgba(252,165,165,0.3);">Loading market data…</span>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- ── Branded Nav with Overlap ──────────────────────────── -->
   <div class="min-h-full">
@@ -570,11 +616,112 @@
     }
 
     // ── Live Ticker ────────────────────────────────────────
+    // ── Bloomberg Ticker State ─────────────────────────────
+    const tickerData = {};
+    const ticker24h = {};
+
+    // Fetch 24hr changes from Binance
+    async function fetch24hChanges() {
+      try {
+        const symbols = ['ETHUSDT', 'BTCUSDT', 'SOLUSDT'];
+        const res = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbols=${JSON.stringify(symbols)}`);
+        const data = await res.json();
+        for (const d of data) {
+          ticker24h[d.symbol.toLowerCase()] = parseFloat(d.priceChangePercent);
+        }
+      } catch (e) { console.warn('24h fetch failed:', e); }
+    }
+    fetch24hChanges();
+    setInterval(fetch24hChanges, 30000);
+
+    function renderTickerBar() {
+      const syms = ['ethusdt', 'btcusdt', 'solusdt'];
+      const labels = { ethusdt: 'ETH', btcusdt: 'BTC', solusdt: 'SOL' };
+      let html = '';
+
+      for (const sym of syms) {
+        const d = tickerData[sym];
+        const change = ticker24h[sym];
+        if (!d) continue;
+
+        const coin = labels[sym];
+        const priceStr = d.price >= 1000 ? d.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : d.price.toFixed(2);
+        const changeStr = change != null ? (change >= 0 ? `+${change.toFixed(2)}%` : `${change.toFixed(2)}%`) : '—';
+        const changeCls = change >= 0 ? 'up' : 'down';
+
+        // ADX regime
+        const adxVal = d.adx || 0;
+        const regimeLbl = adxVal >= 25 ? 'TRENDING' : 'RANGING';
+        const regimeCls = adxVal >= 25 ? 'trending' : 'ranging';
+
+        // RSI level
+        const rsiVal = d.rsi || 50;
+        let rsiLbl = 'NEUTRAL', rsiCls = 'neutral';
+        if (rsiVal < 30) { rsiLbl = 'OVERSOLD'; rsiCls = 'oversold'; }
+        else if (rsiVal > 70) { rsiLbl = 'OVERBOUGHT'; rsiCls = 'overbought'; }
+
+        html += `<div class="ticker-item">`;
+        html += `<span class="ticker-coin">${coin}</span>`;
+        html += `<span class="ticker-price">$${priceStr}</span>`;
+        html += `<span class="ticker-change ${changeCls}">${changeStr}</span>`;
+        html += `<span class="ticker-divider">│</span>`;
+        html += `<span class="ticker-val">ADX ${adxVal.toFixed(0)}</span>`;
+        html += `<span class="ticker-label ${regimeCls}">${regimeLbl}</span>`;
+        html += `<span class="ticker-divider">│</span>`;
+        html += `<span class="ticker-val">RSI ${rsiVal}</span>`;
+        html += `<span class="ticker-label ${rsiCls}">${rsiLbl}</span>`;
+        html += `</div>`;
+      }
+
+      // Session countdown
+      const now = new Date();
+      const utcH = now.getUTCHours(), utcM = now.getUTCMinutes();
+      const inSession = utcH >= 7 && utcH < 21;
+      if (!inSession) {
+        let secsToSession;
+        if (utcH >= 21) secsToSession = ((24 - utcH + 7) * 60 - utcM) * 60;
+        else secsToSession = ((7 - utcH) * 60 - utcM) * 60;
+        const hrs = Math.floor(secsToSession / 3600);
+        const mins = Math.floor((secsToSession % 3600) / 60);
+        html += `<div class="ticker-item"><span class="ticker-session">⏱ NEXT SESSION IN ${hrs}h ${mins}m</span></div>`;
+      } else {
+        const secsLeft = ((21 - utcH) * 60 - utcM) * 60;
+        const hrs = Math.floor(secsLeft / 3600);
+        const mins = Math.floor((secsLeft % 3600) / 60);
+        html += `<div class="ticker-item"><span class="ticker-session" style="color:#34d399">● LIVE — ${hrs}h ${mins}m left</span></div>`;
+      }
+
+      // Timestamp
+      html += `<div class="ticker-item"><span class="ticker-val">${now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })} UTC${now.getTimezoneOffset() === 0 ? '' : (now.getTimezoneOffset() > 0 ? '-' : '+') + Math.abs(now.getTimezoneOffset() / 60)}</span></div>`;
+
+      // Duplicate for seamless loop
+      const content = document.getElementById('tickerContent');
+      if (content) {
+        content.innerHTML = html;
+        // Clone for seamless scroll
+        const strip = document.getElementById('tickerStrip');
+        const existing = strip.querySelectorAll('.ticker-clone');
+        existing.forEach(e => e.remove());
+        const clone = content.cloneNode(true);
+        clone.classList.add('ticker-clone');
+        clone.removeAttribute('id');
+        strip.appendChild(clone);
+      }
+    }
+
+    // Update ticker every second for countdown
+    setInterval(renderTickerBar, 1000);
+
     socket.on('candle-eval', (data) => {
+      // Feed ticker data
+      tickerData[data.symbol] = data;
+      renderTickerBar();
+
+      // Legacy ticker text update
       const ticker = $('tickerText'), tickerTime = $('tickerTime'), dot = document.querySelector('.ticker-dot');
       if (!ticker) return;
       const coin = data.symbol.replace('usdt', '').toUpperCase();
-      ticker.textContent = `${coin} $${data.price.toLocaleString('en-US',{minimumFractionDigits:2})} · RSI:${data.rsi} · MACD:${data.macdHist?.toFixed(3)} · Vol:${data.volumeRatio}x · ${data.hasPosition ? '📊 monitoring' : '🔍 scanning'}`;
+      ticker.textContent = `${coin} $${data.price.toLocaleString('en-US',{minimumFractionDigits:2})} · RSI:${data.rsi} · Vol:${data.volumeRatio}x · ${data.hasPosition ? '📊 monitoring' : '🔍 scanning'}`;
       tickerTime.textContent = new Date().toLocaleTimeString('en-US', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
       if (dot) { dot.classList.remove('animate-ticker-flash'); void dot.offsetWidth; dot.classList.add('animate-ticker-flash'); }
     });
