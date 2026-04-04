@@ -25,17 +25,22 @@ export class RiskManager {
     this.alertService = alertService;
 
     // Risk limits
-    this.DAILY_LOSS_LIMIT = 0.20;
+    this.DAILY_LOSS_LIMIT = 0.05;       // 5% daily loss limit (was 20%)
     this.TOTAL_DRAWDOWN_LIMIT = 0.40;
-    this.MAX_SINGLE_TRADE_PCT = 0.08;
+    this.MAX_SINGLE_TRADE_PCT = 0.10;   // 10% max single trade
     this.MAX_OPEN_POSITIONS = 5;
-    this.SINGLE_LOSS_ALERT_PCT = 0.05;
+    this.SINGLE_LOSS_ALERT_PCT = 0.03;  // Alert on 3% single loss
+
+    // Consecutive loss circuit breaker
+    this.MAX_CONSECUTIVE_LOSSES = 3;
+    this.CONSECUTIVE_LOSS_HALT_MS = 2 * 60 * 60 * 1000; // 2 hours
 
     // State
     this.openPositions = [];
     this.haltedUntil = null;
     this.killed = false;
     this.tradingPaused = false;
+    this.consecutiveLosses = 0;
 
     // Initialise SQLite database
     this.db = new Database(path.join(__dirname, '..', 'trades.db'));
@@ -246,6 +251,21 @@ export class RiskManager {
 
     this.openPositions = this.openPositions.filter(p => p.id !== tradeId);
     this.currentPortfolio += pnl;
+
+    // Track consecutive losses
+    if (pnl < 0) {
+      this.consecutiveLosses++;
+      if (this.consecutiveLosses >= this.MAX_CONSECUTIVE_LOSSES) {
+        this.haltedUntil = new Date(Date.now() + this.CONSECUTIVE_LOSS_HALT_MS);
+        this._saveState('halted_until', this.haltedUntil.toISOString());
+        const msg = `⚠️ ${this.consecutiveLosses} consecutive losses — trading paused for 2 hours until ${this.haltedUntil.toLocaleTimeString()}.`;
+        this._logAlert('consecutive_loss_halt', msg);
+        if (this.alertService) await this.alertService.send(msg);
+        this.consecutiveLosses = 0; // Reset after halt
+      }
+    } else {
+      this.consecutiveLosses = 0; // Reset on win
+    }
 
     if (pnl < 0 && Math.abs(pnl) > this.startingPortfolio * this.SINGLE_LOSS_ALERT_PCT) {
       const msg = `⚠️ Large single loss: $${Math.abs(pnl).toFixed(2)} ` +

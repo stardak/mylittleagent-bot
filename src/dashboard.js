@@ -70,16 +70,20 @@ export class Dashboard {
     const binanceStatus = this.binance ? this.binance.getConnectionStatus() : { allConnected: false };
     const prices = {
       btcusdt: this.binance ? this.binance.getPrice('btcusdt') : null,
-      ethusdt: this.binance ? this.binance.getPrice('ethusdt') : null
+      ethusdt: this.binance ? this.binance.getPrice('ethusdt') : null,
+      solusdt: this.binance ? this.binance.getPrice('solusdt') : null,
     };
 
-    // Scalper data
-    const scalperData = this.scalper ? {
-      signals: this.scalper.getSignals(),
-      positions: {
-        ethusdt: this.scalper.getPosition('ethusdt'),
-      },
-    } : null;
+    // Scalper data — build dynamically for all symbols
+    let scalperData = null;
+    if (this.scalper) {
+      const signals = this.scalper.getSignals();
+      const positions = {};
+      for (const sym of this.scalper.symbols) {
+        positions[sym] = this.scalper.getPosition(sym);
+      }
+      scalperData = { signals, positions };
+    }
 
     const binancePortfolio = this.binanceTrader ? this.binanceTrader.getPortfolio() : null;
     const marketCards = this.polyScanner ? this.polyScanner.getMarketCards() : {};
