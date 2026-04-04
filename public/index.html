@@ -433,7 +433,7 @@
     socket.on('disconnect', () => { els.connectionDot.className = 'size-2 rounded-full bg-red-400'; els.connectionText.textContent = 'Disconnected'; });
 
     function updateDashboard(data) {
-      const { status, trades, binanceStatus, prices, isLive } = data;
+      const { status, trades, binanceStatus, prices, isLive, binancePortfolio: bp } = data;
       els.modeBadge.textContent = isLive ? 'Live' : 'Paper';
       els.modeBadge.className = isLive ? 'rounded-full bg-loss/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-widest text-loss' : 'rounded-full bg-brand-950/60 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-widest text-brand-400';
       if (binanceStatus?.allConnected) { els.connectionDot.className = 'size-2 rounded-full bg-profit shadow-[0_0_6px_rgba(52,211,153,0.5)] animate-pulse-glow'; els.connectionText.textContent = 'Connected'; }
@@ -448,7 +448,9 @@
       els.drawdownWarning.classList.toggle('hidden', !(showBanners && status.drawdownWarning && !status.isKilled));
       els.dailyLossWarning.classList.toggle('hidden', !(showBanners && status.dailyLossWarning && !status.isHalted));
 
-      els.portfolioValue.textContent = fmtUsd(status.portfolio);
+      const currentBalance = bp ? bp.balance : status.portfolio;
+      els.portfolioValue.textContent = fmtUsd(currentBalance);
+      els.portfolioValue.className = 'text-5xl sm:text-6xl font-extrabold tracking-tighter ' + (bp ? pnlColor(bp.totalPnl) : 'text-white');
       els.portfolioStart.textContent = `Started at ${fmtUsd(status.startingPortfolio)}`;
       els.todayPnl.textContent = (status.todayPnl >= 0 ? '+' : '') + fmtUsd(status.todayPnl);
       els.todayPnl.className = 'mt-2 text-2xl font-bold tracking-tight ' + pnlColor(status.todayPnl);
