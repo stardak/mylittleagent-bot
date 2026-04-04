@@ -360,6 +360,12 @@ body {
   gap: 12px;
   margin-bottom: 28px;
 }
+.charts-grid-multi {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 28px;
+}
 .chart-container {
   flex: 1;
   background: var(--bg-card);
@@ -377,7 +383,7 @@ body {
   letter-spacing: 0.15em;
   color: var(--text-muted);
 }
-.tv-chart { height: 300px; }
+.tv-chart { height: 280px; }
 
 /* ── Live Ticker ───────────────────────────────────────────────────────────── */
 .live-ticker {

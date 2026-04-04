@@ -98,17 +98,35 @@
     <!-- ── Live Prices ─────────────────────────────────────────── -->
     <div class="prices-bar">
       <div class="price-chip" style="flex:1">
+        <span class="price-symbol">BTC</span>
+        <span class="price-value" id="btcPrice">—</span>
+        <span class="price-momentum" id="btcMomentum">0.00%</span>
+      </div>
+      <div class="price-chip" style="flex:1">
         <span class="price-symbol">ETH</span>
         <span class="price-value" id="ethPrice">—</span>
         <span class="price-momentum" id="ethMomentum">0.00%</span>
       </div>
+      <div class="price-chip" style="flex:1">
+        <span class="price-symbol">SOL</span>
+        <span class="price-value" id="solPrice">—</span>
+        <span class="price-momentum" id="solMomentum">0.00%</span>
+      </div>
     </div>
 
     <!-- ── Live Charts ─────────────────────────────────────────── -->
-    <div class="charts-grid">
-      <div class="chart-container" style="width:100%">
-        <div class="chart-label">ETH / USDT · 5min</div>
+    <div class="charts-grid-multi">
+      <div class="chart-container">
+        <div class="chart-label">BTC / USDT · 15min</div>
+        <div id="btcChart" class="tv-chart"></div>
+      </div>
+      <div class="chart-container">
+        <div class="chart-label">ETH / USDT · 15min</div>
         <div id="ethChart" class="tv-chart"></div>
+      </div>
+      <div class="chart-container">
+        <div class="chart-label">SOL / USDT · 15min</div>
+        <div id="solChart" class="tv-chart"></div>
       </div>
     </div>
     <script src="https://s3.tradingview.com/tv.js"></script>
@@ -117,7 +135,7 @@
         new TradingView.widget({
           container_id: container,
           symbol: 'BINANCE:' + symbol,
-          interval: '5',
+          interval: '15',
           timezone: 'Etc/UTC',
           theme: 'dark',
           style: '1',
@@ -131,11 +149,13 @@
           backgroundColor: '#0a0a0f',
           gridColor: 'rgba(255,255,255,0.03)',
           width: '100%',
-          height: 300,
+          height: 280,
           allow_symbol_change: false,
         });
       }
+      createChart('btcChart', 'BTCUSDT');
       createChart('ethChart', 'ETHUSDT');
+      createChart('solChart', 'SOLUSDT');
     </script>
 
     <!-- ── Live Ticker ─────────────────────────────────────────── -->
@@ -155,13 +175,23 @@
 
     <div class="stats-grid">
       <div class="stat-card">
+        <div class="stat-label">BTC Signal</div>
+        <div class="stat-value neutral" id="btcSignal">WAIT</div>
+        <div class="stat-sub" id="btcIndicators">Collecting candles...</div>
+      </div>
+      <div class="stat-card">
         <div class="stat-label">ETH Signal</div>
         <div class="stat-value neutral" id="ethSignal">WAIT</div>
         <div class="stat-sub" id="ethIndicators">Collecting candles...</div>
       </div>
       <div class="stat-card">
+        <div class="stat-label">SOL Signal</div>
+        <div class="stat-value neutral" id="solSignal">WAIT</div>
+        <div class="stat-sub" id="solIndicators">Collecting candles...</div>
+      </div>
+      <div class="stat-card">
         <div class="stat-label">Open Positions <span class="info-icon" data-info="positions">i</span></div>
-        <div class="stat-value neutral" id="maxPositions">0 / 5</div>
+        <div class="stat-value neutral" id="maxPositions">0</div>
         <div class="stat-sub" id="positionSub">No active trades</div>
       </div>
     </div>
@@ -227,46 +257,40 @@
     <div class="about-section">
       <h2 class="about-title">How I Built This Bot</h2>
 
-      <p>This is a <strong>scalping bot</strong> — a type of automated trading program that makes very short-term trades, typically lasting minutes to hours. The idea is simple: buy when a set of mathematical conditions say the price is about to move up, sell quickly once it does, and repeat. No guessing, no gut feelings, no emotions.</p>
+      <p>This is a <strong>regime-adaptive scalping bot</strong> — an automated trading system that adapts its strategy based on current market conditions. It monitors <strong>three assets</strong> simultaneously — BTC, ETH, and SOL — on 15-minute candles, 24/7. No guessing, no gut feelings, no emotions.</p>
 
-      <p>The bot watches the price of Ethereum (ETH) every single minute, 24 hours a day, and checks <strong>8 different conditions</strong> before every trade:</p>
+      <p>The bot detects the current <strong>market regime</strong> using ADX (Average Directional Index) and switches between two strategies:</p>
       <ul>
-        <li>Is the short-term trend crossing above the long-term trend? (like a car accelerating past another)</li>
-        <li>Is the momentum in the right range — not too hot, not too cold?</li>
-        <li>Is trading volume higher than normal? (more people trading = more confidence in the move)</li>
-        <li>Is the bigger picture also pointing up? (checking the 5-minute chart, not just the 1-minute)</li>
-        <li>Is it the right time of day?</li>
+        <li><strong>Mean Reversion</strong> (ADX < 25, ranging market) — buys when price touches the lower Bollinger Band with oversold RSI, expecting a bounce back to the mean</li>
+        <li><strong>Breakout</strong> (ADX > 35, trending market) — buys Donchian channel breakouts confirmed by volume and momentum, riding the trend</li>
+        <li>It also takes <strong>SHORT trades</strong> — selling when RSI is overbought above the upper Bollinger Band, or when price breaks below the Donchian low during downtrends</li>
       </ul>
-      <p>All 8 must be true at the same time. If even one fails, it waits. This means it skips most opportunities — but the ones it takes have a historically high success rate.</p>
+      <p>Each trade must pass multiple filters including volume confirmation, RSI range checks, and Bollinger Band positioning. If even one fails, it waits.</p>
 
       <h2 class="about-title" style="margin-top:32px">The Testing Process</h2>
 
-      <p>I didn't just pick ETH randomly. I built a <strong>backtesting engine</strong> that replays the strategy against 30 days of real historical price data — over 43,000 one-minute candles — to see exactly how it would have performed.</p>
+      <p>I built a <strong>backtesting engine</strong> that replays the strategy against 30 days of real historical price data to see exactly how it would have performed. The strategy evolved through multiple iterations:</p>
 
-      <p>I tested <strong>6 different versions</strong> across 4 assets:</p>
       <ul>
-        <li><strong>v1</strong> — BTC, ETH, SOL, BNB with a wide trading window. Result: 48.8% win rate, 80 trades. Profitable but inconsistent.</li>
-        <li><strong>v2</strong> — Added a strict 5-minute trend filter. Too aggressive — blocked good trades along with bad ones. Win rate dropped to 42.9%.</li>
-        <li><strong>v3</strong> — Loosened the filter to only block trades during strong downtrends. Better: 47.8% win rate.</li>
-        <li><strong>v4</strong> — Dropped BNB and BTC (worst performers). ETH and SOL only. Win rate: 45.5%.</li>
-        <li><strong>v5</strong> — ETH only. Win rate climbed to 50%, and I discovered something interesting in the data…</li>
-        <li><strong>v6</strong> — Added session-specific trading windows based on the hourly analysis. <em>Win rate: 85.7%.</em></li>
+        <li><strong>v1–v3</strong> — Simple EMA crossover scalping on 1-minute candles. Progressively tighter filters improved win rate from 48% to 50%, but the minute-by-minute noise was problematic.</li>
+        <li><strong>v4</strong> — Upgraded to 5-minute timeframe with higher-timeframe trend filtering. Better signal quality.</li>
+        <li><strong>v5</strong> — Added SHORT support alongside LONGs. Both directions using RSI, Bollinger Bands, and Donchian channels.</li>
+        <li><strong>v6</strong> — <em>Current version.</em> Full regime-adaptive strategy on 15-minute candles across ETH, BTC, and SOL. Tighter risk management: 5% daily loss limit, 3-loss consecutive circuit breaker with 2-hour halt.</li>
       </ul>
-
-      <p>The data showed that ETH's winning trades cluster heavily in two specific time windows: <strong>09:00–11:00 UTC</strong> (after the London stock market opens and the initial chaos settles) and <strong>18:00–21:00 UTC</strong> (the late New York session). The 20:00 UTC hour alone was 100% wins over 30 days of data.</p>
-
-      <p>Meanwhile, the 08:00 London open and 14:00 New York open were responsible for nearly all losses — the price whips around too unpredictably during those periods.</p>
 
       <h2 class="about-title" style="margin-top:32px">Safety Nets</h2>
 
-      <p>Once in a trade, the bot has three automatic protections:</p>
+      <p>The bot has multiple layers of protection:</p>
       <ul>
-        <li><strong>Stop-loss</strong> — limits the maximum loss on any single trade</li>
-        <li><strong>Take-profit</strong> — locks in gains at 3% automatically</li>
-        <li><strong>Breakeven trigger</strong> — once a trade moves 1.2% in the right direction, the stop-loss moves up to the entry price, making it a risk-free trade</li>
+        <li><strong>Stop-loss</strong> — limits the maximum loss on any single trade (10% max position size)</li>
+        <li><strong>Take-profit</strong> — locks in gains automatically based on the strategy</li>
+        <li><strong>Breakeven trigger</strong> — once a trade moves sufficiently in the right direction, the stop-loss moves to the entry price</li>
+        <li><strong>Daily loss limit</strong> — halts all trading if daily losses exceed 5%</li>
+        <li><strong>Consecutive loss breaker</strong> — 3 losses in a row triggers a 2-hour cooldown</li>
+        <li><strong>Kill switch</strong> — permanently stops if total drawdown exceeds 40%</li>
       </ul>
 
-      <p>Everything you see on this dashboard is happening in real time. The bot never sleeps, never panics, and never makes emotional decisions. It's currently running in paper trading mode — simulating trades without real money — while I validate that the backtest results hold up in live market conditions.</p>
+      <p>Everything you see on this dashboard is happening in real time. The bot never sleeps, never panics, and never makes emotional decisions. It's currently running in paper trading mode — simulating trades without real money — while I validate the strategy in live market conditions.</p>
 
       <h2 class="about-title" style="margin-top:32px">The Polymarket Scanner</h2>
 
@@ -274,9 +298,7 @@
 
       <p>The scanner constantly pulls live market data across several categories — politics, macro economics, AI &amp; tech, and crypto — and scores each market with an <strong>Edge Score</strong>. The edge score estimates how likely there is a pricing inefficiency worth acting on, based on the spread between YES and NO prices, trading volume, and time to expiry.</p>
 
-      <p>It's essentially looking for situations where the crowd might be wrong — where a YES or NO contract is mispriced relative to the actual probability of the event happening. The higher the edge score, the more interesting the opportunity.</p>
-
-      <p>Right now, the Polymarket side is in monitoring mode — watching and scoring but not yet executing trades automatically. The plan is to combine insights from both systems: the ETH scalper handles minute-by-minute crypto volatility, while the Polymarket scanner watches for longer-term macro opportunities.</p>
+      <p>Right now, the Polymarket side is in monitoring mode — watching and scoring but not yet executing trades automatically. The plan is to combine insights from both systems: the crypto scalper handles short-term volatility across three assets, while the Polymarket scanner watches for longer-term macro opportunities.</p>
 
       <div class="about-signature">— Stef Michalak</div>
     </div>
@@ -309,7 +331,9 @@
       todayPnl: $('todayPnl'), todayTrades: $('todayTrades'),
       winRate: $('winRate'), totalTrades: $('totalTrades'),
       openPositions: $('openPositions'),
+      btcPrice: $('btcPrice'), btcMomentum: $('btcMomentum'),
       ethPrice: $('ethPrice'), ethMomentum: $('ethMomentum'),
+      solPrice: $('solPrice'), solMomentum: $('solMomentum'),
       marketCount: $('marketCount'), marketCards: $('marketCards'),
     };
 
@@ -465,9 +489,17 @@
       els.totalTrades.textContent = `${status.totalTrades} total (${status.totalWins}W)`;
 
       // Prices
+      if (prices.btcusdt && prices.btcusdt.price) {
+        els.btcPrice.textContent = fmtUsd(prices.btcusdt.price);
+        setMomentum(els.btcMomentum, prices.btcusdt.momentum);
+      }
       if (prices.ethusdt && prices.ethusdt.price) {
         els.ethPrice.textContent = fmtUsd(prices.ethusdt.price);
         setMomentum(els.ethMomentum, prices.ethusdt.momentum);
+      }
+      if (prices.solusdt && prices.solusdt.price) {
+        els.solPrice.textContent = fmtUsd(prices.solusdt.price);
+        setMomentum(els.solMomentum, prices.solusdt.momentum);
       }
 
       // Polymarket market cards
@@ -496,14 +528,16 @@
         if (w) { w.textContent = binancePortfolio.winRate.toFixed(1) + '%'; w.className = 'stat-value ' + (binancePortfolio.winRate >= 50 ? 'positive' : binancePortfolio.totalTrades > 0 ? 'negative' : 'neutral'); }
         if (t) t.textContent = `${binancePortfolio.totalTrades} (${binancePortfolio.wins}W / ${binancePortfolio.losses}L)`;
 
-        // Open positions count
+        // Open positions count — dynamic across all symbols
+        const allSymbols = ['btcusdt', 'ethusdt', 'solusdt'];
+        const openCount = allSymbols.filter(s => scalper?.positions?.[s]).length;
+
         const op = $('openPositions');
-        if (op) op.textContent = (scalper?.positions?.ethusdt ? '1' : '0') + ' open';
+        if (op) op.textContent = openCount + ' open';
 
         // Max positions display
         const mp = $('maxPositions');
         if (mp) {
-          const openCount = scalper?.positions?.ethusdt ? 1 : 0;
           mp.textContent = openCount;
           mp.className = 'stat-value ' + (openCount > 0 ? 'positive' : 'neutral');
         }
@@ -530,11 +564,15 @@
       }
 
       if (scalper && scalper.signals) {
+        updateSignalCard('btc', scalper.signals.btcusdt, scalper.positions?.btcusdt);
         updateSignalCard('eth', scalper.signals.ethusdt, scalper.positions?.ethusdt);
+        updateSignalCard('sol', scalper.signals.solusdt, scalper.positions?.solusdt);
 
         const posDiv = $('scalperPositions'), posList = $('positionsList');
         const allPos = [
+          ['BTC', scalper.positions?.btcusdt, scalper.signals.btcusdt],
           ['ETH', scalper.positions?.ethusdt, scalper.signals.ethusdt],
+          ['SOL', scalper.positions?.solusdt, scalper.signals.solusdt],
         ];
         const hasPos = allPos.some(([,p]) => p);
         if (posDiv) posDiv.style.display = hasPos ? 'block' : 'none';
@@ -542,11 +580,14 @@
           posList.innerHTML = allPos.map(([sym, pos, sig]) => {
             if (!pos) return '';
             const cp = sig?.price || pos.entryPrice;
-            const pnl = ((cp - pos.entryPrice) / pos.entryPrice) * 100;
+            const dir = pos.direction || 'LONG';
+            const pnlMul = dir === 'SHORT' ? -1 : 1;
+            const pnl = pnlMul * ((cp - pos.entryPrice) / pos.entryPrice) * 100;
+            const dirIcon = dir === 'SHORT' ? '🔻' : '📊';
             return `<div class="trade-item">
-              <div class="trade-status-icon pending">📊</div>
+              <div class="trade-status-icon pending">${dirIcon}</div>
               <div class="trade-info">
-                <div class="trade-symbol">LONG ${sym}USDT</div>
+                <div class="trade-symbol">${dir} ${sym}USDT</div>
                 <div class="trade-detail">Entry $${pos.entryPrice.toFixed(2)} · SL $${pos.dynamicStop?.toFixed(2) || '—'} · TP $${pos.takeProfit?.toFixed(2) || '—'}${pos.breakevenStop ? ' · 🛡️ BE' : ''}</div>
               </div>
               <span class="trade-amount ${pnl >= 0 ? 'positive' : 'negative'}">${pnl >= 0 ? '+' : ''}${pnl.toFixed(2)}%</span>

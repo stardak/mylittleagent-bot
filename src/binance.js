@@ -12,14 +12,14 @@ import WebSocket from 'ws';
 export class BinanceFeed extends EventEmitter {
   constructor() {
     super();
-    this.symbols = ['btcusdt', 'ethusdt'];
+    this.symbols = ['btcusdt', 'ethusdt', 'solusdt'];
     this.connections = {};
     this.connected = {};
     this.reconnectDelay = {};
 
     this.MOMENTUM_WINDOW_MS = 30_000;
-    this.priceBuffers = { btcusdt: [], ethusdt: [] };
-    this.latestPrices = { btcusdt: null, ethusdt: null };
+    this.priceBuffers = { btcusdt: [], ethusdt: [], solusdt: [] };
+    this.latestPrices = { btcusdt: null, ethusdt: null, solusdt: null };
   }
 
   start() {
@@ -37,6 +37,7 @@ export class BinanceFeed extends EventEmitter {
     return {
       btcusdt: this.connected.btcusdt || false,
       ethusdt: this.connected.ethusdt || false,
+      solusdt: this.connected.solusdt || false,
       allConnected: this.isConnected()
     };
   }
