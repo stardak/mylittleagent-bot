@@ -6,6 +6,7 @@
   <meta name="description" content="MyLittleAgent.co — AI-powered crypto trading dashboard">
   <title>MyLittleAgent.co</title>
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='28' font-size='28'>🤖</text></svg>">
@@ -43,7 +44,13 @@
 
   <!-- ── Branded Nav with Overlap ──────────────────────────── -->
   <div class="min-h-full">
-    <div class="bg-brand-800 pb-32">
+    <div class="relative overflow-hidden pb-32">
+      <!-- Background Video -->
+      <video id="heroBgVideo" class="absolute inset-0 w-full h-full object-cover" autoplay muted loop playsinline></video>
+      <!-- Dark overlay for readability -->
+      <div class="absolute inset-0 bg-brand-900/80 backdrop-blur-[2px]"></div>
+      <!-- Content sits above video -->
+      <div class="relative z-10">
       <nav class="border-b border-brand-400/25">
         <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div class="flex h-16 items-center justify-between">
@@ -104,6 +111,7 @@
           </p>
         </div>
       </header>
+      </div>
     </div>
 
     <!-- ── Main Content (overlaps branded header) ──────────── -->
@@ -671,5 +679,23 @@
     }
     .info-icon:hover { background: rgba(99,102,241,0.15); border-color: rgba(99,102,241,0.3); color: #818cf8; }
   </style>
+
+  <!-- HLS Background Video Init -->
+  <script>
+    (function() {
+      const video = document.getElementById('heroBgVideo');
+      const src = 'https://stream.mux.com/NcU3HlHeF7CUL86azTTzpy3Tlb00d6iF3BmCdFslMJYM.m3u8';
+      if (Hls.isSupported()) {
+        const hls = new Hls({ autoStartLoad: true });
+        hls.loadSource(src);
+        hls.attachMedia(video);
+        hls.on(Hls.Events.MANIFEST_PARSED, () => video.play());
+      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        // Safari native HLS
+        video.src = src;
+        video.addEventListener('loadedmetadata', () => video.play());
+      }
+    })();
+  </script>
 </body>
 </html>
