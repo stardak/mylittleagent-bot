@@ -9,3 +9,4 @@ data/
 .cloudflared/
 ._*
 .DS_Store
+.last-startup-alert

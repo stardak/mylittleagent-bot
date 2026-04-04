@@ -240,17 +240,6 @@
       </div>
     </div>
 
-    <!-- ── Polymarket Markets ──────────────────────────────────── -->
-    <div class="divider"></div>
-    <div class="section-title">🔮 Polymarket Markets <span class="info-icon" data-info="polymarket">i</span> <span class="count" id="marketCount">0</span></div>
-    <div id="marketCards">
-      <div class="trade-feed">
-        <div class="empty-state">
-          <div class="empty-state-icon">🔮</div>
-          <div class="empty-state-text">Scanning Polymarket for politics, macro, AI, and crypto markets…</div>
-        </div>
-      </div>
-    </div>
 
     <!-- ── How It Works ──────────────────────────────────────────── -->
     <div class="divider"></div>
@@ -292,13 +281,7 @@
 
       <p>Everything you see on this dashboard is happening in real time. The bot never sleeps, never panics, and never makes emotional decisions. It's currently running in paper trading mode — simulating trades without real money — while I validate the strategy in live market conditions.</p>
 
-      <h2 class="about-title" style="margin-top:32px">The Polymarket Scanner</h2>
 
-      <p>The second part of this system monitors <strong>Polymarket</strong> — one of the world's largest prediction markets, where people bet on real-world outcomes: elections, economic data, AI breakthroughs, crypto milestones, and more.</p>
-
-      <p>The scanner constantly pulls live market data across several categories — politics, macro economics, AI &amp; tech, and crypto — and scores each market with an <strong>Edge Score</strong>. The edge score estimates how likely there is a pricing inefficiency worth acting on, based on the spread between YES and NO prices, trading volume, and time to expiry.</p>
-
-      <p>Right now, the Polymarket side is in monitoring mode — watching and scoring but not yet executing trades automatically. The plan is to combine insights from both systems: the crypto scalper handles short-term volatility across three assets, while the Polymarket scanner watches for longer-term macro opportunities.</p>
 
       <div class="about-signature">— Stef Michalak</div>
     </div>
@@ -502,10 +485,7 @@
         setMomentum(els.solMomentum, prices.solusdt.momentum);
       }
 
-      // Polymarket market cards
-      if (data.marketCards) {
-        renderMarketCards(data.marketCards);
-      }
+
 
       // Scalper
       updateScalper(data);
