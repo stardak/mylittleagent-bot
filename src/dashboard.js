@@ -44,7 +44,14 @@ export class Dashboard {
     this._backtestCacheTime = 0;
     this._backtestRunning = false;
 
-    this.app.use(express.static(path.join(__dirname, '..', 'public')));
+    // Serve index.html with no-cache headers so Cloudflare never caches it
+    const publicDir = path.join(__dirname, '..', 'public');
+    this.app.get('/', (req, res) => {
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.sendFile(path.join(publicDir, 'index.html'));
+    });
+    this.app.use(express.static(publicDir));
     this.app.use(express.json());
 
     this._setupRoutes();
