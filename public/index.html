@@ -113,10 +113,10 @@
             <div class="flex items-center gap-5">
               <!-- Session Pill -->
               <div class="hidden sm:flex items-center gap-2 rounded-full bg-brand-900/60 px-3.5 py-1.5 text-xs">
-                <span id="sessionDot" class="size-2 rounded-full bg-gray-500 animate-pulse-glow"></span>
-                <span id="sessionLabel" class="text-brand-400/80 font-medium">Between Sessions</span>
-                <span id="sessionBadge" class="rounded-full bg-brand-950/50 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-gray-400">Resting</span>
-                <span id="sessionCountdown" class="text-[10px] text-brand-400/50">—</span>
+                <span id="sessionDot" class="size-2 rounded-full bg-profit shadow-[0_0_8px_rgba(52,211,153,0.6)] animate-pulse-glow"></span>
+                <span id="sessionLabel" class="text-brand-400/80 font-medium">Kronos Direct</span>
+                <span id="sessionBadge" class="rounded-full bg-profit/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-profit">Active 24/7</span>
+                <span id="sessionCountdown" class="text-[10px] text-brand-400/50"></span>
               </div>
 
               <!-- Connection -->
@@ -430,57 +430,8 @@
       solPrice: $('solPrice'), solMomentum: $('solMomentum'),
     };
 
-    // ── Session Awareness ─────────────────────────────────
-    const TRADING_WINDOWS = [
-      { start: 9, end: 11, label: 'London Session' },
-      { start: 18, end: 21, label: 'New York Session' },
-    ];
-    let isInSession = false;
-    let lastKnownStatus = null;
-
-    function getSessionState() {
-      const now = new Date();
-      const utcH = now.getUTCHours(), utcM = now.getUTCMinutes(), utcS = now.getUTCSeconds();
-      const currentMins = utcH * 60 + utcM;
-      for (const w of TRADING_WINDOWS) {
-        if (utcH >= w.start && utcH < w.end) {
-          return { active: true, label: w.label, remainSec: (w.end * 60 - currentMins) * 60 - utcS };
-        }
-      }
-      let nextWindow = null, minMinsAway = Infinity;
-      for (const w of TRADING_WINDOWS) {
-        let minsAway = w.start * 60 - currentMins;
-        if (minsAway <= 0) minsAway += 1440;
-        if (minsAway < minMinsAway) { minMinsAway = minsAway; nextWindow = w; }
-      }
-      return { active: false, label: nextWindow?.label || 'Next Session', remainSec: minMinsAway * 60 - utcS };
-    }
-
-    function fmtCountdown(sec) {
-      const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
-      return h > 0 ? `${h}h ${String(m).padStart(2,'0')}m` : `${m}m ${String(s).padStart(2,'0')}s`;
-    }
-
-    function updateSessionUI() {
-      const state = getSessionState();
-      const dot = $('sessionDot'), label = $('sessionLabel'), badge = $('sessionBadge'), countdown = $('sessionCountdown');
-      isInSession = state.active;
-      if (state.active) {
-        dot.className = 'size-2 rounded-full bg-profit shadow-[0_0_8px_rgba(52,211,153,0.6)] animate-pulse-glow';
-        label.textContent = state.label;
-        badge.textContent = 'Active'; badge.className = 'rounded-full bg-profit/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-profit';
-        countdown.textContent = `ends in ${fmtCountdown(state.remainSec)}`;
-        const ll = $('lastSessionLabel'); if (ll) ll.classList.add('hidden');
-      } else {
-        dot.className = 'size-2 rounded-full bg-gray-600 animate-pulse-glow';
-        label.textContent = 'Between Sessions';
-        badge.textContent = 'Resting'; badge.className = 'rounded-full bg-gray-700/50 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-gray-500';
-        countdown.textContent = `${state.label} in ${fmtCountdown(state.remainSec)}`;
-        const ll = $('lastSessionLabel'); if (ll) ll.classList.remove('hidden');
-      }
-    }
-    setInterval(updateSessionUI, 1000);
-    updateSessionUI();
+    // ── v7: 24/7 Active — no session windows ──────────────
+    let isInSession = true; // always active in v7
 
     // ── PIN Toggle ────────────────────────────────────────
     let cachedPin = null;
