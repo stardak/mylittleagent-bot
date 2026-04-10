@@ -7,7 +7,8 @@
   "scripts": {
     "start": "node src/index.js",
     "start:live": "LIVE_TRADING=true node src/index.js",
-    "dev": "node --watch src/index.js"
+    "dev": "node --watch src/index.js",
+    "deploy": "bash deploy.sh"
   },
   "dependencies": {
     "@polymarket/clob-client": "^5.8.1",

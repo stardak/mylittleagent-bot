@@ -563,7 +563,7 @@
       }
       const sig = position ? 'IN TRADE' : signal.signal;
       sigEl.textContent = sig; sigEl.className = 'mt-1.5 text-xl font-bold ' + (sig === 'BUY' || sig === 'IN TRADE' ? 'text-profit' : 'text-white');
-      indEl.textContent = signal.lastSkipReason || `RSI:${signal.rsi?.toFixed(0)} · MACD:${signal.macdHist?.toFixed(3)} · Vol:${signal.volumeRatio?.toFixed(1)}x`;
+      indEl.textContent = signal.lastSkipReason || '✅ Kronos signal confirmed';
     }
 
     // ── Bloomberg Ticker ────────────────────────────────────

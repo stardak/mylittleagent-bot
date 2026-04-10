@@ -1,0 +1,909 @@
+2026-04-10 15:05:37 +01:00: /Volumes/LaCie/TraderApp/kronos-service/start.sh: line 7: venv/bin/activate: No such file or directory
+2026-04-10 15:05:37 +01:00: Traceback (most recent call last):
+2026-04-10 15:05:37 +01:00:   File "/Volumes/LaCie/TraderApp/kronos-service/server.py", line 22, in <module>
+2026-04-10 15:05:37 +01:00:     import numpy as np
+2026-04-10 15:05:37 +01:00: ModuleNotFoundError: No module named 'numpy'
+2026-04-10 15:05:52 +01:00: /Volumes/LaCie/TraderApp/kronos-service/start.sh: line 7: venv/bin/activate: No such file or directory
+2026-04-10 15:05:52 +01:00: Traceback (most recent call last):
+2026-04-10 15:05:52 +01:00:   File "/Volumes/LaCie/TraderApp/kronos-service/server.py", line 22, in <module>
+2026-04-10 15:05:52 +01:00:     import numpy as np
+2026-04-10 15:05:52 +01:00: ModuleNotFoundError: No module named 'numpy'
+2026-04-10 15:06:07 +01:00: /Volumes/LaCie/TraderApp/kronos-service/start.sh: line 7: venv/bin/activate: No such file or directory
+2026-04-10 15:06:07 +01:00: Traceback (most recent call last):
+2026-04-10 15:06:07 +01:00:   File "/Volumes/LaCie/TraderApp/kronos-service/server.py", line 22, in <module>
+2026-04-10 15:06:07 +01:00:     import numpy as np
+2026-04-10 15:06:07 +01:00: ModuleNotFoundError: No module named 'numpy'
+2026-04-10 15:06:22 +01:00: /Volumes/LaCie/TraderApp/kronos-service/start.sh: line 7: venv/bin/activate: No such file or directory
+2026-04-10 15:06:22 +01:00: Traceback (most recent call last):
+2026-04-10 15:06:22 +01:00:   File "/Volumes/LaCie/TraderApp/kronos-service/server.py", line 22, in <module>
+2026-04-10 15:06:22 +01:00:     import numpy as np
+2026-04-10 15:06:22 +01:00: ModuleNotFoundError: No module named 'numpy'
+2026-04-10 15:06:37 +01:00: Fatal Python error: init_import_site: Failed to import the site module
+2026-04-10 15:06:37 +01:00: Python runtime state: initialized
+2026-04-10 15:06:37 +01:00: Traceback (most recent call last):
+2026-04-10 15:06:37 +01:00:   File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/site.py", line 621, in <module>
+2026-04-10 15:06:37 +01:00:     main()
+2026-04-10 15:06:37 +01:00:   File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/site.py", line 604, in main
+2026-04-10 15:06:37 +01:00:     known_paths = venv(known_paths)
+2026-04-10 15:06:37 +01:00:   File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/site.py", line 536, in venv
+2026-04-10 15:06:37 +01:00:     addsitepackages(known_paths, [sys.prefix])
+2026-04-10 15:06:37 +01:00:   File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/site.py", line 391, in addsitepackages
+2026-04-10 15:06:37 +01:00:     addsitedir(sitedir, known_paths)
+2026-04-10 15:06:37 +01:00:   File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/site.py", line 208, in addsitedir
+2026-04-10 15:06:37 +01:00:     addpackage(sitedir, name, known_paths)
+2026-04-10 15:06:37 +01:00:   File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/site.py", line 164, in addpackage
+2026-04-10 15:06:37 +01:00:     for n, line in enumerate(f):
+2026-04-10 15:06:37 +01:00:   File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/codecs.py", line 322, in decode
+2026-04-10 15:06:37 +01:00:     (result, consumed) = self._buffer_decode(data, self.errors, final)
+2026-04-10 15:06:37 +01:00: UnicodeDecodeError: 'utf-8' codec can't decode byte 0xb0 in position 37: invalid start byte
+2026-04-10 15:06:58 +01:00: Fatal Python error: init_import_site: Failed to import the site module
+2026-04-10 15:06:58 +01:00: Python runtime state: initialized
+2026-04-10 15:06:58 +01:00: Traceback (most recent call last):
+2026-04-10 15:06:58 +01:00:   File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/site.py", line 621, in <module>
+2026-04-10 15:06:58 +01:00:     main()
+2026-04-10 15:06:58 +01:00:   File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/site.py", line 604, in main
+2026-04-10 15:06:58 +01:00:     known_paths = venv(known_paths)
+2026-04-10 15:06:58 +01:00:   File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/site.py", line 536, in venv
+2026-04-10 15:06:58 +01:00:     addsitepackages(known_paths, [sys.prefix])
+2026-04-10 15:06:58 +01:00:   File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/site.py", line 391, in addsitepackages
+2026-04-10 15:06:58 +01:00:     addsitedir(sitedir, known_paths)
+2026-04-10 15:06:58 +01:00:   File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/site.py", line 208, in addsitedir
+2026-04-10 15:06:58 +01:00:     addpackage(sitedir, name, known_paths)
+2026-04-10 15:06:58 +01:00:   File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/site.py", line 164, in addpackage
+2026-04-10 15:06:58 +01:00:     for n, line in enumerate(f):
+2026-04-10 15:06:58 +01:00:   File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/codecs.py", line 322, in decode
+2026-04-10 15:06:58 +01:00:     (result, consumed) = self._buffer_decode(data, self.errors, final)
+2026-04-10 15:06:58 +01:00: UnicodeDecodeError: 'utf-8' codec can't decode byte 0xb0 in position 37: invalid start byte
+2026-04-10 15:07:13 +01:00: Fatal Python error: init_import_site: Failed to import the site module
+2026-04-10 15:07:13 +01:00: Python runtime state: initialized
+2026-04-10 15:07:13 +01:00: Traceback (most recent call last):
+2026-04-10 15:07:13 +01:00:   File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/site.py", line 621, in <module>
+2026-04-10 15:07:13 +01:00:     main()
+2026-04-10 15:07:13 +01:00:   File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/site.py", line 604, in main
+2026-04-10 15:07:13 +01:00:     known_paths = venv(known_paths)
+2026-04-10 15:07:13 +01:00:   File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/site.py", line 536, in venv
+2026-04-10 15:07:13 +01:00:     addsitepackages(known_paths, [sys.prefix])
+2026-04-10 15:07:13 +01:00:   File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/site.py", line 391, in addsitepackages
+2026-04-10 15:07:13 +01:00:     addsitedir(sitedir, known_paths)
+2026-04-10 15:07:13 +01:00:   File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/site.py", line 208, in addsitedir
+2026-04-10 15:07:13 +01:00:     addpackage(sitedir, name, known_paths)
+2026-04-10 15:07:13 +01:00:   File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/site.py", line 164, in addpackage
+2026-04-10 15:07:13 +01:00:     for n, line in enumerate(f):
+2026-04-10 15:07:13 +01:00:   File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/codecs.py", line 322, in decode
+2026-04-10 15:07:13 +01:00:     (result, consumed) = self._buffer_decode(data, self.errors, final)
+2026-04-10 15:07:13 +01:00: UnicodeDecodeError: 'utf-8' codec can't decode byte 0xb0 in position 37: invalid start byte
+2026-04-10 15:07:28 +01:00: Fatal Python error: init_import_site: Failed to import the site module
+2026-04-10 15:07:28 +01:00: Python runtime state: initialized
+2026-04-10 15:07:28 +01:00: Traceback (most recent call last):
+2026-04-10 15:07:28 +01:00:   File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/site.py", line 621, in <module>
+2026-04-10 15:07:28 +01:00:     main()
+2026-04-10 15:07:28 +01:00:   File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/site.py", line 604, in main
+2026-04-10 15:07:28 +01:00:     known_paths = venv(known_paths)
+2026-04-10 15:07:28 +01:00:   File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/site.py", line 536, in venv
+2026-04-10 15:07:28 +01:00:     addsitepackages(known_paths, [sys.prefix])
+2026-04-10 15:07:28 +01:00:   File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/site.py", line 391, in addsitepackages
+2026-04-10 15:07:28 +01:00:     addsitedir(sitedir, known_paths)
+2026-04-10 15:07:28 +01:00:   File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/site.py", line 208, in addsitedir
+2026-04-10 15:07:28 +01:00:     addpackage(sitedir, name, known_paths)
+2026-04-10 15:07:28 +01:00:   File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/site.py", line 164, in addpackage
+2026-04-10 15:07:28 +01:00:     for n, line in enumerate(f):
+2026-04-10 15:07:28 +01:00:   File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/codecs.py", line 322, in decode
+2026-04-10 15:07:28 +01:00:     (result, consumed) = self._buffer_decode(data, self.errors, final)
+2026-04-10 15:07:28 +01:00: UnicodeDecodeError: 'utf-8' codec can't decode byte 0xb0 in position 37: invalid start byte
+2026-04-10 15:07:43 +01:00: /Volumes/LaCie/TraderApp/kronos-service/start.sh: line 7: venv/bin/activate: No such file or directory
+2026-04-10 15:07:43 +01:00: Traceback (most recent call last):
+2026-04-10 15:07:43 +01:00:   File "/Volumes/LaCie/TraderApp/kronos-service/server.py", line 22, in <module>
+2026-04-10 15:07:43 +01:00:     import numpy as np
+2026-04-10 15:07:43 +01:00: ModuleNotFoundError: No module named 'numpy'
+2026-04-10 15:07:58 +01:00: /Volumes/LaCie/TraderApp/kronos-service/start.sh: line 7: venv/bin/activate: No such file or directory
+2026-04-10 15:07:58 +01:00: Traceback (most recent call last):
+2026-04-10 15:07:58 +01:00:   File "/Volumes/LaCie/TraderApp/kronos-service/server.py", line 22, in <module>
+2026-04-10 15:07:58 +01:00:     import numpy as np
+2026-04-10 15:07:58 +01:00: ModuleNotFoundError: No module named 'numpy'
+2026-04-10 15:17:26 +01:00: Traceback (most recent call last):
+2026-04-10 15:17:26 +01:00:   File "/Volumes/LaCie/TraderApp/kronos-service/server.py", line 23, in <module>
+2026-04-10 15:17:26 +01:00:     import pandas as pd
+2026-04-10 15:17:26 +01:00:   File "/Volumes/LaCie/TraderApp/kronos-service/venv/lib/python3.12/site-packages/pandas/__init__.py", line 19, in <module>
+2026-04-10 15:17:26 +01:00:     raise ImportError(
+2026-04-10 15:17:26 +01:00: ImportError: Unable to import required dependencies:
+2026-04-10 15:17:26 +01:00: pytz: No module named 'pytz'
+2026-04-10 15:17:41 +01:00: Traceback (most recent call last):
+2026-04-10 15:17:41 +01:00:   File "/Volumes/LaCie/TraderApp/kronos-service/server.py", line 22, in <module>
+2026-04-10 15:17:41 +01:00:     import numpy as np
+2026-04-10 15:17:41 +01:00: ModuleNotFoundError: No module named 'numpy'
+2026-04-10 15:17:56 +01:00: Traceback (most recent call last):
+2026-04-10 15:17:56 +01:00:   File "/Volumes/LaCie/TraderApp/kronos-service/server.py", line 22, in <module>
+2026-04-10 15:17:56 +01:00:     import numpy as np
+2026-04-10 15:17:56 +01:00: ModuleNotFoundError: No module named 'numpy'
+2026-04-10 15:18:12 +01:00: Traceback (most recent call last):
+2026-04-10 15:18:12 +01:00:   File "/Volumes/LaCie/TraderApp/kronos-service/server.py", line 22, in <module>
+2026-04-10 15:18:12 +01:00:     import numpy as np
+2026-04-10 15:18:12 +01:00: ModuleNotFoundError: No module named 'numpy'
+2026-04-10 15:18:27 +01:00: Traceback (most recent call last):
+2026-04-10 15:18:27 +01:00:   File "/Volumes/LaCie/TraderApp/kronos-service/server.py", line 22, in <module>
+2026-04-10 15:18:27 +01:00:     import numpy as np
+2026-04-10 15:18:27 +01:00: ModuleNotFoundError: No module named 'numpy'
+2026-04-10 16:29:08 +01:00: 16:29:08 [INFO] Loading Kronos-small from HuggingFace…  (first run downloads ~1-2 GB)
+2026-04-10 16:29:12 +01:00: 16:29:12 [INFO] Using device: cpu
+2026-04-10 16:29:13 +01:00: 16:29:13 [INFO] HTTP Request: HEAD https://huggingface.co/NeoQuasar/Kronos-Tokenizer-base/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+2026-04-10 16:29:13 +01:00: Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-04-10 16:29:13 +01:00: 16:29:13 [WARNING] Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-04-10 16:29:13 +01:00: 16:29:13 [INFO] HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/NeoQuasar/Kronos-Tokenizer-base/0e0117387f39004a9016484a186a908917e22426/config.json "HTTP/1.1 200 OK"
+2026-04-10 16:29:13 +01:00: 16:29:13 [INFO] HTTP Request: GET https://huggingface.co/api/resolve-cache/models/NeoQuasar/Kronos-Tokenizer-base/0e0117387f39004a9016484a186a908917e22426/config.json "HTTP/1.1 200 OK"
+2026-04-10 16:29:13 +01:00: 16:29:13 [INFO] HTTP Request: HEAD https://huggingface.co/NeoQuasar/Kronos-Tokenizer-base/resolve/main/model.safetensors "HTTP/1.1 302 Found"
+2026-04-10 16:29:14 +01:00: 16:29:14 [INFO] HTTP Request: GET https://huggingface.co/api/models/NeoQuasar/Kronos-Tokenizer-base/xet-read-token/0e0117387f39004a9016484a186a908917e22426 "HTTP/1.1 200 OK"
+2026-04-10 16:29:15 +01:00: 16:29:15 [INFO] HTTP Request: HEAD https://huggingface.co/NeoQuasar/Kronos-small/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+2026-04-10 16:29:15 +01:00: 16:29:15 [INFO] HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/NeoQuasar/Kronos-small/901c26c1332695a2a8f243eb2f37243a37bea320/config.json "HTTP/1.1 200 OK"
+2026-04-10 16:29:15 +01:00: 16:29:15 [INFO] HTTP Request: GET https://huggingface.co/api/resolve-cache/models/NeoQuasar/Kronos-small/901c26c1332695a2a8f243eb2f37243a37bea320/config.json "HTTP/1.1 200 OK"
+2026-04-10 16:29:16 +01:00: 16:29:16 [INFO] HTTP Request: HEAD https://huggingface.co/NeoQuasar/Kronos-small/resolve/main/model.safetensors "HTTP/1.1 302 Found"
+2026-04-10 16:29:16 +01:00: 16:29:16 [INFO] HTTP Request: GET https://huggingface.co/api/models/NeoQuasar/Kronos-small/xet-read-token/901c26c1332695a2a8f243eb2f37243a37bea320 "HTTP/1.1 200 OK"
+2026-04-10 16:29:20 +01:00: 16:29:20 [INFO] ✅ Kronos-small loaded in 11.8s — service ready on :5001
+2026-04-10 16:29:27 +01:00: 16:29:27 [ERROR] Kronos predict() failed: 'DatetimeIndex' object has no attribute 'dt'
+2026-04-10 16:29:27 +01:00: 16:29:27 [ERROR] Kronos predict() failed: 'DatetimeIndex' object has no attribute 'dt'
+2026-04-10 16:29:27 +01:00: 16:29:27 [ERROR] Kronos predict() failed: 'DatetimeIndex' object has no attribute 'dt'
+2026-04-10 16:30:00 +01:00: 16:30:00 [ERROR] Kronos predict() failed: 'DatetimeIndex' object has no attribute 'dt'
+2026-04-10 16:30:00 +01:00: 16:30:00 [ERROR] Kronos predict() failed: 'DatetimeIndex' object has no attribute 'dt'
+2026-04-10 16:30:00 +01:00: 16:30:00 [ERROR] Kronos predict() failed: 'DatetimeIndex' object has no attribute 'dt'
+2026-04-10 16:34:27 +01:00: 16:34:27 [ERROR] Kronos predict() failed: 'DatetimeIndex' object has no attribute 'dt'
+2026-04-10 16:34:27 +01:00: 16:34:27 [ERROR] Kronos predict() failed: 'DatetimeIndex' object has no attribute 'dt'
+2026-04-10 16:34:27 +01:00: 16:34:27 [ERROR] Kronos predict() failed: 'DatetimeIndex' object has no attribute 'dt'
+2026-04-10 16:37:57 +01:00: 16:37:57 [ERROR] Kronos predict() failed: 'DatetimeIndex' object has no attribute 'dt'
+2026-04-10 16:37:57 +01:00: 16:37:57 [ERROR] Kronos predict() failed: 'DatetimeIndex' object has no attribute 'dt'
+2026-04-10 16:37:57 +01:00: 16:37:57 [ERROR] Kronos predict() failed: 'DatetimeIndex' object has no attribute 'dt'
+2026-04-10 16:41:56 +01:00: 16:41:56 [ERROR] Kronos predict() failed: 'DatetimeIndex' object has no attribute 'dt'
+2026-04-10 16:41:56 +01:00: 16:41:56 [ERROR] Kronos predict() failed: 'DatetimeIndex' object has no attribute 'dt'
+2026-04-10 16:41:57 +01:00: 16:41:57 [ERROR] Kronos predict() failed: 'DatetimeIndex' object has no attribute 'dt'
+2026-04-10 16:45:00 +01:00: 16:45:00 [ERROR] Kronos predict() failed: 'DatetimeIndex' object has no attribute 'dt'
+2026-04-10 16:45:00 +01:00: 16:45:00 [ERROR] Kronos predict() failed: 'DatetimeIndex' object has no attribute 'dt'
+2026-04-10 16:45:00 +01:00: 16:45:00 [ERROR] Kronos predict() failed: 'DatetimeIndex' object has no attribute 'dt'
+2026-04-10 16:45:57 +01:00: 16:45:57 [ERROR] Kronos predict() failed: 'DatetimeIndex' object has no attribute 'dt'
+2026-04-10 16:45:57 +01:00: 16:45:57 [ERROR] Kronos predict() failed: 'DatetimeIndex' object has no attribute 'dt'
+2026-04-10 16:45:57 +01:00: 16:45:57 [ERROR] Kronos predict() failed: 'DatetimeIndex' object has no attribute 'dt'
+2026-04-10 16:49:26 +01:00: 16:49:26 [ERROR] Kronos predict() failed: 'DatetimeIndex' object has no attribute 'dt'
+2026-04-10 16:49:27 +01:00: 16:49:27 [ERROR] Kronos predict() failed: 'DatetimeIndex' object has no attribute 'dt'
+2026-04-10 16:49:27 +01:00: 16:49:27 [ERROR] Kronos predict() failed: 'DatetimeIndex' object has no attribute 'dt'
+2026-04-10 16:53:56 +01:00: 16:53:56 [ERROR] Kronos predict() failed: 'DatetimeIndex' object has no attribute 'dt'
+2026-04-10 16:53:57 +01:00: 16:53:57 [ERROR] Kronos predict() failed: 'DatetimeIndex' object has no attribute 'dt'
+2026-04-10 16:53:57 +01:00: 16:53:57 [ERROR] Kronos predict() failed: 'DatetimeIndex' object has no attribute 'dt'
+2026-04-10 16:57:27 +01:00: 16:57:27 [ERROR] Kronos predict() failed: 'DatetimeIndex' object has no attribute 'dt'
+2026-04-10 16:57:27 +01:00: 16:57:27 [ERROR] Kronos predict() failed: 'DatetimeIndex' object has no attribute 'dt'
+2026-04-10 16:57:27 +01:00: 16:57:27 [ERROR] Kronos predict() failed: 'DatetimeIndex' object has no attribute 'dt'
+2026-04-10 17:00:00 +01:00: 17:00:00 [ERROR] Kronos predict() failed: 'DatetimeIndex' object has no attribute 'dt'
+2026-04-10 17:00:00 +01:00: 17:00:00 [ERROR] Kronos predict() failed: 'DatetimeIndex' object has no attribute 'dt'
+2026-04-10 17:00:00 +01:00: 17:00:00 [ERROR] Kronos predict() failed: 'DatetimeIndex' object has no attribute 'dt'
+2026-04-10 17:01:27 +01:00: 17:01:27 [ERROR] Kronos predict() failed: 'DatetimeIndex' object has no attribute 'dt'
+2026-04-10 17:01:27 +01:00: 17:01:27 [ERROR] Kronos predict() failed: 'DatetimeIndex' object has no attribute 'dt'
+2026-04-10 17:01:27 +01:00: 17:01:27 [ERROR] Kronos predict() failed: 'DatetimeIndex' object has no attribute 'dt'
+2026-04-10 17:05:26 +01:00: 17:05:26 [ERROR] Kronos predict() failed: 'DatetimeIndex' object has no attribute 'dt'
+2026-04-10 17:05:26 +01:00: 17:05:26 [ERROR] Kronos predict() failed: 'DatetimeIndex' object has no attribute 'dt'
+2026-04-10 17:05:27 +01:00: 17:05:27 [ERROR] Kronos predict() failed: 'DatetimeIndex' object has no attribute 'dt'
+2026-04-10 17:06:13 +01:00: 17:06:13 [INFO] Shutting down Kronos service.
+2026-04-10 17:06:16 +01:00: 17:06:16 [INFO] Loading Kronos-small from HuggingFace…  (first run downloads ~1-2 GB)
+2026-04-10 17:06:18 +01:00: 17:06:18 [INFO] Using device: cpu
+2026-04-10 17:06:20 +01:00: 17:06:20 [INFO] ✅ Kronos-small loaded in 4.4s — service ready on :5001
+2026-04-10 17:07:24 +01:00: 17:07:24 [INFO] Shutting down Kronos service.
+2026-04-10 17:07:26 +01:00: 17:07:26 [INFO] Loading Kronos-small from HuggingFace…  (first run downloads ~1-2 GB)
+2026-04-10 17:07:28 +01:00: 17:07:28 [INFO] Using device: cpu
+2026-04-10 17:07:30 +01:00: 17:07:30 [INFO] ✅ Kronos-small loaded in 3.6s — service ready on :5001
+2026-04-10 17:07:48 +01:00: 17:07:48 [ERROR] Kronos predict() failed: 'numpy.ndarray' object has no attribute 'dt'
+2026-04-10 17:08:30 +01:00: 17:08:30 [INFO] Shutting down Kronos service.
+2026-04-10 17:08:32 +01:00: 17:08:32 [INFO] Loading Kronos-small from HuggingFace…  (first run downloads ~1-2 GB)
+2026-04-10 17:08:34 +01:00: 17:08:34 [INFO] Using device: cpu
+2026-04-10 17:08:36 +01:00: 17:08:36 [INFO] ✅ Kronos-small loaded in 3.8s — service ready on :5001
+2026-04-10 17:08:45 +01:00:   0%|          | 0/5 [00:00<?, ?it/s]
+2026-04-10 17:08:58 +01:00:  20%|██        | 1/5 [00:12<00:50, 12.73s/it]
+2026-04-10 17:08:58 +01:00:  40%|████      | 2/5 [00:13<00:16,  5.48s/it]
+2026-04-10 17:08:59 +01:00:  60%|██████    | 3/5 [00:13<00:06,  3.17s/it]
+2026-04-10 17:08:59 +01:00:  80%|████████  | 4/5 [00:13<00:02,  2.09s/it]
+2026-04-10 17:09:00 +01:00: 100%|██████████| 5/5 [00:14<00:00,  1.50s/it]
+2026-04-10 17:09:00 +01:00: 100%|██████████| 5/5 [00:14<00:00,  2.89s/it]
+2026-04-10 17:09:00 +01:00: 17:09:00 [INFO] Forecast: DOWN 56% | Current $80540.00 → Predicted $80492.97 | 21896ms
+2026-04-10 17:09:27 +01:00:   0%|          | 0/5 [00:00<?, ?it/s]
+2026-04-10 17:09:27 +01:00: 
+2026-04-10 17:09:27 +01:00:   0%|          | 0/5 [00:00<?, ?it/s][A
+2026-04-10 17:09:27 +01:00: 
+2026-04-10 17:09:27 +01:00: 
+2026-04-10 17:09:27 +01:00:   0%|          | 0/5 [00:00<?, ?it/s][A[A
+2026-04-10 17:09:27 +01:00:   0%|          | 0/5 [00:00<?, ?it/s]
+2026-04-10 17:09:27 +01:00: 
+2026-04-10 17:09:27 +01:00: 17:09:27 [ERROR] Kronos predict() failed: The size of tensor a (96) must match the size of tensor b (54) at non-singleton dimension 2
+2026-04-10 17:09:27 +01:00:  20%|██        | 1/5 [00:00<00:01,  2.13it/s]
+2026-04-10 17:09:27 +01:00: 
+2026-04-10 17:09:27 +01:00: 
+2026-04-10 17:09:27 +01:00:  20%|██        | 1/5 [00:00<00:02,  1.87it/s][A[A
+2026-04-10 17:09:28 +01:00:  40%|████      | 2/5 [00:01<00:01,  1.95it/s]
+2026-04-10 17:09:28 +01:00: 
+2026-04-10 17:09:28 +01:00: 
+2026-04-10 17:09:28 +01:00:  40%|████      | 2/5 [00:01<00:01,  2.02it/s][A[A
+2026-04-10 17:09:28 +01:00:  60%|██████    | 3/5 [00:01<00:01,  1.82it/s]
+2026-04-10 17:09:28 +01:00: 
+2026-04-10 17:09:28 +01:00: 
+2026-04-10 17:09:28 +01:00:  60%|██████    | 3/5 [00:01<00:00,  2.39it/s][A[A
+2026-04-10 17:09:28 +01:00:  60%|██████    | 3/5 [00:01<00:00,  2.02it/s]
+2026-04-10 17:09:28 +01:00: 17:09:28 [ERROR] Kronos predict() failed: The size of tensor a (99) must match the size of tensor b (98) at non-singleton dimension 2
+2026-04-10 17:09:29 +01:00:  80%|████████  | 4/5 [00:02<00:00,  1.87it/s]
+2026-04-10 17:09:29 +01:00: 100%|██████████| 5/5 [00:02<00:00,  1.94it/s]
+2026-04-10 17:09:29 +01:00: 100%|██████████| 5/5 [00:02<00:00,  1.92it/s]
+2026-04-10 17:09:30 +01:00: 17:09:30 [INFO] Forecast: DOWN 62% | Current $2227.22 → Predicted $2221.40 | 3382ms
+2026-04-10 17:13:57 +01:00:   0%|          | 0/5 [00:00<?, ?it/s]
+2026-04-10 17:13:57 +01:00:  40%|████      | 2/5 [00:00<00:00, 10.43it/s]
+2026-04-10 17:13:57 +01:00: 
+2026-04-10 17:13:57 +01:00:   0%|          | 0/5 [00:00<?, ?it/s][A
+2026-04-10 17:13:57 +01:00: 
+2026-04-10 17:13:57 +01:00:  20%|██        | 1/5 [00:00<00:00,  5.19it/s][A
+2026-04-10 17:13:57 +01:00:  80%|████████  | 4/5 [00:00<00:00,  6.52it/s]
+2026-04-10 17:13:57 +01:00: 
+2026-04-10 17:13:57 +01:00: 
+2026-04-10 17:13:57 +01:00:   0%|          | 0/5 [00:00<?, ?it/s][A[A
+2026-04-10 17:13:57 +01:00: 
+2026-04-10 17:13:57 +01:00:  40%|████      | 2/5 [00:00<00:00,  4.22it/s][A
+2026-04-10 17:13:58 +01:00: 100%|██████████| 5/5 [00:00<00:00,  5.28it/s]
+2026-04-10 17:13:58 +01:00: 100%|██████████| 5/5 [00:00<00:00,  5.85it/s]
+2026-04-10 17:13:58 +01:00: 
+2026-04-10 17:13:58 +01:00: 
+2026-04-10 17:13:58 +01:00:  20%|██        | 1/5 [00:00<00:01,  3.51it/s][A[A
+2026-04-10 17:13:58 +01:00: 17:13:58 [INFO] Forecast: UP 52% | Current $2232.07 → Predicted $2232.92 | 974ms
+2026-04-10 17:13:58 +01:00: 
+2026-04-10 17:13:58 +01:00:  60%|██████    | 3/5 [00:00<00:00,  4.06it/s][A
+2026-04-10 17:13:58 +01:00: 
+2026-04-10 17:13:58 +01:00: 
+2026-04-10 17:13:58 +01:00:  40%|████      | 2/5 [00:00<00:00,  4.22it/s][A[A
+2026-04-10 17:13:58 +01:00: 
+2026-04-10 17:13:58 +01:00:  80%|████████  | 4/5 [00:00<00:00,  4.54it/s][A
+2026-04-10 17:13:58 +01:00: 
+2026-04-10 17:13:58 +01:00: 
+2026-04-10 17:13:58 +01:00:  60%|██████    | 3/5 [00:00<00:00,  4.59it/s][A[A
+2026-04-10 17:13:58 +01:00: 
+2026-04-10 17:13:58 +01:00: 100%|██████████| 5/5 [00:01<00:00,  4.66it/s][A100%|██████████| 5/5 [00:01<00:00,  4.53it/s]
+2026-04-10 17:13:58 +01:00: 17:13:58 [INFO] Forecast: DOWN 58% | Current $72692.60 → Predicted $72584.80 | 1216ms
+2026-04-10 17:13:58 +01:00: 
+2026-04-10 17:13:58 +01:00: 
+2026-04-10 17:13:58 +01:00:  80%|████████  | 4/5 [00:00<00:00,  4.89it/s][A[A
+2026-04-10 17:13:58 +01:00: 100%|██████████| 5/5 [00:00<00:00,  5.21it/s]
+2026-04-10 17:13:58 +01:00: 17:13:58 [INFO] Forecast: DOWN 51% | Current $84.49 → Predicted $84.46 | 1091ms
+2026-04-10 17:15:00 +01:00:   0%|          | 0/5 [00:00<?, ?it/s]
+2026-04-10 17:15:00 +01:00:  20%|██        | 1/5 [00:00<00:00,  8.43it/s]
+2026-04-10 17:15:00 +01:00: 
+2026-04-10 17:15:00 +01:00:   0%|          | 0/5 [00:00<?, ?it/s][A
+2026-04-10 17:15:00 +01:00:  40%|████      | 2/5 [00:00<00:00,  6.69it/s]
+2026-04-10 17:15:00 +01:00: 
+2026-04-10 17:15:00 +01:00:  20%|██        | 1/5 [00:00<00:00,  5.43it/s][A
+2026-04-10 17:15:00 +01:00:  60%|██████    | 3/5 [00:00<00:00,  5.96it/s]
+2026-04-10 17:15:00 +01:00: 
+2026-04-10 17:15:00 +01:00:  40%|████      | 2/5 [00:00<00:00,  5.30it/s][A
+2026-04-10 17:15:00 +01:00:  80%|████████  | 4/5 [00:00<00:00,  5.68it/s]
+2026-04-10 17:15:00 +01:00: 
+2026-04-10 17:15:00 +01:00:  60%|██████    | 3/5 [00:00<00:00,  5.28it/s][A
+2026-04-10 17:15:00 +01:00: 100%|██████████| 5/5 [00:00<00:00,  5.60it/s]
+2026-04-10 17:15:00 +01:00: 100%|██████████| 5/5 [00:00<00:00,  5.88it/s]
+2026-04-10 17:15:01 +01:00: 
+2026-04-10 17:15:01 +01:00:  80%|████████  | 4/5 [00:00<00:00,  5.34it/s][A
+2026-04-10 17:15:01 +01:00: 17:15:01 [INFO] Forecast: DOWN 50% | Current $2231.31 → Predicted $2231.25 | 956ms
+2026-04-10 17:15:01 +01:00: 
+2026-04-10 17:15:01 +01:00: 100%|██████████| 5/5 [00:00<00:00,  6.22it/s][A100%|██████████| 5/5 [00:00<00:00,  5.79it/s]
+2026-04-10 17:15:01 +01:00: 17:15:01 [INFO] Forecast: DOWN 57% | Current $84.49 → Predicted $84.36 | 958ms
+2026-04-10 17:18:28 +01:00:   0%|          | 0/5 [00:00<?, ?it/s]
+2026-04-10 17:18:28 +01:00:  20%|██        | 1/5 [00:00<00:00,  9.92it/s]
+2026-04-10 17:18:28 +01:00:  40%|████      | 2/5 [00:00<00:00,  9.49it/s]
+2026-04-10 17:18:28 +01:00: 
+2026-04-10 17:18:28 +01:00:   0%|          | 0/5 [00:00<?, ?it/s][A
+2026-04-10 17:18:28 +01:00:  60%|██████    | 3/5 [00:00<00:00,  7.15it/s]
+2026-04-10 17:18:28 +01:00: 
+2026-04-10 17:18:28 +01:00:  20%|██        | 1/5 [00:00<00:00,  4.73it/s][A
+2026-04-10 17:18:28 +01:00: 
+2026-04-10 17:18:28 +01:00: 
+2026-04-10 17:18:28 +01:00:   0%|          | 0/5 [00:00<?, ?it/s][A[A
+2026-04-10 17:18:28 +01:00:  80%|████████  | 4/5 [00:00<00:00,  5.33it/s]
+2026-04-10 17:18:28 +01:00: 
+2026-04-10 17:18:28 +01:00:  40%|████      | 2/5 [00:00<00:00,  4.06it/s][A
+2026-04-10 17:18:28 +01:00: 
+2026-04-10 17:18:28 +01:00: 
+2026-04-10 17:18:28 +01:00:  20%|██        | 1/5 [00:00<00:01,  3.39it/s][A[A
+2026-04-10 17:18:29 +01:00: 100%|██████████| 5/5 [00:00<00:00,  4.46it/s]
+2026-04-10 17:18:29 +01:00: 100%|██████████| 5/5 [00:00<00:00,  5.31it/s]
+2026-04-10 17:18:29 +01:00: 17:18:29 [INFO] Forecast: DOWN 57% | Current $2233.63 → Predicted $2230.06 | 1069ms
+2026-04-10 17:18:29 +01:00: 
+2026-04-10 17:18:29 +01:00:  60%|██████    | 3/5 [00:00<00:00,  3.81it/s][A
+2026-04-10 17:18:29 +01:00: 
+2026-04-10 17:18:29 +01:00: 
+2026-04-10 17:18:29 +01:00:  40%|████      | 2/5 [00:00<00:00,  3.72it/s][A[A
+2026-04-10 17:18:29 +01:00: 
+2026-04-10 17:18:29 +01:00:  80%|████████  | 4/5 [00:00<00:00,  4.27it/s][A
+2026-04-10 17:18:29 +01:00: 
+2026-04-10 17:18:29 +01:00: 
+2026-04-10 17:18:29 +01:00:  60%|██████    | 3/5 [00:00<00:00,  4.29it/s][A[A
+2026-04-10 17:18:29 +01:00: 
+2026-04-10 17:18:29 +01:00: 100%|██████████| 5/5 [00:01<00:00,  4.58it/s][A100%|██████████| 5/5 [00:01<00:00,  4.36it/s]
+2026-04-10 17:18:29 +01:00: 17:18:29 [INFO] Forecast: DOWN 84% | Current $72717.14 → Predicted $72275.55 | 1268ms
+2026-04-10 17:18:29 +01:00: 
+2026-04-10 17:18:29 +01:00: 
+2026-04-10 17:18:29 +01:00:  80%|████████  | 4/5 [00:00<00:00,  4.64it/s][A[A
+2026-04-10 17:18:29 +01:00: 
+2026-04-10 17:18:29 +01:00: 
+2026-04-10 17:18:29 +01:00: 100%|██████████| 5/5 [00:01<00:00,  5.54it/s][A[A100%|██████████| 5/5 [00:01<00:00,  4.79it/s]
+2026-04-10 17:18:29 +01:00: 17:18:29 [INFO] Forecast: DOWN 55% | Current $84.51 → Predicted $84.41 | 1171ms
+2026-04-10 17:23:27 +01:00:   0%|          | 0/5 [00:00<?, ?it/s]
+2026-04-10 17:23:27 +01:00:  20%|██        | 1/5 [00:00<00:00,  8.69it/s]
+2026-04-10 17:23:27 +01:00:  40%|████      | 2/5 [00:00<00:00,  8.12it/s]
+2026-04-10 17:23:27 +01:00: 
+2026-04-10 17:23:27 +01:00:   0%|          | 0/5 [00:00<?, ?it/s][A
+2026-04-10 17:23:27 +01:00:  60%|██████    | 3/5 [00:00<00:00,  6.64it/s]
+2026-04-10 17:23:27 +01:00: 
+2026-04-10 17:23:27 +01:00:  20%|██        | 1/5 [00:00<00:00,  4.86it/s][A
+2026-04-10 17:23:27 +01:00: 
+2026-04-10 17:23:27 +01:00: 
+2026-04-10 17:23:27 +01:00:   0%|          | 0/5 [00:00<?, ?it/s][A[A
+2026-04-10 17:23:27 +01:00:  80%|████████  | 4/5 [00:00<00:00,  5.08it/s]
+2026-04-10 17:23:28 +01:00: 
+2026-04-10 17:23:28 +01:00:  40%|████      | 2/5 [00:00<00:00,  4.12it/s][A
+2026-04-10 17:23:28 +01:00: 
+2026-04-10 17:23:28 +01:00: 
+2026-04-10 17:23:28 +01:00:  20%|██        | 1/5 [00:00<00:01,  3.42it/s][A[A
+2026-04-10 17:23:28 +01:00: 100%|██████████| 5/5 [00:00<00:00,  4.38it/s]
+2026-04-10 17:23:28 +01:00: 100%|██████████| 5/5 [00:00<00:00,  5.10it/s]
+2026-04-10 17:23:28 +01:00: 
+2026-04-10 17:23:28 +01:00:  60%|██████    | 3/5 [00:00<00:00,  3.75it/s][A
+2026-04-10 17:23:28 +01:00: 17:23:28 [INFO] Forecast: DOWN 64% | Current $2240.64 → Predicted $2233.73 | 1113ms
+2026-04-10 17:23:28 +01:00: 
+2026-04-10 17:23:28 +01:00: 
+2026-04-10 17:23:28 +01:00:  40%|████      | 2/5 [00:00<00:00,  3.50it/s][A[A
+2026-04-10 17:23:28 +01:00: 
+2026-04-10 17:23:28 +01:00:  80%|████████  | 4/5 [00:00<00:00,  4.00it/s][A
+2026-04-10 17:23:28 +01:00: 
+2026-04-10 17:23:28 +01:00: 
+2026-04-10 17:23:28 +01:00:  60%|██████    | 3/5 [00:00<00:00,  3.93it/s][A[A
+2026-04-10 17:23:28 +01:00: 
+2026-04-10 17:23:28 +01:00: 100%|██████████| 5/5 [00:01<00:00,  4.21it/s][A100%|██████████| 5/5 [00:01<00:00,  4.13it/s]
+2026-04-10 17:23:28 +01:00: 
+2026-04-10 17:23:28 +01:00: 
+2026-04-10 17:23:28 +01:00:  80%|████████  | 4/5 [00:00<00:00,  4.27it/s][A[A
+2026-04-10 17:23:28 +01:00: 17:23:28 [INFO] Forecast: DOWN 54% | Current $72675.72 → Predicted $72622.63 | 1355ms
+2026-04-10 17:23:28 +01:00: 
+2026-04-10 17:23:28 +01:00: 
+2026-04-10 17:23:28 +01:00: 100%|██████████| 5/5 [00:01<00:00,  5.23it/s][A[A100%|██████████| 5/5 [00:01<00:00,  4.51it/s]
+2026-04-10 17:23:29 +01:00: 17:23:29 [INFO] Forecast: DOWN 83% | Current $84.54 → Predicted $83.90 | 1232ms
+2026-04-10 17:27:34 +01:00:   0%|          | 0/5 [00:00<?, ?it/s]
+2026-04-10 17:27:34 +01:00:  20%|██        | 1/5 [00:00<00:00,  9.33it/s]
+2026-04-10 17:27:34 +01:00:  40%|████      | 2/5 [00:00<00:00,  9.49it/s]
+2026-04-10 17:27:34 +01:00:  60%|██████    | 3/5 [00:00<00:00,  9.66it/s]
+2026-04-10 17:27:34 +01:00: 
+2026-04-10 17:27:34 +01:00:   0%|          | 0/5 [00:00<?, ?it/s][A
+2026-04-10 17:27:34 +01:00:  80%|████████  | 4/5 [00:00<00:00,  7.78it/s]
+2026-04-10 17:27:34 +01:00: 
+2026-04-10 17:27:34 +01:00:  20%|██        | 1/5 [00:00<00:00,  5.49it/s][A
+2026-04-10 17:27:34 +01:00: 
+2026-04-10 17:27:34 +01:00: 
+2026-04-10 17:27:34 +01:00:   0%|          | 0/5 [00:00<?, ?it/s][A[A
+2026-04-10 17:27:34 +01:00: 100%|██████████| 5/5 [00:00<00:00,  5.92it/s]
+2026-04-10 17:27:34 +01:00: 100%|██████████| 5/5 [00:00<00:00,  6.94it/s]
+2026-04-10 17:27:35 +01:00: 17:27:35 [INFO] Forecast: DOWN 60% | Current $2239.68 → Predicted $2234.47 | 851ms
+2026-04-10 17:27:35 +01:00: 
+2026-04-10 17:27:35 +01:00:  40%|████      | 2/5 [00:00<00:00,  4.33it/s][A
+2026-04-10 17:27:35 +01:00: 
+2026-04-10 17:27:35 +01:00: 
+2026-04-10 17:27:35 +01:00:  20%|██        | 1/5 [00:00<00:01,  3.98it/s][A[A
+2026-04-10 17:27:35 +01:00: 
+2026-04-10 17:27:35 +01:00:  60%|██████    | 3/5 [00:00<00:00,  4.63it/s][A
+2026-04-10 17:27:35 +01:00: 
+2026-04-10 17:27:35 +01:00: 
+2026-04-10 17:27:35 +01:00:  40%|████      | 2/5 [00:00<00:00,  4.69it/s][A[A
+2026-04-10 17:27:35 +01:00: 
+2026-04-10 17:27:35 +01:00:  80%|████████  | 4/5 [00:00<00:00,  4.88it/s][A
+2026-04-10 17:27:35 +01:00: 
+2026-04-10 17:27:35 +01:00: 
+2026-04-10 17:27:35 +01:00:  60%|██████    | 3/5 [00:00<00:00,  4.94it/s][A[A
+2026-04-10 17:27:35 +01:00: 
+2026-04-10 17:27:35 +01:00: 100%|██████████| 5/5 [00:01<00:00,  4.98it/s][A100%|██████████| 5/5 [00:01<00:00,  4.87it/s]
+2026-04-10 17:27:35 +01:00: 17:27:35 [INFO] Forecast: DOWN 83% | Current $72705.03 → Predicted $72257.92 | 1144ms
+2026-04-10 17:27:35 +01:00: 
+2026-04-10 17:27:35 +01:00: 
+2026-04-10 17:27:35 +01:00:  80%|████████  | 4/5 [00:00<00:00,  5.15it/s][A[A
+2026-04-10 17:27:35 +01:00: 
+2026-04-10 17:27:35 +01:00: 
+2026-04-10 17:27:35 +01:00: 100%|██████████| 5/5 [00:00<00:00,  6.14it/s][A[A100%|██████████| 5/5 [00:00<00:00,  5.46it/s]
+2026-04-10 17:27:35 +01:00: 17:27:35 [INFO] Forecast: DOWN 51% | Current $84.59 → Predicted $84.56 | 1036ms
+2026-04-10 17:30:00 +01:00:   0%|          | 0/5 [00:00<?, ?it/s]
+2026-04-10 17:30:00 +01:00:  20%|██        | 1/5 [00:00<00:00,  8.19it/s]
+2026-04-10 17:30:00 +01:00: 
+2026-04-10 17:30:00 +01:00:   0%|          | 0/5 [00:00<?, ?it/s][A
+2026-04-10 17:30:00 +01:00:  40%|████      | 2/5 [00:00<00:00,  6.52it/s]
+2026-04-10 17:30:00 +01:00: 
+2026-04-10 17:30:00 +01:00:  20%|██        | 1/5 [00:00<00:00,  5.18it/s][A
+2026-04-10 17:30:00 +01:00:  60%|██████    | 3/5 [00:00<00:00,  5.86it/s]
+2026-04-10 17:30:00 +01:00: 
+2026-04-10 17:30:00 +01:00:  40%|████      | 2/5 [00:00<00:00,  5.24it/s][A
+2026-04-10 17:30:00 +01:00:  80%|████████  | 4/5 [00:00<00:00,  5.63it/s]
+2026-04-10 17:30:00 +01:00: 
+2026-04-10 17:30:00 +01:00:  60%|██████    | 3/5 [00:00<00:00,  5.22it/s][A
+2026-04-10 17:30:01 +01:00: 100%|██████████| 5/5 [00:00<00:00,  5.43it/s]
+2026-04-10 17:30:01 +01:00: 100%|██████████| 5/5 [00:00<00:00,  5.73it/s]
+2026-04-10 17:30:01 +01:00: 
+2026-04-10 17:30:01 +01:00:  80%|████████  | 4/5 [00:00<00:00,  5.21it/s][A
+2026-04-10 17:30:01 +01:00: 17:30:01 [INFO] Forecast: UP 70% | Current $72768.87 → Predicted $73040.09 | 981ms
+2026-04-10 17:30:01 +01:00: 
+2026-04-10 17:30:01 +01:00: 100%|██████████| 5/5 [00:00<00:00,  6.06it/s][A100%|██████████| 5/5 [00:00<00:00,  5.65it/s]
+2026-04-10 17:30:01 +01:00: 17:30:01 [INFO] Forecast: DOWN 69% | Current $84.61 → Predicted $84.23 | 984ms
+2026-04-10 17:30:57 +01:00:   0%|          | 0/5 [00:00<?, ?it/s]
+2026-04-10 17:30:57 +01:00:  40%|████      | 2/5 [00:00<00:00, 10.71it/s]
+2026-04-10 17:30:57 +01:00: 
+2026-04-10 17:30:57 +01:00:   0%|          | 0/5 [00:00<?, ?it/s][A
+2026-04-10 17:30:57 +01:00: 
+2026-04-10 17:30:57 +01:00:  20%|██        | 1/5 [00:00<00:00,  5.74it/s][A
+2026-04-10 17:30:58 +01:00:  80%|████████  | 4/5 [00:00<00:00,  6.90it/s]
+2026-04-10 17:30:58 +01:00: 
+2026-04-10 17:30:58 +01:00: 
+2026-04-10 17:30:58 +01:00:   0%|          | 0/5 [00:00<?, ?it/s][A[A
+2026-04-10 17:30:58 +01:00: 
+2026-04-10 17:30:58 +01:00:  40%|████      | 2/5 [00:00<00:00,  4.37it/s][A
+2026-04-10 17:30:58 +01:00: 100%|██████████| 5/5 [00:00<00:00,  5.48it/s]
+2026-04-10 17:30:58 +01:00: 100%|██████████| 5/5 [00:00<00:00,  6.09it/s]
+2026-04-10 17:30:58 +01:00: 
+2026-04-10 17:30:58 +01:00: 
+2026-04-10 17:30:58 +01:00:  20%|██        | 1/5 [00:00<00:01,  3.50it/s][A[A
+2026-04-10 17:30:58 +01:00: 17:30:58 [INFO] Forecast: DOWN 63% | Current $2240.01 → Predicted $2233.36 | 947ms
+2026-04-10 17:30:58 +01:00: 
+2026-04-10 17:30:58 +01:00:  60%|██████    | 3/5 [00:00<00:00,  4.10it/s][A
+2026-04-10 17:30:58 +01:00: 
+2026-04-10 17:30:58 +01:00: 
+2026-04-10 17:30:58 +01:00:  40%|████      | 2/5 [00:00<00:00,  4.21it/s][A[A
+2026-04-10 17:30:58 +01:00: 
+2026-04-10 17:30:58 +01:00:  80%|████████  | 4/5 [00:00<00:00,  4.51it/s][A
+2026-04-10 17:30:58 +01:00: 
+2026-04-10 17:30:58 +01:00: 
+2026-04-10 17:30:58 +01:00:  60%|██████    | 3/5 [00:00<00:00,  4.70it/s][A[A
+2026-04-10 17:30:58 +01:00: 
+2026-04-10 17:30:58 +01:00: 100%|██████████| 5/5 [00:01<00:00,  4.82it/s][A100%|██████████| 5/5 [00:01<00:00,  4.66it/s]
+2026-04-10 17:30:58 +01:00: 17:30:58 [INFO] Forecast: DOWN 57% | Current $72756.36 → Predicted $72658.02 | 1183ms
+2026-04-10 17:30:58 +01:00: 
+2026-04-10 17:30:58 +01:00: 
+2026-04-10 17:30:58 +01:00:  80%|████████  | 4/5 [00:00<00:00,  5.11it/s][A[A
+2026-04-10 17:30:59 +01:00: 
+2026-04-10 17:30:59 +01:00: 
+2026-04-10 17:30:59 +01:00: 100%|██████████| 5/5 [00:00<00:00,  6.15it/s][A[A100%|██████████| 5/5 [00:00<00:00,  5.29it/s]
+2026-04-10 17:30:59 +01:00: 17:30:59 [INFO] Forecast: DOWN 60% | Current $84.57 → Predicted $84.39 | 1084ms
+2026-04-10 17:34:57 +01:00:   0%|          | 0/5 [00:00<?, ?it/s]
+2026-04-10 17:34:57 +01:00:  20%|██        | 1/5 [00:00<00:00,  9.47it/s]
+2026-04-10 17:34:57 +01:00: 
+2026-04-10 17:34:57 +01:00:   0%|          | 0/5 [00:00<?, ?it/s][A
+2026-04-10 17:34:57 +01:00:  60%|██████    | 3/5 [00:00<00:00,  7.31it/s]
+2026-04-10 17:34:57 +01:00: 
+2026-04-10 17:34:57 +01:00:  20%|██        | 1/5 [00:00<00:00,  4.83it/s][A
+2026-04-10 17:34:57 +01:00: 
+2026-04-10 17:34:57 +01:00: 
+2026-04-10 17:34:57 +01:00:   0%|          | 0/5 [00:00<?, ?it/s][A[A
+2026-04-10 17:34:57 +01:00:  80%|████████  | 4/5 [00:00<00:00,  5.91it/s]
+2026-04-10 17:34:57 +01:00: 
+2026-04-10 17:34:57 +01:00:  40%|████      | 2/5 [00:00<00:00,  4.12it/s][A
+2026-04-10 17:34:57 +01:00: 
+2026-04-10 17:34:57 +01:00: 
+2026-04-10 17:34:57 +01:00:  20%|██        | 1/5 [00:00<00:01,  3.55it/s][A[A
+2026-04-10 17:34:57 +01:00: 100%|██████████| 5/5 [00:00<00:00,  4.76it/s]
+2026-04-10 17:34:57 +01:00: 100%|██████████| 5/5 [00:00<00:00,  5.41it/s]
+2026-04-10 17:34:57 +01:00: 
+2026-04-10 17:34:58 +01:00: 17:34:58 [INFO] Forecast: DOWN 71% | Current $2239.28 → Predicted $2228.23 | 1045ms
+2026-04-10 17:34:58 +01:00: 
+2026-04-10 17:34:58 +01:00:  60%|██████    | 3/5 [00:00<00:00,  3.89it/s][A
+2026-04-10 17:34:58 +01:00: 
+2026-04-10 17:34:58 +01:00: 
+2026-04-10 17:34:58 +01:00:  40%|████      | 2/5 [00:00<00:00,  3.88it/s][A[A
+2026-04-10 17:34:58 +01:00: 
+2026-04-10 17:34:58 +01:00:  80%|████████  | 4/5 [00:00<00:00,  4.34it/s][A
+2026-04-10 17:34:58 +01:00: 
+2026-04-10 17:34:58 +01:00: 
+2026-04-10 17:34:58 +01:00:  60%|██████    | 3/5 [00:00<00:00,  4.42it/s][A[A
+2026-04-10 17:34:58 +01:00: 
+2026-04-10 17:34:58 +01:00: 100%|██████████| 5/5 [00:01<00:00,  4.68it/s][A
+2026-04-10 17:34:58 +01:00: 100%|██████████| 5/5 [00:01<00:00,  4.45it/s]
+2026-04-10 17:34:58 +01:00: 17:34:58 [INFO] Forecast: DOWN 58% | Current $72734.01 → Predicted $72626.99 | 1241ms
+2026-04-10 17:34:58 +01:00: 
+2026-04-10 17:34:58 +01:00: 
+2026-04-10 17:34:58 +01:00:  80%|████████  | 4/5 [00:00<00:00,  4.80it/s][A[A
+2026-04-10 17:34:58 +01:00: 
+2026-04-10 17:34:58 +01:00: 
+2026-04-10 17:34:58 +01:00: 100%|██████████| 5/5 [00:00<00:00,  5.82it/s][A[A100%|██████████| 5/5 [00:00<00:00,  5.00it/s]
+2026-04-10 17:34:58 +01:00: 17:34:58 [INFO] Forecast: DOWN 51% | Current $84.58 → Predicted $84.55 | 1119ms
+2026-04-10 17:37:11 +01:00:   0%|          | 0/5 [00:00<?, ?it/s]
+2026-04-10 17:37:11 +01:00:  40%|████      | 2/5 [00:00<00:00, 10.05it/s]
+2026-04-10 17:37:11 +01:00: 
+2026-04-10 17:37:11 +01:00:   0%|          | 0/5 [00:00<?, ?it/s][A
+2026-04-10 17:37:11 +01:00: 
+2026-04-10 17:37:11 +01:00:  20%|██        | 1/5 [00:00<00:00,  5.41it/s][A
+2026-04-10 17:37:11 +01:00:  80%|████████  | 4/5 [00:00<00:00,  6.65it/s]
+2026-04-10 17:37:11 +01:00: 
+2026-04-10 17:37:11 +01:00: 
+2026-04-10 17:37:11 +01:00:   0%|          | 0/5 [00:00<?, ?it/s][A[A
+2026-04-10 17:37:12 +01:00: 
+2026-04-10 17:37:12 +01:00:  40%|████      | 2/5 [00:00<00:00,  4.21it/s][A
+2026-04-10 17:37:12 +01:00: 100%|██████████| 5/5 [00:00<00:00,  5.55it/s]
+2026-04-10 17:37:12 +01:00: 100%|██████████| 5/5 [00:00<00:00,  6.08it/s]
+2026-04-10 17:37:12 +01:00: 
+2026-04-10 17:37:12 +01:00: 
+2026-04-10 17:37:12 +01:00:  20%|██        | 1/5 [00:00<00:01,  3.54it/s][A[A
+2026-04-10 17:37:12 +01:00: 17:37:12 [INFO] Forecast: DOWN 51% | Current $2238.18 → Predicted $2237.63 | 955ms
+2026-04-10 17:37:12 +01:00: 
+2026-04-10 17:37:12 +01:00:  60%|██████    | 3/5 [00:00<00:00,  4.24it/s][A
+2026-04-10 17:37:12 +01:00: 
+2026-04-10 17:37:12 +01:00: 
+2026-04-10 17:37:12 +01:00:  40%|████      | 2/5 [00:00<00:00,  4.61it/s][A[A
+2026-04-10 17:37:12 +01:00: 
+2026-04-10 17:37:12 +01:00:  80%|████████  | 4/5 [00:00<00:00,  4.95it/s][A
+2026-04-10 17:37:12 +01:00: 
+2026-04-10 17:37:12 +01:00: 
+2026-04-10 17:37:12 +01:00:  60%|██████    | 3/5 [00:00<00:00,  5.43it/s][A[A
+2026-04-10 17:37:12 +01:00: 
+2026-04-10 17:37:12 +01:00: 100%|██████████| 5/5 [00:00<00:00,  5.57it/s][A100%|██████████| 5/5 [00:00<00:00,  5.09it/s]
+2026-04-10 17:37:12 +01:00: 17:37:12 [INFO] Forecast: DOWN 50% | Current $72715.03 → Predicted $72711.12 | 1089ms
+2026-04-10 17:37:12 +01:00: 
+2026-04-10 17:37:12 +01:00: 
+2026-04-10 17:37:12 +01:00:  80%|████████  | 4/5 [00:00<00:00,  6.07it/s][A[A
+2026-04-10 17:37:12 +01:00: 100%|██████████| 5/5 [00:00<00:00,  6.09it/s]
+2026-04-10 17:37:12 +01:00: 17:37:12 [INFO] Forecast: UP 69% | Current $84.61 → Predicted $84.98 | 955ms
+2026-04-10 17:45:00 +01:00:   0%|          | 0/5 [00:00<?, ?it/s]
+2026-04-10 17:45:00 +01:00: 
+2026-04-10 17:45:00 +01:00:   0%|          | 0/5 [00:00<?, ?it/s][A
+2026-04-10 17:45:00 +01:00:   0%|          | 0/5 [00:00<?, ?it/s]
+2026-04-10 17:45:00 +01:00: 17:45:00 [ERROR] Kronos predict() failed: The size of tensor a (96) must match the size of tensor b (100) at non-singleton dimension 2
+2026-04-10 17:45:00 +01:00:  40%|████      | 2/5 [00:00<00:00, 10.86it/s]
+2026-04-10 17:45:00 +01:00:  80%|████████  | 4/5 [00:00<00:00, 11.42it/s]
+2026-04-10 17:45:00 +01:00: 100%|██████████| 5/5 [00:00<00:00, 11.33it/s]
+2026-04-10 17:45:00 +01:00: 
+2026-04-10 17:45:00 +01:00: 17:45:00 [INFO] Forecast: DOWN 67% | Current $2236.99 → Predicted $2228.03 | 514ms
+2026-04-10 17:46:45 +01:00:   0%|          | 0/5 [00:00<?, ?it/s]
+2026-04-10 17:46:45 +01:00:  40%|████      | 2/5 [00:00<00:00, 12.42it/s]
+2026-04-10 17:46:45 +01:00: 
+2026-04-10 17:46:45 +01:00:   0%|          | 0/5 [00:00<?, ?it/s][A
+2026-04-10 17:46:45 +01:00:  80%|████████  | 4/5 [00:00<00:00,  9.70it/s]
+2026-04-10 17:46:45 +01:00: 
+2026-04-10 17:46:45 +01:00:  20%|██        | 1/5 [00:00<00:00,  7.28it/s][A
+2026-04-10 17:46:45 +01:00: 100%|██████████| 5/5 [00:00<00:00,  9.14it/s]
+2026-04-10 17:46:45 +01:00:   0%|          | 0/5 [00:00<?, ?it/s]
+2026-04-10 17:46:45 +01:00: 
+2026-04-10 17:46:45 +01:00:  40%|████      | 2/5 [00:00<00:00,  6.37it/s][A
+2026-04-10 17:46:46 +01:00: 17:46:46 [INFO] Forecast: DOWN 63% | Current $2238.07 → Predicted $2231.60 | 651ms
+2026-04-10 17:46:46 +01:00:  20%|██        | 1/5 [00:00<00:00,  6.77it/s]
+2026-04-10 17:46:46 +01:00: 
+2026-04-10 17:46:46 +01:00:  60%|██████    | 3/5 [00:00<00:00,  6.60it/s][A
+2026-04-10 17:46:46 +01:00:  40%|████      | 2/5 [00:00<00:00,  7.02it/s]
+2026-04-10 17:46:46 +01:00: 
+2026-04-10 17:46:46 +01:00:  80%|████████  | 4/5 [00:00<00:00,  6.80it/s][A
+2026-04-10 17:46:46 +01:00:  60%|██████    | 3/5 [00:00<00:00,  6.92it/s]
+2026-04-10 17:46:46 +01:00: 
+2026-04-10 17:46:46 +01:00: 100%|██████████| 5/5 [00:00<00:00,  6.80it/s][A
+2026-04-10 17:46:46 +01:00: 100%|██████████| 5/5 [00:00<00:00,  6.75it/s]
+2026-04-10 17:46:46 +01:00: 17:46:46 [INFO] Forecast: DOWN 57% | Current $72722.89 → Predicted $72630.50 | 841ms
+2026-04-10 17:46:46 +01:00: 100%|██████████| 5/5 [00:00<00:00,  8.70it/s]
+2026-04-10 17:46:46 +01:00: 100%|██████████| 5/5 [00:00<00:00,  8.09it/s]
+2026-04-10 17:46:46 +01:00: 17:46:46 [INFO] Forecast: DOWN 56% | Current $84.55 → Predicted $84.43 | 732ms
+2026-04-10 17:53:27 +01:00:   0%|          | 0/5 [00:00<?, ?it/s]
+2026-04-10 17:53:27 +01:00:  20%|██        | 1/5 [00:00<00:00,  9.54it/s]
+2026-04-10 17:53:27 +01:00:  40%|████      | 2/5 [00:00<00:00,  9.72it/s]
+2026-04-10 17:53:27 +01:00: 
+2026-04-10 17:53:27 +01:00:   0%|          | 0/5 [00:00<?, ?it/s][A
+2026-04-10 17:53:27 +01:00:  60%|██████    | 3/5 [00:00<00:00,  7.91it/s]
+2026-04-10 17:53:27 +01:00: 
+2026-04-10 17:53:27 +01:00:  20%|██        | 1/5 [00:00<00:00,  6.18it/s][A
+2026-04-10 17:53:27 +01:00:  80%|████████  | 4/5 [00:00<00:00,  6.47it/s]
+2026-04-10 17:53:27 +01:00: 
+2026-04-10 17:53:27 +01:00: 
+2026-04-10 17:53:27 +01:00:   0%|          | 0/5 [00:00<?, ?it/s][A[A
+2026-04-10 17:53:27 +01:00: 
+2026-04-10 17:53:27 +01:00:  40%|████      | 2/5 [00:00<00:00,  4.85it/s][A
+2026-04-10 17:53:27 +01:00: 100%|██████████| 5/5 [00:00<00:00,  5.54it/s]
+2026-04-10 17:53:27 +01:00: 100%|██████████| 5/5 [00:00<00:00,  6.36it/s]
+2026-04-10 17:53:27 +01:00: 
+2026-04-10 17:53:27 +01:00: 
+2026-04-10 17:53:27 +01:00:  20%|██        | 1/5 [00:00<00:00,  4.22it/s][A[A
+2026-04-10 17:53:27 +01:00: 17:53:27 [INFO] Forecast: DOWN 60% | Current $2242.22 → Predicted $2236.95 | 891ms
+2026-04-10 17:53:27 +01:00: 
+2026-04-10 17:53:27 +01:00:  60%|██████    | 3/5 [00:00<00:00,  4.66it/s][A
+2026-04-10 17:53:28 +01:00: 
+2026-04-10 17:53:28 +01:00: 
+2026-04-10 17:53:28 +01:00:  40%|████      | 2/5 [00:00<00:00,  5.08it/s][A[A
+2026-04-10 17:53:28 +01:00: 
+2026-04-10 17:53:28 +01:00:  80%|████████  | 4/5 [00:00<00:00,  5.24it/s][A
+2026-04-10 17:53:28 +01:00: 
+2026-04-10 17:53:28 +01:00: 
+2026-04-10 17:53:28 +01:00:  60%|██████    | 3/5 [00:00<00:00,  5.63it/s][A[A
+2026-04-10 17:53:28 +01:00: 
+2026-04-10 17:53:28 +01:00: 100%|██████████| 5/5 [00:00<00:00,  5.59it/s][A100%|██████████| 5/5 [00:00<00:00,  5.34it/s]
+2026-04-10 17:53:28 +01:00: 17:53:28 [INFO] Forecast: DOWN 59% | Current $72916.98 → Predicted $72787.53 | 1035ms
+2026-04-10 17:53:28 +01:00: 
+2026-04-10 17:53:28 +01:00: 
+2026-04-10 17:53:28 +01:00:  80%|████████  | 4/5 [00:00<00:00,  6.07it/s][A[A
+2026-04-10 17:53:28 +01:00: 100%|██████████| 5/5 [00:00<00:00,  6.21it/s]
+2026-04-10 17:53:28 +01:00: 17:53:28 [INFO] Forecast: DOWN 64% | Current $84.80 → Predicted $84.53 | 933ms
+2026-04-10 17:58:57 +01:00:   0%|          | 0/5 [00:00<?, ?it/s]
+2026-04-10 17:58:57 +01:00:  40%|████      | 2/5 [00:00<00:00, 11.61it/s]
+2026-04-10 17:58:57 +01:00:  80%|████████  | 4/5 [00:00<00:00, 11.45it/s]
+2026-04-10 17:58:57 +01:00: 
+2026-04-10 17:58:57 +01:00:   0%|          | 0/5 [00:00<?, ?it/s][A
+2026-04-10 17:58:58 +01:00: 100%|██████████| 5/5 [00:00<00:00, 10.34it/s]
+2026-04-10 17:58:58 +01:00: 
+2026-04-10 17:58:58 +01:00:  20%|██        | 1/5 [00:00<00:00,  7.09it/s][A
+2026-04-10 17:58:58 +01:00: 17:58:58 [INFO] Forecast: DOWN 72% | Current $2245.85 → Predicted $2234.02 | 560ms
+2026-04-10 17:58:58 +01:00:   0%|          | 0/5 [00:00<?, ?it/s]
+2026-04-10 17:58:58 +01:00: 
+2026-04-10 17:58:58 +01:00:  40%|████      | 2/5 [00:00<00:00,  7.19it/s][A
+2026-04-10 17:58:58 +01:00:  20%|██        | 1/5 [00:00<00:00,  6.37it/s]
+2026-04-10 17:58:58 +01:00: 
+2026-04-10 17:58:58 +01:00:  60%|██████    | 3/5 [00:00<00:00,  6.65it/s][A
+2026-04-10 17:58:58 +01:00:  40%|████      | 2/5 [00:00<00:00,  6.54it/s]
+2026-04-10 17:58:58 +01:00: 
+2026-04-10 17:58:58 +01:00:  80%|████████  | 4/5 [00:00<00:00,  6.71it/s][A
+2026-04-10 17:58:58 +01:00:  60%|██████    | 3/5 [00:00<00:00,  6.77it/s]
+2026-04-10 17:58:58 +01:00: 
+2026-04-10 17:58:58 +01:00: 100%|██████████| 5/5 [00:00<00:00,  6.83it/s][A
+2026-04-10 17:58:58 +01:00: 100%|██████████| 5/5 [00:00<00:00,  6.83it/s]
+2026-04-10 17:58:58 +01:00: 17:58:58 [INFO] Forecast: DOWN 63% | Current $73027.15 → Predicted $72846.93 | 825ms
+2026-04-10 17:58:58 +01:00:  80%|████████  | 4/5 [00:00<00:00,  7.55it/s]
+2026-04-10 17:58:58 +01:00: 100%|██████████| 5/5 [00:00<00:00,  7.91it/s]
+2026-04-10 17:58:58 +01:00: 17:58:58 [INFO] Forecast: DOWN 55% | Current $84.88 → Predicted $84.79 | 729ms
+2026-04-10 18:00:00 +01:00:   0%|          | 0/5 [00:00<?, ?it/s]
+2026-04-10 18:00:00 +01:00: 
+2026-04-10 18:00:00 +01:00:   0%|          | 0/5 [00:00<?, ?it/s][A
+2026-04-10 18:00:00 +01:00:  20%|██        | 1/5 [00:00<00:00,  7.17it/s]
+2026-04-10 18:00:00 +01:00: 
+2026-04-10 18:00:00 +01:00:  20%|██        | 1/5 [00:00<00:00,  5.70it/s][A
+2026-04-10 18:00:00 +01:00:  40%|████      | 2/5 [00:00<00:00,  5.57it/s]
+2026-04-10 18:00:00 +01:00: 
+2026-04-10 18:00:00 +01:00:  40%|████      | 2/5 [00:00<00:00,  5.41it/s][A
+2026-04-10 18:00:00 +01:00:  60%|██████    | 3/5 [00:00<00:00,  5.38it/s]
+2026-04-10 18:00:00 +01:00: 
+2026-04-10 18:00:00 +01:00:  60%|██████    | 3/5 [00:00<00:00,  5.86it/s][A
+2026-04-10 18:00:00 +01:00:  80%|████████  | 4/5 [00:00<00:00,  5.76it/s]
+2026-04-10 18:00:01 +01:00: 
+2026-04-10 18:00:01 +01:00:  80%|████████  | 4/5 [00:00<00:00,  5.73it/s][A
+2026-04-10 18:00:01 +01:00: 100%|██████████| 5/5 [00:00<00:00,  5.21it/s]
+2026-04-10 18:00:01 +01:00: 100%|██████████| 5/5 [00:00<00:00,  5.44it/s]
+2026-04-10 18:00:01 +01:00: 18:00:01 [INFO] Forecast: DOWN 54% | Current $72992.33 → Predicted $72933.30 | 1006ms
+2026-04-10 18:00:01 +01:00: 
+2026-04-10 18:00:01 +01:00: 100%|██████████| 5/5 [00:00<00:00,  5.55it/s][A100%|██████████| 5/5 [00:00<00:00,  5.61it/s]
+2026-04-10 18:00:01 +01:00: 18:00:01 [INFO] Forecast: DOWN 61% | Current $84.84 → Predicted $84.62 | 983ms
+2026-04-10 18:03:26 +01:00:   0%|          | 0/5 [00:00<?, ?it/s]
+2026-04-10 18:03:26 +01:00:  20%|██        | 1/5 [00:00<00:00,  8.40it/s]
+2026-04-10 18:03:26 +01:00:  40%|████      | 2/5 [00:00<00:00,  7.78it/s]
+2026-04-10 18:03:26 +01:00: 
+2026-04-10 18:03:26 +01:00:   0%|          | 0/5 [00:00<?, ?it/s][A
+2026-04-10 18:03:27 +01:00:  60%|██████    | 3/5 [00:00<00:00,  6.68it/s]
+2026-04-10 18:03:27 +01:00: 
+2026-04-10 18:03:27 +01:00:  20%|██        | 1/5 [00:00<00:00,  4.43it/s][A
+2026-04-10 18:03:27 +01:00: 
+2026-04-10 18:03:27 +01:00: 
+2026-04-10 18:03:27 +01:00:   0%|          | 0/5 [00:00<?, ?it/s][A[A
+2026-04-10 18:03:27 +01:00:  80%|████████  | 4/5 [00:00<00:00,  4.86it/s]
+2026-04-10 18:03:27 +01:00: 
+2026-04-10 18:03:27 +01:00:  40%|████      | 2/5 [00:00<00:00,  3.79it/s][A
+2026-04-10 18:03:27 +01:00: 
+2026-04-10 18:03:27 +01:00: 
+2026-04-10 18:03:27 +01:00:  20%|██        | 1/5 [00:00<00:01,  3.26it/s][A[A
+2026-04-10 18:03:27 +01:00: 100%|██████████| 5/5 [00:01<00:00,  4.17it/s]
+2026-04-10 18:03:27 +01:00: 100%|██████████| 5/5 [00:01<00:00,  4.89it/s]
+2026-04-10 18:03:27 +01:00: 
+2026-04-10 18:03:27 +01:00:  60%|██████    | 3/5 [00:00<00:00,  3.68it/s][A
+2026-04-10 18:03:27 +01:00: 18:03:27 [INFO] Forecast: DOWN 51% | Current $2244.32 → Predicted $2243.56 | 1144ms
+2026-04-10 18:03:27 +01:00: 
+2026-04-10 18:03:27 +01:00: 
+2026-04-10 18:03:27 +01:00:  40%|████      | 2/5 [00:00<00:00,  3.55it/s][A[A
+2026-04-10 18:03:27 +01:00: 
+2026-04-10 18:03:27 +01:00:  80%|████████  | 4/5 [00:00<00:00,  4.18it/s][A
+2026-04-10 18:03:28 +01:00: 
+2026-04-10 18:03:28 +01:00: 
+2026-04-10 18:03:28 +01:00:  60%|██████    | 3/5 [00:00<00:00,  4.22it/s][A[A
+2026-04-10 18:03:28 +01:00: 
+2026-04-10 18:03:28 +01:00: 100%|██████████| 5/5 [00:01<00:00,  4.67it/s][A100%|██████████| 5/5 [00:01<00:00,  4.32it/s]
+2026-04-10 18:03:28 +01:00: 18:03:28 [INFO] Forecast: DOWN 70% | Current $72923.39 → Predicted $72659.77 | 1291ms
+2026-04-10 18:03:28 +01:00: 
+2026-04-10 18:03:28 +01:00: 
+2026-04-10 18:03:28 +01:00:  80%|████████  | 4/5 [00:00<00:00,  4.65it/s][A[A
+2026-04-10 18:03:28 +01:00: 
+2026-04-10 18:03:28 +01:00: 
+2026-04-10 18:03:28 +01:00: 100%|██████████| 5/5 [00:01<00:00,  5.60it/s][A[A100%|██████████| 5/5 [00:01<00:00,  4.76it/s]
+2026-04-10 18:03:28 +01:00: 18:03:28 [INFO] Forecast: DOWN 67% | Current $84.78 → Predicted $84.46 | 1186ms
+2026-04-10 18:08:56 +01:00:   0%|          | 0/5 [00:00<?, ?it/s]
+2026-04-10 18:08:56 +01:00:  40%|████      | 2/5 [00:00<00:00, 12.54it/s]
+2026-04-10 18:08:57 +01:00: 
+2026-04-10 18:08:57 +01:00:   0%|          | 0/5 [00:00<?, ?it/s][A
+2026-04-10 18:08:57 +01:00:  80%|████████  | 4/5 [00:00<00:00, 10.39it/s]
+2026-04-10 18:08:57 +01:00: 
+2026-04-10 18:08:57 +01:00:  20%|██        | 1/5 [00:00<00:00,  7.44it/s][A
+2026-04-10 18:08:57 +01:00: 100%|██████████| 5/5 [00:00<00:00,  9.28it/s]
+2026-04-10 18:08:57 +01:00:   0%|          | 0/5 [00:00<?, ?it/s]
+2026-04-10 18:08:57 +01:00: 
+2026-04-10 18:08:57 +01:00:  40%|████      | 2/5 [00:00<00:00,  6.12it/s][A
+2026-04-10 18:08:57 +01:00: 18:08:57 [INFO] Forecast: DOWN 76% | Current $2243.80 → Predicted $2230.38 | 636ms
+2026-04-10 18:08:57 +01:00:  20%|██        | 1/5 [00:00<00:00,  6.42it/s]
+2026-04-10 18:08:57 +01:00: 
+2026-04-10 18:08:57 +01:00:  60%|██████    | 3/5 [00:00<00:00,  6.39it/s][A
+2026-04-10 18:08:57 +01:00:  40%|████      | 2/5 [00:00<00:00,  5.90it/s]
+2026-04-10 18:08:57 +01:00: 
+2026-04-10 18:08:57 +01:00:  80%|████████  | 4/5 [00:00<00:00,  6.18it/s][A
+2026-04-10 18:08:57 +01:00:  60%|██████    | 3/5 [00:00<00:00,  6.46it/s]
+2026-04-10 18:08:57 +01:00: 
+2026-04-10 18:08:57 +01:00: 100%|██████████| 5/5 [00:00<00:00,  6.49it/s][A100%|██████████| 5/5 [00:00<00:00,  6.44it/s]
+2026-04-10 18:08:57 +01:00: 18:08:57 [INFO] Forecast: UP 52% | Current $72887.66 → Predicted $72911.82 | 863ms
+2026-04-10 18:08:57 +01:00:  80%|████████  | 4/5 [00:00<00:00,  7.16it/s]
+2026-04-10 18:08:58 +01:00: 100%|██████████| 5/5 [00:00<00:00,  7.43it/s]
+2026-04-10 18:08:58 +01:00: 18:08:58 [INFO] Forecast: DOWN 80% | Current $84.72 → Predicted $84.17 | 771ms
+2026-04-10 18:15:00 +01:00:   0%|          | 0/5 [00:00<?, ?it/s]
+2026-04-10 18:15:00 +01:00: 
+2026-04-10 18:15:00 +01:00:   0%|          | 0/5 [00:00<?, ?it/s][A
+2026-04-10 18:15:00 +01:00:  40%|████      | 2/5 [00:00<00:00,  8.94it/s]
+2026-04-10 18:15:00 +01:00: 
+2026-04-10 18:15:00 +01:00:  20%|██        | 1/5 [00:00<00:00,  7.30it/s][A
+2026-04-10 18:15:00 +01:00:  60%|██████    | 3/5 [00:00<00:00,  7.92it/s]
+2026-04-10 18:15:00 +01:00: 
+2026-04-10 18:15:00 +01:00:  40%|████      | 2/5 [00:00<00:00,  6.77it/s][A
+2026-04-10 18:15:00 +01:00:  80%|████████  | 4/5 [00:00<00:00,  7.29it/s]
+2026-04-10 18:15:00 +01:00: 
+2026-04-10 18:15:00 +01:00:  60%|██████    | 3/5 [00:00<00:00,  6.68it/s][A
+2026-04-10 18:15:00 +01:00: 100%|██████████| 5/5 [00:00<00:00,  7.18it/s]
+2026-04-10 18:15:00 +01:00: 100%|██████████| 5/5 [00:00<00:00,  7.47it/s]
+2026-04-10 18:15:00 +01:00: 18:15:00 [INFO] Forecast: UP 56% | Current $72865.04 → Predicted $72938.82 | 743ms
+2026-04-10 18:15:00 +01:00: 
+2026-04-10 18:15:00 +01:00:  80%|████████  | 4/5 [00:00<00:00,  7.12it/s][A
+2026-04-10 18:15:01 +01:00: 100%|██████████| 5/5 [00:00<00:00,  7.64it/s]
+2026-04-10 18:15:01 +01:00: 18:15:01 [INFO] Forecast: UP 57% | Current $84.72 → Predicted $84.85 | 732ms
+2026-04-10 18:15:26 +01:00:   0%|          | 0/5 [00:00<?, ?it/s]
+2026-04-10 18:15:26 +01:00:  40%|████      | 2/5 [00:00<00:00, 11.68it/s]
+2026-04-10 18:15:27 +01:00: 
+2026-04-10 18:15:27 +01:00:   0%|          | 0/5 [00:00<?, ?it/s][A
+2026-04-10 18:15:27 +01:00:  80%|████████  | 4/5 [00:00<00:00,  9.54it/s]
+2026-04-10 18:15:27 +01:00: 
+2026-04-10 18:15:27 +01:00:  20%|██        | 1/5 [00:00<00:00,  6.75it/s][A
+2026-04-10 18:15:27 +01:00: 
+2026-04-10 18:15:27 +01:00: 
+2026-04-10 18:15:27 +01:00:   0%|          | 0/5 [00:00<?, ?it/s][A[A
+2026-04-10 18:15:27 +01:00: 100%|██████████| 5/5 [00:00<00:00,  7.78it/s]
+2026-04-10 18:15:27 +01:00: 100%|██████████| 5/5 [00:00<00:00,  8.43it/s]
+2026-04-10 18:15:27 +01:00: 
+2026-04-10 18:15:27 +01:00: 18:15:27 [INFO] Forecast: DOWN 68% | Current $2241.89 → Predicted $2233.18 | 687ms
+2026-04-10 18:15:27 +01:00: 
+2026-04-10 18:15:27 +01:00: 
+2026-04-10 18:15:27 +01:00:  20%|██        | 1/5 [00:00<00:00,  5.77it/s][A[A
+2026-04-10 18:15:27 +01:00: 
+2026-04-10 18:15:27 +01:00:  60%|██████    | 3/5 [00:00<00:00,  6.20it/s][A
+2026-04-10 18:15:27 +01:00: 
+2026-04-10 18:15:27 +01:00: 
+2026-04-10 18:15:27 +01:00:  40%|████      | 2/5 [00:00<00:00,  6.36it/s][A[A
+2026-04-10 18:15:27 +01:00: 
+2026-04-10 18:15:27 +01:00:  80%|████████  | 4/5 [00:00<00:00,  6.45it/s][A
+2026-04-10 18:15:27 +01:00: 
+2026-04-10 18:15:27 +01:00: 
+2026-04-10 18:15:27 +01:00:  60%|██████    | 3/5 [00:00<00:00,  6.57it/s][A[A
+2026-04-10 18:15:27 +01:00: 
+2026-04-10 18:15:27 +01:00: 100%|██████████| 5/5 [00:00<00:00,  6.51it/s][A100%|██████████| 5/5 [00:00<00:00,  6.40it/s]
+2026-04-10 18:15:27 +01:00: 18:15:27 [INFO] Forecast: UP 50% | Current $72849.99 → Predicted $72852.48 | 874ms
+2026-04-10 18:15:27 +01:00: 
+2026-04-10 18:15:27 +01:00: 
+2026-04-10 18:15:27 +01:00:  80%|████████  | 4/5 [00:00<00:00,  7.04it/s][A[A
+2026-04-10 18:15:28 +01:00: 100%|██████████| 5/5 [00:00<00:00,  7.39it/s]
+2026-04-10 18:15:28 +01:00: 18:15:28 [INFO] Forecast: DOWN 81% | Current $84.72 → Predicted $84.19 | 765ms
+2026-04-10 18:24:57 +01:00:   0%|          | 0/5 [00:00<?, ?it/s]
+2026-04-10 18:24:57 +01:00:  40%|████      | 2/5 [00:00<00:00, 12.05it/s]
+2026-04-10 18:24:57 +01:00: 
+2026-04-10 18:24:57 +01:00:   0%|          | 0/5 [00:00<?, ?it/s][A
+2026-04-10 18:24:57 +01:00:  80%|████████  | 4/5 [00:00<00:00, 10.15it/s]
+2026-04-10 18:24:57 +01:00: 
+2026-04-10 18:24:57 +01:00:  20%|██        | 1/5 [00:00<00:00,  7.31it/s][A
+2026-04-10 18:24:57 +01:00: 100%|██████████| 5/5 [00:00<00:00,  8.99it/s]
+2026-04-10 18:24:57 +01:00:   0%|          | 0/5 [00:00<?, ?it/s]
+2026-04-10 18:24:57 +01:00: 
+2026-04-10 18:24:57 +01:00:  40%|████      | 2/5 [00:00<00:00,  6.44it/s][A
+2026-04-10 18:24:57 +01:00: 18:24:57 [INFO] Forecast: UP 55% | Current $2243.91 → Predicted $2246.33 | 646ms
+2026-04-10 18:24:58 +01:00:  20%|██        | 1/5 [00:00<00:00,  6.65it/s]
+2026-04-10 18:24:58 +01:00: 
+2026-04-10 18:24:58 +01:00:  60%|██████    | 3/5 [00:00<00:00,  6.73it/s][A
+2026-04-10 18:24:58 +01:00:  40%|████      | 2/5 [00:00<00:00,  7.12it/s]
+2026-04-10 18:24:58 +01:00: 
+2026-04-10 18:24:58 +01:00:  80%|████████  | 4/5 [00:00<00:00,  6.88it/s][A
+2026-04-10 18:24:58 +01:00:  60%|██████    | 3/5 [00:00<00:00,  7.24it/s]
+2026-04-10 18:24:58 +01:00: 
+2026-04-10 18:24:58 +01:00: 100%|██████████| 5/5 [00:00<00:00,  7.08it/s][A100%|██████████| 5/5 [00:00<00:00,  6.94it/s]
+2026-04-10 18:24:58 +01:00: 18:24:58 [INFO] Forecast: DOWN 71% | Current $72937.57 → Predicted $72669.62 | 815ms
+2026-04-10 18:24:58 +01:00:  80%|████████  | 4/5 [00:00<00:00,  7.96it/s]
+2026-04-10 18:24:58 +01:00: 100%|██████████| 5/5 [00:00<00:00,  8.33it/s]
+2026-04-10 18:24:58 +01:00: 18:24:58 [INFO] Forecast: UP 62% | Current $84.81 → Predicted $85.03 | 700ms
+2026-04-10 18:30:00 +01:00:   0%|          | 0/5 [00:00<?, ?it/s]
+2026-04-10 18:30:00 +01:00:  20%|██        | 1/5 [00:00<00:00,  8.02it/s]
+2026-04-10 18:30:00 +01:00: 
+2026-04-10 18:30:00 +01:00:   0%|          | 0/5 [00:00<?, ?it/s][A
+2026-04-10 18:30:00 +01:00:  40%|████      | 2/5 [00:00<00:00,  7.51it/s]
+2026-04-10 18:30:00 +01:00: 
+2026-04-10 18:30:00 +01:00:  20%|██        | 1/5 [00:00<00:00,  6.95it/s][A
+2026-04-10 18:30:00 +01:00:  60%|██████    | 3/5 [00:00<00:00,  7.14it/s]
+2026-04-10 18:30:00 +01:00: 
+2026-04-10 18:30:00 +01:00:  40%|████      | 2/5 [00:00<00:00,  6.22it/s][A
+2026-04-10 18:30:00 +01:00:  80%|████████  | 4/5 [00:00<00:00,  6.57it/s]
+2026-04-10 18:30:00 +01:00: 
+2026-04-10 18:30:00 +01:00:  60%|██████    | 3/5 [00:00<00:00,  6.13it/s][A
+2026-04-10 18:30:00 +01:00: 100%|██████████| 5/5 [00:00<00:00,  6.42it/s]
+2026-04-10 18:30:00 +01:00: 100%|██████████| 5/5 [00:00<00:00,  6.71it/s]
+2026-04-10 18:30:00 +01:00: 18:30:00 [INFO] Forecast: DOWN 63% | Current $72966.97 → Predicted $72812.45 | 822ms
+2026-04-10 18:30:01 +01:00: 
+2026-04-10 18:30:01 +01:00:  80%|████████  | 4/5 [00:00<00:00,  6.69it/s][A
+2026-04-10 18:30:01 +01:00: 
+2026-04-10 18:30:01 +01:00: 100%|██████████| 5/5 [00:00<00:00,  7.58it/s][A100%|██████████| 5/5 [00:00<00:00,  7.02it/s]
+2026-04-10 18:30:01 +01:00: 18:30:01 [INFO] Forecast: UP 51% | Current $84.69 → Predicted $84.71 | 792ms
+2026-04-10 18:34:27 +01:00:   0%|          | 0/5 [00:00<?, ?it/s]
+2026-04-10 18:34:27 +01:00:  40%|████      | 2/5 [00:00<00:00, 10.03it/s]
+2026-04-10 18:34:27 +01:00: 
+2026-04-10 18:34:27 +01:00:   0%|          | 0/5 [00:00<?, ?it/s][A
+2026-04-10 18:34:27 +01:00: 
+2026-04-10 18:34:27 +01:00:  20%|██        | 1/5 [00:00<00:00,  5.69it/s][A
+2026-04-10 18:34:27 +01:00:  80%|████████  | 4/5 [00:00<00:00,  7.01it/s]
+2026-04-10 18:34:27 +01:00: 
+2026-04-10 18:34:27 +01:00: 
+2026-04-10 18:34:27 +01:00:   0%|          | 0/5 [00:00<?, ?it/s][A[A
+2026-04-10 18:34:28 +01:00: 
+2026-04-10 18:34:28 +01:00:  40%|████      | 2/5 [00:00<00:00,  4.77it/s][A
+2026-04-10 18:34:28 +01:00: 100%|██████████| 5/5 [00:00<00:00,  5.85it/s]
+2026-04-10 18:34:28 +01:00: 100%|██████████| 5/5 [00:00<00:00,  6.38it/s]
+2026-04-10 18:34:28 +01:00: 
+2026-04-10 18:34:28 +01:00: 
+2026-04-10 18:34:28 +01:00:  20%|██        | 1/5 [00:00<00:01,  3.63it/s][A[A
+2026-04-10 18:34:28 +01:00: 18:34:28 [INFO] Forecast: UP 65% | Current $2241.86 → Predicted $2248.96 | 918ms
+2026-04-10 18:34:28 +01:00: 
+2026-04-10 18:34:28 +01:00:  60%|██████    | 3/5 [00:00<00:00,  4.31it/s][A
+2026-04-10 18:34:28 +01:00: 
+2026-04-10 18:34:28 +01:00: 
+2026-04-10 18:34:28 +01:00:  40%|████      | 2/5 [00:00<00:00,  4.56it/s][A[A
+2026-04-10 18:34:28 +01:00: 
+2026-04-10 18:34:28 +01:00:  80%|████████  | 4/5 [00:00<00:00,  4.92it/s][A
+2026-04-10 18:34:28 +01:00: 
+2026-04-10 18:34:28 +01:00: 
+2026-04-10 18:34:28 +01:00:  60%|██████    | 3/5 [00:00<00:00,  4.96it/s][A[A
+2026-04-10 18:34:28 +01:00: 
+2026-04-10 18:34:28 +01:00: 100%|██████████| 5/5 [00:01<00:00,  4.92it/s][A100%|██████████| 5/5 [00:01<00:00,  4.85it/s]
+2026-04-10 18:34:28 +01:00: 18:34:28 [INFO] Forecast: DOWN 50% | Current $72889.34 → Predicted $72884.23 | 1123ms
+2026-04-10 18:34:28 +01:00: 
+2026-04-10 18:34:28 +01:00: 
+2026-04-10 18:34:28 +01:00:  80%|████████  | 4/5 [00:00<00:00,  5.38it/s][A[A
+2026-04-10 18:34:28 +01:00: 
+2026-04-10 18:34:28 +01:00: 
+2026-04-10 18:34:28 +01:00: 100%|██████████| 5/5 [00:00<00:00,  6.39it/s][A[A100%|██████████| 5/5 [00:00<00:00,  5.54it/s]
+2026-04-10 18:34:28 +01:00: 18:34:28 [INFO] Forecast: DOWN 55% | Current $84.66 → Predicted $84.58 | 1025ms
+2026-04-10 18:38:57 +01:00:   0%|          | 0/5 [00:00<?, ?it/s]
+2026-04-10 18:38:57 +01:00:  40%|████      | 2/5 [00:00<00:00, 10.27it/s]
+2026-04-10 18:38:57 +01:00: 
+2026-04-10 18:38:57 +01:00:   0%|          | 0/5 [00:00<?, ?it/s][A
+2026-04-10 18:38:57 +01:00:  80%|████████  | 4/5 [00:00<00:00,  9.91it/s]
+2026-04-10 18:38:57 +01:00: 
+2026-04-10 18:38:57 +01:00:  20%|██        | 1/5 [00:00<00:00,  6.87it/s][A
+2026-04-10 18:38:57 +01:00: 100%|██████████| 5/5 [00:00<00:00,  8.73it/s]
+2026-04-10 18:38:57 +01:00: 100%|██████████| 5/5 [00:00<00:00,  9.11it/s]
+2026-04-10 18:38:58 +01:00: 18:38:58 [INFO] Forecast: DOWN 69% | Current $2241.89 → Predicted $2232.91 | 639ms
+2026-04-10 18:38:58 +01:00:   0%|          | 0/5 [00:00<?, ?it/s]
+2026-04-10 18:38:58 +01:00: 
+2026-04-10 18:38:58 +01:00:  40%|████      | 2/5 [00:00<00:00,  6.40it/s][A
+2026-04-10 18:38:58 +01:00:  20%|██        | 1/5 [00:00<00:00,  5.93it/s]
+2026-04-10 18:38:58 +01:00: 
+2026-04-10 18:38:58 +01:00:  60%|██████    | 3/5 [00:00<00:00,  6.15it/s][A
+2026-04-10 18:38:58 +01:00:  40%|████      | 2/5 [00:00<00:00,  6.03it/s]
+2026-04-10 18:38:58 +01:00: 
+2026-04-10 18:38:58 +01:00:  80%|████████  | 4/5 [00:00<00:00,  6.09it/s][A
+2026-04-10 18:38:58 +01:00:  60%|██████    | 3/5 [00:00<00:00,  6.11it/s]
+2026-04-10 18:38:58 +01:00: 
+2026-04-10 18:38:58 +01:00: 100%|██████████| 5/5 [00:00<00:00,  6.16it/s]
+2026-04-10 18:38:58 +01:00: 18:38:58 [INFO] Forecast: DOWN 64% | Current $72892.33 → Predicted $72724.62 | 902ms
+2026-04-10 18:38:58 +01:00:  80%|████████  | 4/5 [00:00<00:00,  6.76it/s]
+2026-04-10 18:38:58 +01:00: 100%|██████████| 5/5 [00:00<00:00,  7.11it/s]
+2026-04-10 18:38:58 +01:00: 18:38:58 [INFO] Forecast: DOWN 75% | Current $84.59 → Predicted $84.17 | 789ms
+2026-04-10 18:45:00 +01:00:   0%|          | 0/5 [00:00<?, ?it/s]
+2026-04-10 18:45:00 +01:00: 
+2026-04-10 18:45:00 +01:00:   0%|          | 0/5 [00:00<?, ?it/s][A
+2026-04-10 18:45:00 +01:00:  40%|████      | 2/5 [00:00<00:00,  8.09it/s]
+2026-04-10 18:45:00 +01:00: 
+2026-04-10 18:45:00 +01:00:  20%|██        | 1/5 [00:00<00:00,  5.46it/s][A
+2026-04-10 18:45:00 +01:00:  60%|██████    | 3/5 [00:00<00:00,  7.04it/s]
+2026-04-10 18:45:00 +01:00: 
+2026-04-10 18:45:00 +01:00:  40%|████      | 2/5 [00:00<00:00,  5.76it/s][A
+2026-04-10 18:45:00 +01:00:  80%|████████  | 4/5 [00:00<00:00,  6.68it/s]
+2026-04-10 18:45:00 +01:00: 
+2026-04-10 18:45:00 +01:00:  60%|██████    | 3/5 [00:00<00:00,  5.83it/s][A
+2026-04-10 18:45:00 +01:00: 100%|██████████| 5/5 [00:00<00:00,  6.39it/s]
+2026-04-10 18:45:00 +01:00: 100%|██████████| 5/5 [00:00<00:00,  6.70it/s]
+2026-04-10 18:45:00 +01:00: 18:45:00 [INFO] Forecast: UP 59% | Current $72918.00 → Predicted $73015.57 | 824ms
+2026-04-10 18:45:00 +01:00: 
+2026-04-10 18:45:00 +01:00:  80%|████████  | 4/5 [00:00<00:00,  6.41it/s][A
+2026-04-10 18:45:01 +01:00: 100%|██████████| 5/5 [00:00<00:00,  6.66it/s]
+2026-04-10 18:45:01 +01:00: 18:45:01 [INFO] Forecast: DOWN 52% | Current $84.62 → Predicted $84.59 | 851ms
