@@ -297,7 +297,10 @@ async function main() {
 
   // Startup entry
   const symbolList = scalper.symbols.map(s => s.replace('usdt','').toUpperCase()).join(', ');
-  logger.info(`Bot v6 started in ${IS_LIVE ? 'LIVE' : 'PAPER'} mode. Confirmation MR + Breakout on ${symbolList}. 3% compounding, $95 hard floor.`);
+  logger.info(`🔮 Scalper v7 started in ${IS_LIVE ? 'LIVE' : 'PAPER'} mode. Kronos Direct on ${symbolList}. 10% compounding, 24/7.`);
+
+  // ── Heartbeat: push dashboard update every 5s so UI stays live ──────────
+  setInterval(() => dashboard.pushUpdate(), 5000);
 
   // Forward candle evaluations to dashboard live ticker
   scalper.on('candle-eval', (evalData) => {
