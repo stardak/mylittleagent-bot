@@ -17427,3 +17427,319 @@ Review before resuming.
 2026-04-10 18:45:01 +01:00: 🔵 [SOL] SOL $84.62 | KRONOS | ADX:0.0 RSI:50 Vol:1.0x → HOLD (Kronos: DOWN 51.9% < 52% threshold)
 2026-04-10 18:45:11 +01:00: 📋 Found 40 markets (Politics:10, Macro:10, AI & Tech:10, Crypto:10)
 2026-04-10 18:45:42 +01:00: 📋 Found 40 markets (Politics:10, Macro:10, AI & Tech:10, Crypto:10)
+2026-04-10 18:46:12 +01:00: 📋 Found 40 markets (Politics:10, Macro:10, AI & Tech:10, Crypto:10)
+2026-04-10 18:46:43 +01:00: 📋 Found 40 markets (Politics:10, Macro:10, AI & Tech:10, Crypto:10)
+2026-04-10 18:46:54 +01:00: 
+2026-04-10 18:46:54 +01:00:   ╔══════════════════════════════════════════════════════════╗
+2026-04-10 18:46:54 +01:00:   ║            ⚡  POLYMARKET LATENCY ARB BOT  ⚡            ║
+2026-04-10 18:46:54 +01:00:   ╠══════════════════════════════════════════════════════════╣
+2026-04-10 18:46:54 +01:00:   ║   MODE: 📝 PAPER TRADING (no real money)                ║
+2026-04-10 18:46:54 +01:00:   ║   To go live, run: npm run start:live                    ║
+2026-04-10 18:46:54 +01:00:   ╚══════════════════════════════════════════════════════════╝
+2026-04-10 18:46:54 +01:00: 
+2026-04-10 18:46:54 +01:00: 
+2026-04-10 18:46:54 +01:00: 🔍 Running pre-flight checks...
+2026-04-10 18:46:54 +01:00: 
+2026-04-10 18:46:54 +01:00:    Polymarket API ... 2026-04-10 18:46:55 +01:00: ✅ Connected
+2026-04-10 18:46:55 +01:00:    Binance WebSocket ... 2026-04-10 18:46:56 +01:00: ✅ Connected
+2026-04-10 18:46:56 +01:00:    Telegram alerts ... 2026-04-10 18:46:57 +01:00: 
+🛑 Received SIGINT. Shutting down gracefully...
+2026-04-10 18:46:57 +01:00: 🔮 Scalper v7 (Kronos direct) shut down.
+2026-04-10 18:46:57 +01:00: 👋 Bot stopped. See you next time!
+2026-04-10 18:46:57 +01:00: ✅ Connected (bot: @Stardakthetraderbot)
+2026-04-10 18:46:57 +01:00:    Local database ... 2026-04-10 18:46:57 +01:00: ✅ Ready (trades.db)
+2026-04-10 18:46:57 +01:00: 
+2026-04-10 18:46:57 +01:00: ✅ All pre-flight checks passed!
+2026-04-10 18:46:57 +01:00: 
+2026-04-10 18:46:57 +01:00: 🌐 Dashboard running at http://localhost:3000
+2026-04-10 18:46:57 +01:00: 📢 ALERT: 🤖 <b>Trading bot started</b>
+
+Mode: 📝 Paper Trading
+Time: 4/10/2026, 6:46:57 PM
+2026-04-10 18:46:57 +01:00: 🚀 Bot is running! Dashboard: http://localhost:3000
+2026-04-10 18:46:57 +01:00:    Press Ctrl+C to stop.
+
+2026-04-10 18:46:57 +01:00: 📊 Scalper state restored: 0W/0L, P&L: $0.00, Balance: $100.00
+2026-04-10 18:46:57 +01:00: 🔵 Bot v6 started in PAPER mode. Confirmation MR + Breakout on ETH, BTC, SOL. 3% compounding, $95 hard floor.
+2026-04-10 18:46:57 +01:00: 📊 ETHUSDT pre-seeded: 100 × 15m candles — regime: KRONOS
+2026-04-10 18:46:58 +01:00: ✅ Binance WebSocket connected: ETHUSDT
+2026-04-10 18:46:58 +01:00: ✅ Binance WebSocket connected: BTCUSDT
+2026-04-10 18:46:58 +01:00: ✅ Binance WebSocket connected: SOLUSDT
+2026-04-10 18:46:58 +01:00: 📊 BTCUSDT pre-seeded: 100 × 15m candles — regime: KRONOS
+2026-04-10 18:46:58 +01:00: 
+🔴 ETH KRONOS SHORT | 83.0% | $2241.99 → target $2224.77 | stop $2257.73
+2026-04-10 18:46:58 +01:00: 🔵 [ETH] ETH $2241.99 | KRONOS | ADX:0.0 RSI:50 Vol:1.0x → SELL_SHORT (✅ All filters passed)
+2026-04-10 18:46:58 +01:00: 📝 PAPER BUY [KRONOS]: 0.004460 ETHUSDT @ $2241.99 ($10.01 incl $0.01 fee)
+2026-04-10 18:46:58 +01:00: 📢 ALERT: 📈 <b>Paper BUY [KRONOS]</b>
+
+ETHUSDT @ $2241.99
+Amount: $10.01 (fee: $0.01)
+2026-04-10 18:46:58 +01:00: 📉 [KRONOS SHORT] ETH @ $2241.99 | Stop: $2257.73 | Target: $2197.15
+2026-04-10 18:46:58 +01:00: 🟢 [ETH] 📉 ETH [KRONOS SHORT] entered at $2241.99. Size: $10.01. Trail: $undefined | TP: $2197.15 (KRONOS SHORT, RSI undefined, vol undefinedx)
+2026-04-10 18:46:58 +01:00: 📊 SOLUSDT pre-seeded: 100 × 15m candles — regime: KRONOS
+2026-04-10 18:46:58 +01:00: 🔮 Scalper v7 started: ETHUSDT, BTCUSDT, SOLUSDT @ 15m | KRONOS DIRECT MODE
+2026-04-10 18:46:58 +01:00:    Confidence: 52% | Bet: 10% | 24/7 | Max 3 pos | 5m cooldown
+2026-04-10 18:46:58 +01:00: 🔮 Kronos-small connected — DIRECT SIGNAL MODE (confidence ≥ 52%)
+2026-04-10 18:46:59 +01:00: 
+🔴 BTC KRONOS SHORT | 71.8% | $72926.81 → target $72653.05 | stop $73344.00
+2026-04-10 18:46:59 +01:00: 🔵 [BTC] BTC $72926.81 | KRONOS | ADX:0.0 RSI:50 Vol:1.0x → SELL_SHORT (✅ All filters passed)
+2026-04-10 18:46:59 +01:00: 🚨 HARD FLOOR: Portfolio $89.99 < $95. Trading paused.
+2026-04-10 18:46:59 +01:00: 📢 ALERT: 🚨 <b>HARD FLOOR HIT</b>
+
+Portfolio: $89.99
+Floor: $95
+
+⛔ Trading is PAUSED.
+Review before resuming.
+2026-04-10 18:46:59 +01:00: 
+🚨🚨🚨 HARD FLOOR HIT — $89.99 < $95 — TRADING PAUSED 🚨🚨🚨
+
+2026-04-10 18:46:59 +01:00: ⚪ [BTC] BTC SELL_SHORT blocked: max portfolio exposure reached. (Exposure limit)
+2026-04-10 18:46:59 +01:00: 
+🟢 SOL KRONOS LONG | 67.9% | $84.65 → target $84.93 | stop $84.07
+2026-04-10 18:46:59 +01:00: 🔵 [SOL] SOL $84.65 | KRONOS | ADX:0.0 RSI:50 Vol:1.0x → BUY (✅ All filters passed)
+2026-04-10 18:46:59 +01:00: 🚨 HARD FLOOR: Portfolio $89.99 < $95. Trading paused.
+2026-04-10 18:46:59 +01:00: 📢 ALERT: 🚨 <b>HARD FLOOR HIT</b>
+
+Portfolio: $89.99
+Floor: $95
+
+⛔ Trading is PAUSED.
+Review before resuming.
+2026-04-10 18:46:59 +01:00: 
+🚨🚨🚨 HARD FLOOR HIT — $89.99 < $95 — TRADING PAUSED 🚨🚨🚨
+
+2026-04-10 18:46:59 +01:00: ⚪ [SOL] SOL BUY blocked: max portfolio exposure reached. (Exposure limit)
+2026-04-10 18:46:59 +01:00: 📈 Connected: ETHUSDT @ 15m
+2026-04-10 18:46:59 +01:00: 📈 Connected: BTCUSDT @ 15m
+2026-04-10 18:46:59 +01:00: 📈 Connected: SOLUSDT @ 15m
+2026-04-10 18:47:00 +01:00: 📋 Found 40 markets (Politics:10, Macro:10, AI & Tech:10, Crypto:10)
+2026-04-10 18:47:31 +01:00: 📋 Found 40 markets (Politics:10, Macro:10, AI & Tech:10, Crypto:10)
+2026-04-10 18:48:02 +01:00: 📋 Found 40 markets (Politics:10, Macro:10, AI & Tech:10, Crypto:10)
+2026-04-10 18:48:32 +01:00: 📋 Found 40 markets (Politics:10, Macro:10, AI & Tech:10, Crypto:10)
+2026-04-10 18:49:03 +01:00: 📋 Found 40 markets (Politics:10, Macro:10, AI & Tech:10, Crypto:10)
+2026-04-10 18:49:34 +01:00: 📋 Found 40 markets (Politics:10, Macro:10, AI & Tech:10, Crypto:10)
+2026-04-10 18:50:04 +01:00: 📋 Found 40 markets (Politics:10, Macro:10, AI & Tech:10, Crypto:10)
+2026-04-10 18:50:35 +01:00: 📋 Found 40 markets (Politics:10, Macro:10, AI & Tech:10, Crypto:10)
+2026-04-10 18:51:06 +01:00: 📋 Found 40 markets (Politics:10, Macro:10, AI & Tech:10, Crypto:10)
+2026-04-10 18:51:36 +01:00: 📋 Found 40 markets (Politics:10, Macro:10, AI & Tech:10, Crypto:10)
+2026-04-10 18:51:54 +01:00: 
+2026-04-10 18:51:54 +01:00:   ╔══════════════════════════════════════════════════════════╗
+2026-04-10 18:51:54 +01:00:   ║            ⚡  POLYMARKET LATENCY ARB BOT  ⚡            ║
+2026-04-10 18:51:54 +01:00:   ╠══════════════════════════════════════════════════════════╣
+2026-04-10 18:51:54 +01:00:   ║   MODE: 📝 PAPER TRADING (no real money)                ║
+2026-04-10 18:51:54 +01:00:   ║   To go live, run: npm run start:live                    ║
+2026-04-10 18:51:54 +01:00:   ╚══════════════════════════════════════════════════════════╝
+2026-04-10 18:51:54 +01:00: 
+2026-04-10 18:51:54 +01:00: 
+2026-04-10 18:51:54 +01:00: 🔍 Running pre-flight checks...
+2026-04-10 18:51:54 +01:00: 
+2026-04-10 18:51:54 +01:00:    Polymarket API ... 2026-04-10 18:51:55 +01:00: ✅ Connected
+2026-04-10 18:51:55 +01:00:    Binance WebSocket ... 2026-04-10 18:51:56 +01:00: ✅ Connected
+2026-04-10 18:51:56 +01:00:    Telegram alerts ... 2026-04-10 18:51:56 +01:00: ✅ Connected (bot: @Stardakthetraderbot)
+2026-04-10 18:51:56 +01:00:    Local database ... 2026-04-10 18:51:56 +01:00: ✅ Ready (trades.db)
+2026-04-10 18:51:56 +01:00: 
+2026-04-10 18:51:56 +01:00: ✅ All pre-flight checks passed!
+2026-04-10 18:51:56 +01:00: 
+2026-04-10 18:51:56 +01:00: 🌐 Dashboard running at http://localhost:3000
+2026-04-10 18:51:56 +01:00: 📢 Startup alert skipped (cooldown — sent less than 10m ago)
+2026-04-10 18:51:56 +01:00: 🚀 Bot is running! Dashboard: http://localhost:3000
+2026-04-10 18:51:56 +01:00:    Press Ctrl+C to stop.
+
+2026-04-10 18:51:56 +01:00: 📊 Scalper state restored: 0W/0L, P&L: $0.00, Balance: $100.00
+2026-04-10 18:51:56 +01:00: 🔵 Bot v6 started in PAPER mode. Confirmation MR + Breakout on ETH, BTC, SOL. 3% compounding, $95 hard floor.
+2026-04-10 18:51:56 +01:00: 
+🛑 Received SIGINT. Shutting down gracefully...
+2026-04-10 18:51:56 +01:00: 🔮 Scalper v7 (Kronos direct) shut down.
+2026-04-10 18:51:57 +01:00: 📊 ETHUSDT pre-seeded: 100 × 15m candles — regime: KRONOS
+2026-04-10 18:51:57 +01:00: 📊 BTCUSDT pre-seeded: 100 × 15m candles — regime: KRONOS
+2026-04-10 18:51:57 +01:00: 📊 SOLUSDT pre-seeded: 100 × 15m candles — regime: KRONOS
+2026-04-10 18:51:57 +01:00: 🔮 Scalper v7 started: ETHUSDT, BTCUSDT, SOLUSDT @ 15m | KRONOS DIRECT MODE
+2026-04-10 18:51:57 +01:00:    Confidence: 52% | Bet: 10% | 24/7 | Max 3 pos | 5m cooldown
+2026-04-10 18:51:57 +01:00: 🔮 Kronos-small connected — DIRECT SIGNAL MODE (confidence ≥ 52%)
+2026-04-10 18:51:57 +01:00: ✅ Binance WebSocket connected: ETHUSDT
+2026-04-10 18:51:57 +01:00: ✅ Binance WebSocket connected: BTCUSDT
+2026-04-10 18:51:57 +01:00: ✅ Binance WebSocket connected: SOLUSDT
+2026-04-10 18:51:58 +01:00: 
+🔴 ETH KRONOS SHORT | 54.1% | $2246.66 → target $2244.86 | stop $2263.05
+2026-04-10 18:51:58 +01:00: 🔵 [ETH] ETH $2246.66 | KRONOS | ADX:0.0 RSI:50 Vol:1.0x → SELL_SHORT (✅ All filters passed)
+2026-04-10 18:51:58 +01:00: 📝 PAPER BUY [KRONOS]: 0.004451 ETHUSDT @ $2246.66 ($10.01 incl $0.01 fee)
+2026-04-10 18:51:58 +01:00: 📢 ALERT: 📈 <b>Paper BUY [KRONOS]</b>
+
+ETHUSDT @ $2246.66
+Amount: $10.01 (fee: $0.01)
+2026-04-10 18:51:58 +01:00: 📉 [KRONOS SHORT] ETH @ $2246.66 | Stop: $2263.05 | Target: $2201.73
+2026-04-10 18:51:58 +01:00: 🟢 [ETH] 📉 ETH [KRONOS SHORT] entered at $2246.66. Size: $10.01. Trail: $undefined | TP: $2201.73 (KRONOS SHORT, RSI undefined, vol undefinedx)
+2026-04-10 18:51:58 +01:00: 
+🔴 BTC KRONOS SHORT | 68.4% | $73095.05 → target $72881.21 | stop $73531.74
+2026-04-10 18:51:58 +01:00: 🔵 [BTC] BTC $73095.05 | KRONOS | ADX:0.0 RSI:50 Vol:1.0x → SELL_SHORT (✅ All filters passed)
+2026-04-10 18:51:58 +01:00: 🚨 HARD FLOOR: Portfolio $89.99 < $95. Trading paused.
+2026-04-10 18:51:58 +01:00: 📢 ALERT: 🚨 <b>HARD FLOOR HIT</b>
+
+Portfolio: $89.99
+Floor: $95
+
+⛔ Trading is PAUSED.
+Review before resuming.
+2026-04-10 18:51:58 +01:00: 
+🚨🚨🚨 HARD FLOOR HIT — $89.99 < $95 — TRADING PAUSED 🚨🚨🚨
+
+2026-04-10 18:51:58 +01:00: ⚪ [BTC] BTC SELL_SHORT blocked: max portfolio exposure reached. (Exposure limit)
+2026-04-10 18:51:58 +01:00: 
+🟢 SOL KRONOS LONG | 68.2% | $84.82 → target $85.19 | stop $84.21
+2026-04-10 18:51:58 +01:00: 🔵 [SOL] SOL $84.82 | KRONOS | ADX:0.0 RSI:50 Vol:1.0x → BUY (✅ All filters passed)
+2026-04-10 18:51:58 +01:00: 🚨 HARD FLOOR: Portfolio $89.99 < $95. Trading paused.
+2026-04-10 18:51:58 +01:00: 📢 ALERT: 🚨 <b>HARD FLOOR HIT</b>
+
+Portfolio: $89.99
+Floor: $95
+
+⛔ Trading is PAUSED.
+Review before resuming.
+2026-04-10 18:51:58 +01:00: 
+🚨🚨🚨 HARD FLOOR HIT — $89.99 < $95 — TRADING PAUSED 🚨🚨🚨
+
+2026-04-10 18:51:58 +01:00: ⚪ [SOL] SOL BUY blocked: max portfolio exposure reached. (Exposure limit)
+2026-04-10 18:51:58 +01:00: 📈 Connected: SOLUSDT @ 15m
+2026-04-10 18:51:58 +01:00: 📈 Connected: BTCUSDT @ 15m
+2026-04-10 18:51:58 +01:00: 📈 Connected: ETHUSDT @ 15m
+2026-04-10 18:52:03 +01:00: 📋 Found 40 markets (Politics:10, Macro:10, AI & Tech:10, Crypto:10)
+2026-04-10 18:52:33 +01:00: 📋 Found 40 markets (Politics:10, Macro:10, AI & Tech:10, Crypto:10)
+2026-04-10 18:53:04 +01:00: 📋 Found 40 markets (Politics:10, Macro:10, AI & Tech:10, Crypto:10)
+2026-04-10 18:53:35 +01:00: 📋 Found 40 markets (Politics:10, Macro:10, AI & Tech:10, Crypto:10)
+2026-04-10 18:54:05 +01:00: 📋 Found 40 markets (Politics:10, Macro:10, AI & Tech:10, Crypto:10)
+2026-04-10 18:54:36 +01:00: 📋 Found 40 markets (Politics:10, Macro:10, AI & Tech:10, Crypto:10)
+2026-04-10 18:55:07 +01:00: 📋 Found 40 markets (Politics:10, Macro:10, AI & Tech:10, Crypto:10)
+2026-04-10 18:55:37 +01:00: 📋 Found 40 markets (Politics:10, Macro:10, AI & Tech:10, Crypto:10)
+2026-04-10 18:56:08 +01:00: 📋 Found 40 markets (Politics:10, Macro:10, AI & Tech:10, Crypto:10)
+2026-04-10 18:56:39 +01:00: 📋 Found 40 markets (Politics:10, Macro:10, AI & Tech:10, Crypto:10)
+2026-04-10 18:57:10 +01:00: 📋 Found 40 markets (Politics:10, Macro:10, AI & Tech:10, Crypto:10)
+2026-04-10 18:57:41 +01:00: 📋 Found 40 markets (Politics:10, Macro:10, AI & Tech:10, Crypto:10)
+2026-04-10 18:58:12 +01:00: 📋 Found 40 markets (Politics:10, Macro:10, AI & Tech:10, Crypto:10)
+2026-04-10 18:58:42 +01:00: 📋 Found 40 markets (Politics:10, Macro:10, AI & Tech:10, Crypto:10)
+2026-04-10 18:58:54 +01:00: 
+2026-04-10 18:58:54 +01:00:   ╔══════════════════════════════════════════════════════════╗
+2026-04-10 18:58:54 +01:00:   ║            ⚡  POLYMARKET LATENCY ARB BOT  ⚡            ║
+2026-04-10 18:58:54 +01:00:   ╠══════════════════════════════════════════════════════════╣
+2026-04-10 18:58:54 +01:00:   ║   MODE: 📝 PAPER TRADING (no real money)                ║
+2026-04-10 18:58:54 +01:00:   ║   To go live, run: npm run start:live                    ║
+2026-04-10 18:58:54 +01:00:   ╚══════════════════════════════════════════════════════════╝
+2026-04-10 18:58:54 +01:00: 
+2026-04-10 18:58:54 +01:00: 
+2026-04-10 18:58:54 +01:00: 🔍 Running pre-flight checks...
+2026-04-10 18:58:54 +01:00: 
+2026-04-10 18:58:54 +01:00:    Polymarket API ... 2026-04-10 18:58:55 +01:00: ✅ Connected
+2026-04-10 18:58:55 +01:00:    Binance WebSocket ... 2026-04-10 18:58:57 +01:00: 
+🛑 Received SIGINT. Shutting down gracefully...
+2026-04-10 18:58:57 +01:00: 🔮 Scalper v7 (Kronos direct) shut down.
+2026-04-10 18:58:57 +01:00: 👋 Bot stopped. See you next time!
+2026-04-10 18:58:57 +01:00: ✅ Connected
+2026-04-10 18:58:57 +01:00:    Telegram alerts ... 2026-04-10 18:58:57 +01:00: ✅ Connected (bot: @Stardakthetraderbot)
+2026-04-10 18:58:57 +01:00:    Local database ... 2026-04-10 18:58:57 +01:00: ✅ Ready (trades.db)
+2026-04-10 18:58:57 +01:00: 
+2026-04-10 18:58:57 +01:00: ✅ All pre-flight checks passed!
+2026-04-10 18:58:57 +01:00: 
+2026-04-10 18:58:57 +01:00: 🌐 Dashboard running at http://localhost:3000
+2026-04-10 18:58:57 +01:00: 📢 ALERT: 🤖 <b>Trading bot started</b>
+
+Mode: 📝 Paper Trading
+Time: 4/10/2026, 6:58:57 PM
+2026-04-10 18:58:58 +01:00: 🚀 Bot is running! Dashboard: http://localhost:3000
+2026-04-10 18:58:58 +01:00:    Press Ctrl+C to stop.
+
+2026-04-10 18:58:58 +01:00: 📊 Scalper state restored: 0W/0L, P&L: $0.00, Balance: $100.00
+2026-04-10 18:58:58 +01:00: 🔵 Bot v6 started in PAPER mode. Confirmation MR + Breakout on ETH, BTC, SOL. 3% compounding, $95 hard floor.
+2026-04-10 18:58:58 +01:00: 📊 ETHUSDT pre-seeded: 100 × 15m candles — regime: KRONOS
+2026-04-10 18:58:58 +01:00: ✅ Binance WebSocket connected: SOLUSDT
+2026-04-10 18:58:58 +01:00: ✅ Binance WebSocket connected: ETHUSDT
+2026-04-10 18:58:58 +01:00: ✅ Binance WebSocket connected: BTCUSDT
+2026-04-10 18:58:58 +01:00: 📊 BTCUSDT pre-seeded: 100 × 15m candles — regime: KRONOS
+2026-04-10 18:58:59 +01:00: 📊 SOLUSDT pre-seeded: 100 × 15m candles — regime: KRONOS
+2026-04-10 18:58:59 +01:00: 🔮 Scalper v7 started: ETHUSDT, BTCUSDT, SOLUSDT @ 15m | KRONOS DIRECT MODE
+2026-04-10 18:58:59 +01:00:    Confidence: 52% | Bet: 10% | 24/7 | Max 3 pos | 5m cooldown
+2026-04-10 18:58:59 +01:00: 🔮 Kronos-small connected — DIRECT SIGNAL MODE (confidence ≥ 52%)
+2026-04-10 18:58:59 +01:00: 
+🔴 ETH KRONOS SHORT | 98.8% | $2247.62 → target $2226.27 | stop $2264.01
+2026-04-10 18:58:59 +01:00: 🔵 [ETH] ETH $2247.62 | KRONOS | ADX:0.0 RSI:50 Vol:1.0x → SELL_SHORT (✅ All filters passed)
+2026-04-10 18:58:59 +01:00: 📝 PAPER BUY [KRONOS]: 0.004449 ETHUSDT @ $2247.62 ($10.01 incl $0.01 fee)
+2026-04-10 18:58:59 +01:00: 📢 ALERT: 📈 <b>Paper BUY [KRONOS]</b>
+
+ETHUSDT @ $2247.62
+Amount: $10.01 (fee: $0.01)
+2026-04-10 18:58:59 +01:00: 📉 [KRONOS SHORT] ETH @ $2247.62 | Stop: $2264.01 | Target: $2202.67
+2026-04-10 18:58:59 +01:00: 🟢 [ETH] 📉 ETH [KRONOS SHORT] entered at $2247.62. Size: $10.01. Trail: $undefined | TP: $2202.67 (KRONOS SHORT, RSI undefined, vol undefinedx)
+2026-04-10 18:58:59 +01:00: 
+🔴 BTC KRONOS SHORT | 69.2% | $73079.87 → target $72854.96 | stop $73516.56
+2026-04-10 18:58:59 +01:00: 🔵 [BTC] BTC $73079.87 | KRONOS | ADX:0.0 RSI:50 Vol:1.0x → SELL_SHORT (✅ All filters passed)
+2026-04-10 18:58:59 +01:00: 🚨 HARD FLOOR: Portfolio $89.99 < $95. Trading paused.
+2026-04-10 18:58:59 +01:00: 📢 ALERT: 🚨 <b>HARD FLOOR HIT</b>
+
+Portfolio: $89.99
+Floor: $95
+
+⛔ Trading is PAUSED.
+Review before resuming.
+2026-04-10 18:58:59 +01:00: 
+🚨🚨🚨 HARD FLOOR HIT — $89.99 < $95 — TRADING PAUSED 🚨🚨🚨
+
+2026-04-10 18:58:59 +01:00: ⚪ [BTC] BTC SELL_SHORT blocked: max portfolio exposure reached. (Exposure limit)
+2026-04-10 18:58:59 +01:00: 📈 Connected: SOLUSDT @ 15m
+2026-04-10 18:58:59 +01:00: 📈 Connected: BTCUSDT @ 15m
+2026-04-10 18:58:59 +01:00: 📈 Connected: ETHUSDT @ 15m
+2026-04-10 18:58:59 +01:00: 
+🟢 SOL KRONOS LONG | 59.0% | $84.87 → target $85.02 | stop $84.26
+2026-04-10 18:58:59 +01:00: 🔵 [SOL] SOL $84.87 | KRONOS | ADX:0.0 RSI:50 Vol:1.0x → BUY (✅ All filters passed)
+2026-04-10 18:58:59 +01:00: 🚨 HARD FLOOR: Portfolio $89.99 < $95. Trading paused.
+2026-04-10 18:58:59 +01:00: 📢 ALERT: 🚨 <b>HARD FLOOR HIT</b>
+
+Portfolio: $89.99
+Floor: $95
+
+⛔ Trading is PAUSED.
+Review before resuming.
+2026-04-10 18:58:59 +01:00: 
+🚨🚨🚨 HARD FLOOR HIT — $89.99 < $95 — TRADING PAUSED 🚨🚨🚨
+
+2026-04-10 18:58:59 +01:00: ⚪ [SOL] SOL BUY blocked: max portfolio exposure reached. (Exposure limit)
+2026-04-10 18:59:02 +01:00: 📋 Found 40 markets (Politics:10, Macro:10, AI & Tech:10, Crypto:10)
+2026-04-10 18:59:32 +01:00: 📋 Found 40 markets (Politics:10, Macro:10, AI & Tech:10, Crypto:10)
+2026-04-10 19:00:00 +01:00: 
+🟢 BTC KRONOS LONG | 56.1% | $73121.66 → target $73189.45 | stop $72704.98
+2026-04-10 19:00:00 +01:00: 🔵 [BTC] BTC $73121.66 | KRONOS | ADX:0.0 RSI:50 Vol:1.0x → BUY (✅ All filters passed)
+2026-04-10 19:00:00 +01:00: 🚨 HARD FLOOR: Portfolio $89.99 < $95. Trading paused.
+2026-04-10 19:00:00 +01:00: 📢 ALERT: 🚨 <b>HARD FLOOR HIT</b>
+
+Portfolio: $89.99
+Floor: $95
+
+⛔ Trading is PAUSED.
+Review before resuming.
+2026-04-10 19:00:00 +01:00: 
+🚨🚨🚨 HARD FLOOR HIT — $89.99 < $95 — TRADING PAUSED 🚨🚨🚨
+
+2026-04-10 19:00:00 +01:00: ⚪ [BTC] BTC BUY blocked: max portfolio exposure reached. (Exposure limit)
+2026-04-10 19:00:01 +01:00: 
+🔴 SOL KRONOS SHORT | 61.6% | $84.87 → target $84.69 | stop $85.44
+2026-04-10 19:00:01 +01:00: 🔵 [SOL] SOL $84.87 | KRONOS | ADX:0.0 RSI:50 Vol:1.0x → SELL_SHORT (✅ All filters passed)
+2026-04-10 19:00:01 +01:00: 🚨 HARD FLOOR: Portfolio $89.99 < $95. Trading paused.
+2026-04-10 19:00:01 +01:00: 📢 ALERT: 🚨 <b>HARD FLOOR HIT</b>
+
+Portfolio: $89.99
+Floor: $95
+
+⛔ Trading is PAUSED.
+Review before resuming.
+2026-04-10 19:00:01 +01:00: 
+🚨🚨🚨 HARD FLOOR HIT — $89.99 < $95 — TRADING PAUSED 🚨🚨🚨
+
+2026-04-10 19:00:01 +01:00: ⚪ [SOL] SOL SELL_SHORT blocked: max portfolio exposure reached. (Exposure limit)
+2026-04-10 19:00:03 +01:00: 📋 Found 40 markets (Politics:10, Macro:10, AI & Tech:10, Crypto:10)
+2026-04-10 19:00:34 +01:00: 📋 Found 40 markets (Politics:10, Macro:10, AI & Tech:10, Crypto:10)
+2026-04-10 19:01:05 +01:00: 📋 Found 40 markets (Politics:10, Macro:10, AI & Tech:10, Crypto:10)
+2026-04-10 19:01:35 +01:00: 📋 Found 40 markets (Politics:10, Macro:10, AI & Tech:10, Crypto:10)
+2026-04-10 19:02:06 +01:00: 📋 Found 40 markets (Politics:10, Macro:10, AI & Tech:10, Crypto:10)
+2026-04-10 19:02:37 +01:00: 📋 Found 40 markets (Politics:10, Macro:10, AI & Tech:10, Crypto:10)
+2026-04-10 19:03:08 +01:00: 📋 Found 40 markets (Politics:10, Macro:10, AI & Tech:10, Crypto:10)
+2026-04-10 19:03:39 +01:00: 📋 Found 40 markets (Politics:10, Macro:10, AI & Tech:10, Crypto:10)
+2026-04-10 19:04:09 +01:00: 📋 Found 40 markets (Politics:10, Macro:10, AI & Tech:10, Crypto:10)
+2026-04-10 19:04:24 +01:00: 🛡️ ETH breakeven stop activated — stop moved to entry $2247.62

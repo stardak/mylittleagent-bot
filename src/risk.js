@@ -19,10 +19,11 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export class RiskManager {
-  constructor(startingPortfolio, alertService = null) {
+  constructor(startingPortfolio, alertService = null, options = {}) {
     this.startingPortfolio = startingPortfolio;
     this.currentPortfolio = startingPortfolio;
     this.alertService = alertService;
+    this.isLive = options.isLive || false; // paper mode disables hard limits
 
     // Risk limits
     this.DAILY_LOSS_LIMIT = 0.05;       // 5% daily loss limit (was 20%)
@@ -252,19 +253,23 @@ export class RiskManager {
     this.openPositions = this.openPositions.filter(p => p.id !== tradeId);
     this.currentPortfolio += pnl;
 
-    // Track consecutive losses
+    // Track consecutive losses (paper mode: log only, no halt)
     if (pnl < 0) {
       this.consecutiveLosses++;
       if (this.consecutiveLosses >= this.MAX_CONSECUTIVE_LOSSES) {
-        this.haltedUntil = new Date(Date.now() + this.CONSECUTIVE_LOSS_HALT_MS);
-        this._saveState('halted_until', this.haltedUntil.toISOString());
-        const msg = `⚠️ ${this.consecutiveLosses} consecutive losses — trading paused for 2 hours until ${this.haltedUntil.toLocaleTimeString()}.`;
-        this._logAlert('consecutive_loss_halt', msg);
-        if (this.alertService) await this.alertService.send(msg);
-        this.consecutiveLosses = 0; // Reset after halt
+        if (this.isLive) {
+          this.haltedUntil = new Date(Date.now() + this.CONSECUTIVE_LOSS_HALT_MS);
+          this._saveState('halted_until', this.haltedUntil.toISOString());
+          const msg = `⚠️ ${this.consecutiveLosses} consecutive losses — trading paused for 2 hours until ${this.haltedUntil.toLocaleTimeString()}.`;
+          this._logAlert('consecutive_loss_halt', msg);
+          if (this.alertService) await this.alertService.send(msg);
+        } else {
+          console.log(`📊 [PAPER] ${this.consecutiveLosses} consecutive losses — would halt in live mode, continuing for data collection.`);
+        }
+        this.consecutiveLosses = 0;
       }
     } else {
-      this.consecutiveLosses = 0; // Reset on win
+      this.consecutiveLosses = 0;
     }
 
     if (pnl < 0 && Math.abs(pnl) > this.startingPortfolio * this.SINGLE_LOSS_ALERT_PCT) {
@@ -306,6 +311,8 @@ export class RiskManager {
   }
 
   async _checkDailyLossLimit() {
+    if (!this.isLive) return; // paper mode: no daily halt, keep collecting data
+
     const today = new Date().toISOString().split('T')[0];
     const stats = this.db.prepare(
       "SELECT * FROM daily_stats WHERE date = ?"
@@ -330,14 +337,17 @@ export class RiskManager {
     const drawdownPct = (this.startingPortfolio - this.currentPortfolio) / this.startingPortfolio;
 
     if (drawdownPct >= this.TOTAL_DRAWDOWN_LIMIT) {
-      this.killed = true;
-      this._saveState('killed', 'true');
-
-      const msg = `🚨 KILL SWITCH TRIGGERED! Total drawdown is ${(drawdownPct * 100).toFixed(1)}% ` +
-                  `(portfolio: $${this.currentPortfolio.toFixed(2)}, started at: $${this.startingPortfolio.toFixed(2)}). ` +
-                  `The bot has been completely stopped.`;
-      this._logAlert('kill_switch', msg);
-      if (this.alertService) await this.alertService.send(msg);
+      if (this.isLive) {
+        this.killed = true;
+        this._saveState('killed', 'true');
+        const msg = `🚨 KILL SWITCH TRIGGERED! Total drawdown is ${(drawdownPct * 100).toFixed(1)}% ` +
+                    `(portfolio: $${this.currentPortfolio.toFixed(2)}, started at: $${this.startingPortfolio.toFixed(2)}). ` +
+                    `The bot has been completely stopped.`;
+        this._logAlert('kill_switch', msg);
+        if (this.alertService) await this.alertService.send(msg);
+      } else {
+        console.log(`📊 [PAPER] Drawdown ${(drawdownPct * 100).toFixed(1)}% — would trigger kill switch in live mode, continuing for data collection.`);
+      }
     }
   }
 

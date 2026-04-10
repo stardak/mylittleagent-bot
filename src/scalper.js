@@ -13,7 +13,7 @@
 //
 // Position sizing: 10% of current portfolio (compounding)
 // Max concurrent: 3 positions | Cooldown: 5 min | 24/7
-// Hard floor: pause at $95 (5% drawdown from $100 start)
+// Hard floor: $95 in LIVE mode only (disabled in paper for data collection)
 //
 // ══════════════════════════════════════════════════════════════════════════════
 
@@ -40,8 +40,9 @@ export class Scalper extends EventEmitter {
     // ── Aggressive mode params ──
     this.betPct = 0.10;              // 10% compounding position sizing
     this.maxConcurrentPositions = 3; // All 3 coins can trade simultaneously
-    this.hardFloor = 95;             // Pause if portfolio drops below $95
+    this.hardFloor = 95;             // Pause if portfolio drops below $95 (live only)
     this.cooldownMs = 5 * 60 * 1000; // 5 minutes between trades per coin
+    this.isLive = options.live || false;
 
     // ── Per-symbol state ──
     this.candles = {};
@@ -712,11 +713,13 @@ export class Scalper extends EventEmitter {
 
   // ── Position Sizing (v6: 3% compounding) ─────────────────────────────────
   getPositionSize(symbol, portfolioBalance) {
-    // Hard floor check: if below $95, return 0 to block trades
-    if (portfolioBalance < this.hardFloor) {
+    // Hard floor: live mode only — paper mode keeps trading for data collection
+    if (this.isLive && portfolioBalance < this.hardFloor) {
       console.log(`🚨 HARD FLOOR: Portfolio $${portfolioBalance.toFixed(2)} < $${this.hardFloor}. Trading paused.`);
       this.emit('hard-floor', { balance: portfolioBalance, floor: this.hardFloor });
       return 0;
+    } else if (!this.isLive && portfolioBalance < this.hardFloor) {
+      console.log(`📊 [PAPER] Portfolio $${portfolioBalance.toFixed(2)} below floor — continuing for data collection.`);
     }
 
     // Simple: 3% of current portfolio value

@@ -29,8 +29,9 @@ git push origin main
 echo "🖥️  Deploying to VPS (${VPS})..."
 ssh -o StrictHostKeyChecking=no "$VPS" "
   cd $APP_DIR
+  git checkout -- logs/ 2>/dev/null || true
+  git clean -fd kronos-service/__pycache__ 2>/dev/null || true
   git pull origin main
-  npm install --omit=dev --silent 2>/dev/null || true
   pm2 restart mylittleagent
   pm2 restart kronos-service 2>/dev/null || true
   echo '✅ VPS restarted'

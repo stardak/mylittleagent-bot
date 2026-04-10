@@ -203,7 +203,7 @@ async function main() {
     process.env.TELEGRAM_CHAT_ID
   );
 
-  const risk = new RiskManager(startingPortfolio, alerts);
+  const risk = new RiskManager(startingPortfolio, alerts, { isLive: IS_LIVE });
 
   // ── Startup safety reset: clear any stale kill switch / halt state ──────
   // The kill switch should only be active if actual drawdown exceeds 40%.
