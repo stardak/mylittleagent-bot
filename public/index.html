@@ -351,7 +351,7 @@
             <div class="prose prose-sm prose-invert max-w-none text-gray-400 leading-relaxed space-y-4">
               <p>This started as a question: <em class="text-profit not-italic">can I build a trading bot that actually makes money?</em> Not a tutorial project, not a toy — a real system that watches real markets and makes real decisions.</p>
 
-              <p>What I ended up building — accidentally — is a <strong class="text-white font-semibold">systematic algorithmic trading system</strong>. No emotional decisions, no gut feelings. Every entry, exit, and position size is rule-based and backtestable. The overall style is closest to what the industry calls <strong class="text-white font-semibold">quantitative trading at the retail level</strong>.</p>
+              <p>What I ended up building — accidentally — is a <strong class="text-white font-semibold">systematic algorithmic trading system with an AI layer</strong>. No emotional decisions, no gut feelings. Every entry, exit, and position size is rule-based and backtestable. The overall style is closest to what the industry calls <strong class="text-white font-semibold">quantitative trading at the retail level</strong>.</p>
 
               <h3 class="text-base font-bold text-white mt-8 mb-3">The Journey</h3>
               <p>I didn't start here. I started with "can we just guess up or down every five minutes?" — a simple momentum voter on 5-minute candles. Three signals vote, and if two agree, bet. It sounded clean. It was also completely useless: <strong class="text-white font-semibold">10% win rate</strong>, negative EV, a max loss streak of 51. Crypto on short timeframes is noise, and fees eat everything.</p>
@@ -360,7 +360,7 @@
 
               <p>The breakthrough came from a simple rule: <em class="text-profit not-italic">don't enter on the touch — wait for the next candle to close back inside the band</em>. One candle of proof that the bounce is real. That single filter <strong class="text-white font-semibold">tripled the win rate from 15% to 57%</strong>. The technique has a name in professional trading: <strong class="text-white font-semibold">mean reversion with entry confirmation</strong>. It's used in serious institutional strategies, not just retail bots.</p>
 
-              <h3 class="text-base font-bold text-white mt-8 mb-3">How It Trades Now (v6)</h3>
+              <h3 class="text-base font-bold text-white mt-8 mb-3">How It Trades Now (v6 + Kronos)</h3>
               <p>The bot monitors <strong class="text-white font-semibold">BTC, ETH, and SOL</strong> on 15-minute candles during London and New York sessions. It detects the market regime using ADX and switches between two strategies:</p>
               <ul class="list-disc pl-5 space-y-1.5 text-gray-400">
                 <li><strong class="text-white font-semibold">Confirmation Candle MR</strong> (ranging markets, ADX < 25) — waits for price to close outside the Bollinger Band with extreme RSI, then enters only when the next candle closes back inside. The "bounce-back" is the confirmation.</li>
@@ -378,6 +378,11 @@
                 <li><strong class="text-white font-semibold">1× ATR stops</strong> — too tight, caused 87% of trades to stop out before reversing. Loosened to 1.5×.</li>
                 <li><strong class="text-white font-semibold">BB touch entry (no confirmation)</strong> — 15% win rate. Catching falling knives.</li>
               </ul>
+
+              <h3 class="text-base font-bold text-white mt-8 mb-3">The AI Layer: Kronos</h3>
+              <p>Before executing any trade, the system now runs it past <strong class="text-white font-semibold">Kronos</strong> — a financial foundation model accepted at <strong class="text-white font-semibold">AAAI 2026</strong>, pre-trained on K-line data from over 45 global exchanges. Unlike general-purpose time-series forecasters, Kronos understands the "language" of financial markets natively: it processes full <strong class="text-white font-semibold">OHLCV candlestick sequences</strong> using a decoder-only Transformer architecture.</p>
+              <p>The integration works as a <strong class="text-white font-semibold">directional confirmation gate</strong>: Kronos forecasts the next 5 candles and returns a direction and confidence score. If it disagrees with the technical signal at ≥60% confidence — for example, the setup says BUY but Kronos forecasts a move down — the trade is skipped. Critically, it's <strong class="text-white font-semibold">fail-open</strong>: if the model is offline, the bot continues trading on technical signals alone.</p>
+              <p>This is the difference between a rules-based system and a <strong class="text-white font-semibold">rules-based system with forward-looking AI validation</strong>. The technicals tell you what <em>already happened</em>. Kronos tells you what the market structure <em>suggests will happen next</em>.</p>
               <p>Every decision above came from an 18-combination parameter sweep across 8,640 candles — not intuition.</p>
 
               <h3 class="text-base font-bold text-white mt-8 mb-3">Safety Nets</h3>
@@ -387,6 +392,7 @@
                 <li><strong class="text-white font-semibold">Max 2 positions</strong> — BTC, ETH, and SOL are correlated. No triple exposure.</li>
                 <li><strong class="text-white font-semibold">5% daily loss limit</strong> — stops trading until tomorrow</li>
                 <li><strong class="text-white font-semibold">40% kill switch</strong> — permanent shutdown</li>
+                <li><strong class="text-white font-semibold">Kronos fail-open</strong> — if the AI service is offline, the bot keeps trading on pure technicals. The AI is an enhancement, not a dependency.</li>
               </ul>
 
               <p>Currently running in <strong class="text-white font-semibold">paper trading mode</strong> — simulating trades while I validate the strategy in live market conditions. The goal isn't to get rich quick. It's to find a small, consistent edge and let compounding do the rest.</p>
@@ -702,7 +708,7 @@
       }
 
       // Strategy badge
-      html += `<div class="ticker-item"><span class="ticker-label trending">v6</span><span class="ticker-val">Confirmation MR + Breakout</span></div>`;
+      html += `<div class="ticker-item"><span class="ticker-label trending">v6 + Kronos</span><span class="ticker-val">Confirmation MR + Breakout + AI Filter</span></div>`;
 
       // Session info
       const now = new Date();

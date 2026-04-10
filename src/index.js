@@ -205,6 +205,20 @@ async function main() {
 
   const risk = new RiskManager(startingPortfolio, alerts);
 
+  // ── Startup safety reset: clear any stale kill switch / halt state ──────
+  // The kill switch should only be active if actual drawdown exceeds 40%.
+  // With $100 portfolio and 0 trades, any persisted 'killed' flag is stale.
+  const startupDrawdown = (risk.startingPortfolio - risk.currentPortfolio) / risk.startingPortfolio;
+  if (risk.killed && startupDrawdown < risk.TOTAL_DRAWDOWN_LIMIT) {
+    console.log(`⚠️  Kill switch was set but drawdown is only ${(startupDrawdown * 100).toFixed(1)}% — resetting.`);
+    risk.resetKillSwitch();
+  }
+  if (risk.haltedUntil && risk.haltedUntil <= new Date()) {
+    console.log('⚠️  Halt period has expired — clearing.');
+    risk.haltedUntil = null;
+    risk._saveState('halted_until', '');
+  }
+
   const scanner = new PolymarketScanner(process.env.POLYMARKET_API_KEY, alerts);
 
   const executor = new TradeExecutor(risk, alerts, {
@@ -303,6 +317,24 @@ async function main() {
       `${coin} signal near at $${price.toFixed(2)} but blocked.`,
       reason,
       reason.includes('RSI') ? 'rsi' : reason.includes('Vol') ? 'regime' : reason.includes('BB') ? 'ema' : reason.includes('Hour') ? 'regime' : reason.includes('Cooldown') ? 'cooldown' : null
+    );
+  });
+
+  // Log filter audit on every candle close — shows exactly which filter blocked
+  scalper.on('filter-audit', ({ coin, price, regime, signal, adx, rsi, volumeRatio, passed, failed, auditLine, failedStr }) => {
+    const tag = failed.length === 0 ? null
+      : failed.some(f => f.includes('Session')) ? 'regime'
+      : failed.some(f => f.includes('Regime') || f.includes('ADX')) ? 'regime'
+      : failed.some(f => f.includes('RSI')) ? 'rsi'
+      : failed.some(f => f.includes('Vol')) ? 'regime'
+      : failed.some(f => f.includes('BB') || f.includes('Donchian')) ? 'ema'
+      : failed.some(f => f.includes('Cooldown')) ? 'cooldown'
+      : failed.some(f => f.includes('Correlation')) ? 'correlation'
+      : null;
+    logger.log('info', coin,
+      `${coin} $${price.toFixed(2)} | ${regime} | ADX:${adx.toFixed(1)} RSI:${rsi.toFixed(0)} Vol:${volumeRatio.toFixed(1)}x → ${signal}`,
+      failed.length > 0 ? failedStr : '✅ All filters passed',
+      tag
     );
   });
 

@@ -20,6 +20,10 @@
 import WebSocket from 'ws';
 import { EventEmitter } from 'events';
 
+// ── Kronos config (read from env, with safe defaults) ────────────────────────
+const KRONOS_URL  = process.env.KRONOS_URL  || 'http://localhost:5001';
+const KRONOS_CONF = parseFloat(process.env.KRONOS_MIN_CONFIDENCE || '0.60');
+
 export class Scalper extends EventEmitter {
   constructor(options = {}) {
     super();
@@ -103,6 +107,59 @@ export class Scalper extends EventEmitter {
     }
     console.log(`📈 Scalper v6 started: ${this.symbols.join(', ').toUpperCase()} @ ${this.interval}`);
     console.log(`   Confirmation MR (ADX<${this.adxRangingThreshold}) + Breakout (ADX>${this.adxTrendingThreshold}) | 3% compounding | Floor: $${this.hardFloor}`);
+
+    // Check Kronos availability at startup (non-blocking)
+    this._checkKronosHealth();
+  }
+
+  async _checkKronosHealth() {
+    try {
+      const res = await fetch(`${KRONOS_URL}/health`, { signal: AbortSignal.timeout(3000) });
+      const data = await res.json();
+      if (data.ready) {
+        console.log(`🔮 Kronos-${data.model?.split('-').pop() || 'small'} connected — directional filter ACTIVE (min confidence: ${(KRONOS_CONF * 100).toFixed(0)}%)`);
+      } else {
+        console.log(`⏳ Kronos service is loading — filter will activate once model is ready.`);
+      }
+    } catch {
+      console.log(`⚠️  Kronos service not reachable at ${KRONOS_URL} — running on technical signals only (fail-open).`);
+    }
+  }
+
+  // ── Kronos Directional Forecast ───────────────────────────────────────────
+  // Returns { direction: 'UP'|'DOWN', confidence: 0.82 } or null (fail-open).
+  // Packages the last 96 OHLCV candles (24h of 15m data) as input.
+  async _getKronosForecast(symbol) {
+    const candles = this.candles[symbol];
+    if (!candles || candles.length < 30) return null;
+
+    try {
+      const payload = {
+        candles: candles.slice(-96).map(c => ({
+          open:     c.open  ?? c.close,   // pre-seeded candles may lack open/high/low
+          high:     c.high  ?? c.close,
+          low:      c.low   ?? c.close,
+          close:    c.close,
+          volume:   c.volume ?? 0,
+          openTime: c.openTime ?? null,
+        })),
+        horizon: 5,
+        interval_minutes: 15,
+      };
+
+      const res = await fetch(`${KRONOS_URL}/forecast`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(8000),   // 8s max — must not block a candle eval
+      });
+
+      if (!res.ok) return null;
+      const data = await res.json();
+      return { direction: data.direction, confidence: data.confidence, model: data.model };
+    } catch {
+      return null;   // fail-open — never crash the scalper
+    }
   }
 
   // ── Pre-seed from Binance REST ─────────────────────────────────────────
@@ -137,7 +194,7 @@ export class Scalper extends EventEmitter {
       console.log(`📈 Connected: ${symbol.toUpperCase()} @ ${this.interval}`);
     });
 
-    ws.on('message', (data) => {
+    ws.on('message', async (data) => {
       try {
         const msg = JSON.parse(data);
         const kline = msg.k;
@@ -162,7 +219,7 @@ export class Scalper extends EventEmitter {
           if (this.candles[symbol].length > 120) {
             this.candles[symbol] = this.candles[symbol].slice(-120);
           }
-          this._evaluate(symbol);
+          await this._evaluate(symbol);
         }
       } catch (err) { /* ignore parse errors */ }
     });
@@ -396,7 +453,7 @@ export class Scalper extends EventEmitter {
   // MAIN EVALUATION — runs every closed candle
   // ══════════════════════════════════════════════════════════════════════════
 
-  _evaluate(symbol) {
+  async _evaluate(symbol) {
     const candles = this.candles[symbol];
     const closes = candles.map(c => c.close);
     const candleCount = closes.length;
@@ -504,12 +561,74 @@ export class Scalper extends EventEmitter {
 
     // ── Route to correct strategy ──
     if (regime === 'RANGING') {
-      this._evaluateMeanReversion(symbol, price, bb, rsi, volumeRatio, atr, inTradingWindow, cooldownOk, correlationOk, curBelowBB, curAboveBB);
+      await this._evaluateMeanReversion(symbol, price, bb, rsi, volumeRatio, atr, inTradingWindow, cooldownOk, correlationOk, curBelowBB, curAboveBB);
     } else if (regime === 'TRENDING') {
-      this._evaluateBreakout(symbol, price, donchian, adxData, volumeRatio, atr, inTradingWindow, cooldownOk, sma50, correlationOk);
+      await this._evaluateBreakout(symbol, price, donchian, adxData, volumeRatio, atr, inTradingWindow, cooldownOk, sma50, correlationOk);
     } else {
       this.signals[symbol].signal = 'HOLD';
       this.signals[symbol].lastSkipReason = `Ambiguous regime (ADX ${adxData.adx.toFixed(1)} between ${this.adxRangingThreshold}-${this.adxTrendingThreshold})`;
+    }
+
+    // ── DIAGNOSTIC: log every filter's pass/fail on each candle close ──
+    // This runs during AND outside session hours so you can always see why.
+    {
+      const coin = symbol.replace('usdt', '').toUpperCase();
+      const prev = this.prevCandleState[symbol] || { belowBB: false, aboveBB: false, rsi: 50 };
+      const curInsideBB = !curBelowBB && !curAboveBB;
+      const volumeOk_MR = volumeRatio >= this.mrVolumeMultiplier;
+      const volumeOk_BO = volumeRatio >= this.boVolumeMultiplier;
+
+      const filters = {
+        // General filters
+        'Session (07-21 UTC)': inTradingWindow,
+        'Cooldown (15m)': cooldownOk,
+        'Correlation (<2 pos)': correlationOk,
+        // Regime
+        [`Regime: ${regime}`]: regime === 'RANGING' || regime === 'TRENDING',
+        [`ADX: ${adxData.adx.toFixed(1)}`]: true, // always show value
+      };
+
+      if (regime === 'RANGING' || regime === 'AMBIGUOUS') {
+        // MR filters
+        filters[`MR Prev below BB`] = prev.belowBB;
+        filters[`MR Prev above BB`] = prev.aboveBB;
+        filters[`MR Cur inside BB`] = curInsideBB;
+        filters[`MR Prev RSI: ${prev.rsi.toFixed(1)}`] = prev.rsi < this.mrRsiEntry || prev.rsi > this.mrRsiShortEntry;
+        filters[`MR Vol: ${volumeRatio.toFixed(1)}x ≥ ${this.mrVolumeMultiplier}x`] = volumeOk_MR;
+        filters[`MR LONG confirm`] = prev.belowBB && curInsideBB && prev.rsi < this.mrRsiEntry && volumeOk_MR;
+        filters[`MR SHORT confirm`] = prev.aboveBB && curInsideBB && prev.rsi > this.mrRsiShortEntry && volumeOk_MR;
+      }
+
+      if (regime === 'TRENDING' || regime === 'AMBIGUOUS') {
+        // Breakout filters
+        filters[`BO Price > Donchian high (${donchian.high.toFixed(2)})`] = price > donchian.high;
+        filters[`BO Price < Donchian low (${donchian.low.toFixed(2)})`] = price < donchian.low;
+        filters[`BO +DI (${adxData.plusDI.toFixed(1)}) > -DI (${adxData.minusDI.toFixed(1)})`] = adxData.plusDI > adxData.minusDI;
+        filters[`BO Vol: ${volumeRatio.toFixed(1)}x ≥ ${this.boVolumeMultiplier}x`] = volumeOk_BO;
+        if (sma50) filters[`BO Price vs SMA50 ($${sma50.toFixed(2)})`] = price > sma50 || price < sma50;
+      }
+
+      // Build pass/fail summary
+      const passed = [];
+      const failed = [];
+      for (const [label, ok] of Object.entries(filters)) {
+        (ok ? passed : failed).push(label);
+      }
+
+      const finalSignal = this.signals[symbol].signal;
+      const auditLine = `${coin} candle close | $${price.toFixed(2)} | Signal: ${finalSignal} | ✅ ${passed.length} passed, ❌ ${failed.length} failed`;
+      const failedStr = failed.length > 0 ? `Blocked by: ${failed.join(' · ')}` : 'All filters passed';
+
+      // Console log (always)
+      console.log(`🔎 ${auditLine}`);
+      if (failed.length > 0) console.log(`   ❌ ${failedStr}`);
+
+      // Emit for dashboard activity log
+      this.emit('filter-audit', {
+        symbol, coin, price, regime, signal: finalSignal,
+        adx: adxData.adx, rsi, volumeRatio,
+        passed, failed, auditLine, failedStr,
+      });
     }
 
     // ── Update prev candle state for next bar's confirmation check ──
@@ -520,7 +639,7 @@ export class Scalper extends EventEmitter {
   // MEAN REVERSION STRATEGY (ranging markets) — LONG + SHORT
   // ══════════════════════════════════════════════════════════════════════════
 
-  _evaluateMeanReversion(symbol, price, bb, rsi, volumeRatio, atr, inTradingWindow, cooldownOk, correlationOk, curBelowBB, curAboveBB) {
+  async _evaluateMeanReversion(symbol, price, bb, rsi, volumeRatio, atr, inTradingWindow, cooldownOk, correlationOk, curBelowBB, curAboveBB) {
     const checks = [];
     const volumeOk = volumeRatio >= this.mrVolumeMultiplier;
     const prev = this.prevCandleState[symbol] || { belowBB: false, aboveBB: false, rsi: 50 };
@@ -537,28 +656,58 @@ export class Scalper extends EventEmitter {
 
     // Try LONG
     if (longConfirm && inTradingWindow && cooldownOk && correlationOk) {
+      const coin = symbol.replace('usdt', '').toUpperCase();
+
+      // ── Kronos directional filter ────────────────────────────────────────
+      const forecast = await this._getKronosForecast(symbol);
+      if (forecast && forecast.confidence >= KRONOS_CONF && forecast.direction !== 'UP') {
+        const reason = `Kronos ${forecast.model}: ${(forecast.confidence * 100).toFixed(0)}% DOWN — MR LONG skipped`;
+        this.signals[symbol].signal = 'HOLD';
+        this.signals[symbol].lastSkipReason = reason;
+        console.log(`🔮 ${coin} ${reason}`);
+        this.emit('skip', { symbol, reason, price, rsi, volumeRatio });
+        return;
+      }
+      const kronosNote = forecast ? ` | Kronos: ${forecast.direction} ${(forecast.confidence * 100).toFixed(0)}%` : ' | Kronos: offline';
+      // ────────────────────────────────────────────────────────────────────
+
       this.signals[symbol].signal = 'BUY';
       this.signals[symbol].lastSkipReason = '';
-      const coin = symbol.replace('usdt', '').toUpperCase();
-      console.log(`\n🟢 ${coin} MR LONG [CONFIRMED] | Price: $${price.toFixed(2)} bounced inside BB | Prev RSI: ${prev.rsi.toFixed(1)} | Vol: ${volumeRatio.toFixed(1)}x`);
+      console.log(`\n🟢 ${coin} MR LONG [CONFIRMED] | Price: $${price.toFixed(2)} bounced inside BB | Prev RSI: ${prev.rsi.toFixed(1)} | Vol: ${volumeRatio.toFixed(1)}x${kronosNote}`);
       this.emit('signal', {
         symbol, signal: 'BUY', side: 'LONG', strategy: 'MEAN_REVERSION',
         price, rsi, volumeRatio, atr,
         target: bb.middle, stop: price - atr * this.mrStopAtrMult,
+        kronos: forecast,
       });
       return;
     }
 
     // Try SHORT
     if (shortConfirm && inTradingWindow && cooldownOk && correlationOk) {
+      const coin = symbol.replace('usdt', '').toUpperCase();
+
+      // ── Kronos directional filter ────────────────────────────────────────
+      const forecast = await this._getKronosForecast(symbol);
+      if (forecast && forecast.confidence >= KRONOS_CONF && forecast.direction !== 'DOWN') {
+        const reason = `Kronos ${forecast.model}: ${(forecast.confidence * 100).toFixed(0)}% UP — MR SHORT skipped`;
+        this.signals[symbol].signal = 'HOLD';
+        this.signals[symbol].lastSkipReason = reason;
+        console.log(`🔮 ${coin} ${reason}`);
+        this.emit('skip', { symbol, reason, price, rsi, volumeRatio });
+        return;
+      }
+      const kronosNote = forecast ? ` | Kronos: ${forecast.direction} ${(forecast.confidence * 100).toFixed(0)}%` : ' | Kronos: offline';
+      // ────────────────────────────────────────────────────────────────────
+
       this.signals[symbol].signal = 'SELL_SHORT';
       this.signals[symbol].lastSkipReason = '';
-      const coin = symbol.replace('usdt', '').toUpperCase();
-      console.log(`\n🔴 ${coin} MR SHORT [CONFIRMED] | Price: $${price.toFixed(2)} bounced inside BB | Prev RSI: ${prev.rsi.toFixed(1)} | Vol: ${volumeRatio.toFixed(1)}x`);
+      console.log(`\n🔴 ${coin} MR SHORT [CONFIRMED] | Price: $${price.toFixed(2)} bounced inside BB | Prev RSI: ${prev.rsi.toFixed(1)} | Vol: ${volumeRatio.toFixed(1)}x${kronosNote}`);
       this.emit('signal', {
         symbol, signal: 'SELL_SHORT', side: 'SHORT', strategy: 'MEAN_REVERSION',
         price, rsi, volumeRatio, atr,
         target: bb.middle, stop: price + atr * this.mrStopAtrMult,
+        kronos: forecast,
       });
       return;
     }
@@ -590,7 +739,7 @@ export class Scalper extends EventEmitter {
   // BREAKOUT STRATEGY (trending markets) — LONG + SHORT
   // ══════════════════════════════════════════════════════════════════════════
 
-  _evaluateBreakout(symbol, price, donchian, adxData, volumeRatio, atr, inTradingWindow, cooldownOk, sma50, correlationOk) {
+  async _evaluateBreakout(symbol, price, donchian, adxData, volumeRatio, atr, inTradingWindow, cooldownOk, sma50, correlationOk) {
     const checks = [];
     const volumeOk = volumeRatio >= this.boVolumeMultiplier;
 
@@ -606,28 +755,58 @@ export class Scalper extends EventEmitter {
 
     // Try LONG breakout
     if (aboveDonchianHigh && uptrendDI && volumeOk && aboveSma50 && inTradingWindow && cooldownOk && correlationOk) {
+      const coin = symbol.replace('usdt', '').toUpperCase();
+
+      // ── Kronos directional filter ────────────────────────────────────────
+      const forecast = await this._getKronosForecast(symbol);
+      if (forecast && forecast.confidence >= KRONOS_CONF && forecast.direction !== 'UP') {
+        const reason = `Kronos ${forecast.model}: ${(forecast.confidence * 100).toFixed(0)}% DOWN — Breakout LONG skipped`;
+        this.signals[symbol].signal = 'HOLD';
+        this.signals[symbol].lastSkipReason = reason;
+        console.log(`🔮 ${coin} ${reason}`);
+        this.emit('skip', { symbol, reason, price, volumeRatio });
+        return;
+      }
+      const kronosNote = forecast ? ` | Kronos: ${forecast.direction} ${(forecast.confidence * 100).toFixed(0)}%` : ' | Kronos: offline';
+      // ────────────────────────────────────────────────────────────────────
+
       this.signals[symbol].signal = 'BUY';
       this.signals[symbol].lastSkipReason = '';
-      const coin = symbol.replace('usdt', '').toUpperCase();
-      console.log(`\n🟢 ${coin} BREAKOUT LONG | Price: $${price.toFixed(2)} > Donchian $${donchian.high.toFixed(2)} | ADX: ${adxData.adx.toFixed(1)} | +DI: ${adxData.plusDI.toFixed(1)} > -DI: ${adxData.minusDI.toFixed(1)}`);
+      console.log(`\n🟢 ${coin} BREAKOUT LONG | Price: $${price.toFixed(2)} > Donchian $${donchian.high.toFixed(2)} | ADX: ${adxData.adx.toFixed(1)} | +DI: ${adxData.plusDI.toFixed(1)} > -DI: ${adxData.minusDI.toFixed(1)}${kronosNote}`);
       this.emit('signal', {
         symbol, signal: 'BUY', side: 'LONG', strategy: 'BREAKOUT',
         price, adx: adxData.adx, plusDI: adxData.plusDI, minusDI: adxData.minusDI,
         volumeRatio, atr, trailingStop: price - atr * this.boTrailAtrMult,
+        kronos: forecast,
       });
       return;
     }
 
     // Try SHORT breakout
     if (belowDonchianLow && downtrendDI && volumeOk && belowSma50 && inTradingWindow && cooldownOk && correlationOk) {
+      const coin = symbol.replace('usdt', '').toUpperCase();
+
+      // ── Kronos directional filter ────────────────────────────────────────
+      const forecast = await this._getKronosForecast(symbol);
+      if (forecast && forecast.confidence >= KRONOS_CONF && forecast.direction !== 'DOWN') {
+        const reason = `Kronos ${forecast.model}: ${(forecast.confidence * 100).toFixed(0)}% UP — Breakout SHORT skipped`;
+        this.signals[symbol].signal = 'HOLD';
+        this.signals[symbol].lastSkipReason = reason;
+        console.log(`🔮 ${coin} ${reason}`);
+        this.emit('skip', { symbol, reason, price, volumeRatio });
+        return;
+      }
+      const kronosNote = forecast ? ` | Kronos: ${forecast.direction} ${(forecast.confidence * 100).toFixed(0)}%` : ' | Kronos: offline';
+      // ────────────────────────────────────────────────────────────────────
+
       this.signals[symbol].signal = 'SELL_SHORT';
       this.signals[symbol].lastSkipReason = '';
-      const coin = symbol.replace('usdt', '').toUpperCase();
-      console.log(`\n🔴 ${coin} BREAKOUT SHORT | Price: $${price.toFixed(2)} < Donchian $${donchian.low.toFixed(2)} | ADX: ${adxData.adx.toFixed(1)} | -DI: ${adxData.minusDI.toFixed(1)} > +DI: ${adxData.plusDI.toFixed(1)}`);
+      console.log(`\n🔴 ${coin} BREAKOUT SHORT | Price: $${price.toFixed(2)} < Donchian $${donchian.low.toFixed(2)} | ADX: ${adxData.adx.toFixed(1)} | -DI: ${adxData.minusDI.toFixed(1)} > +DI: ${adxData.plusDI.toFixed(1)}${kronosNote}`);
       this.emit('signal', {
         symbol, signal: 'SELL_SHORT', side: 'SHORT', strategy: 'BREAKOUT',
         price, adx: adxData.adx, plusDI: adxData.plusDI, minusDI: adxData.minusDI,
         volumeRatio, atr, trailingStop: price + atr * this.boTrailAtrMult,
+        kronos: forecast,
       });
       return;
     }
