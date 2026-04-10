@@ -159,12 +159,16 @@ def forecast(req: ForecastRequest):
         freq=f"{req.interval_minutes}min",
     )
 
+    # Kronos internally calls .dt.minute/.hour etc — needs a pandas Series
+    x_ts = pd.Series(timestamps_trimmed)
+    y_ts = pd.Series(y_timestamps)
+
     # ── Run Kronos forecast ──────────────────────────────────────────────────
     try:
         pred_df = predictor.predict(
             df=df,
-            x_timestamp=timestamps_trimmed,
-            y_timestamp=y_timestamps,
+            x_timestamp=x_ts,
+            y_timestamp=y_ts,
             pred_len=req.horizon,
             T=1.0,
             top_p=0.9,
