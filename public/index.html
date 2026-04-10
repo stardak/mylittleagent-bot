@@ -704,24 +704,11 @@
       // Strategy badge
       html += `<div class="ticker-item"><span class="ticker-label trending">v7 Kronos Direct</span><span class="ticker-val">AI Foundation Model · 52% Threshold · 10% Sizing · 24/7</span></div>`;
 
-      // Session info
-      const now = new Date();
-      const utcH = now.getUTCHours(), utcM = now.getUTCMinutes(), utcS = now.getUTCSeconds();
-      const inSession = utcH >= 7 && utcH < 21;
-      if (!inSession) {
-        let secsTo;
-        if (utcH >= 21) secsTo = ((24 - utcH + 7) * 60 - utcM) * 60 - utcS;
-        else secsTo = ((7 - utcH) * 60 - utcM) * 60 - utcS;
-        const h = Math.floor(secsTo / 3600), m = Math.floor((secsTo % 3600) / 60), s = secsTo % 60;
-        html += `<div class="ticker-item"><span class="ticker-session">⏱ NEXT SESSION ${h}h ${m}m ${s}s</span></div>`;
-      } else {
-        const left = ((21 - utcH) * 60 - utcM) * 60 - utcS;
-        const h = Math.floor(left / 3600), m = Math.floor((left % 3600) / 60);
-        html += `<div class="ticker-item"><span class="ticker-session" style="color:#34d399">● LIVE — ${h}h ${m}m left</span></div>`;
-      }
+      // Session info — v7 is 24/7
+      html += `<div class="ticker-item"><span class="ticker-session" style="color:#34d399">● LIVE 24/7</span></div>`;
 
       // Position sizing
-      html += `<div class="ticker-item"><span class="ticker-val">Bet: 3% compounding</span><span class="ticker-divider">│</span><span class="ticker-val">Floor: $95</span></div>`;
+      html += `<div class="ticker-item"><span class="ticker-val">Bet: 10% compounding</span><span class="ticker-divider">│</span><span class="ticker-val">Floor: $95</span></div>`;
 
       // Clock
       const timeStr = now.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit', second:'2-digit', hour12: false });
