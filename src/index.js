@@ -334,8 +334,12 @@ async function main() {
       : failed.some(f => f.includes('Cooldown')) ? 'cooldown'
       : failed.some(f => f.includes('Correlation')) ? 'correlation'
       : null;
+    // Only show ADX/RSI/Vol if they carry real computed values (omit in Kronos Direct mode)
+    const indicatorStr = (adx != null && rsi != null)
+      ? ` | ADX:${adx.toFixed(1)} RSI:${rsi.toFixed(0)} Vol:${(volumeRatio ?? 1).toFixed(1)}x`
+      : '';
     logger.log('info', coin,
-      `${coin} $${price.toFixed(2)} | ${regime} | ADX:${adx.toFixed(1)} RSI:${rsi.toFixed(0)} Vol:${volumeRatio.toFixed(1)}x → ${signal}`,
+      `${coin} $${price.toFixed(2)} | ${regime}${indicatorStr} → ${signal}`,
       failed.length > 0 ? failedStr : '✅ All filters passed',
       tag
     );
@@ -369,13 +373,19 @@ async function main() {
       scalper.openPosition(symbol, trade.price, trade.quantity, strategy, tradeSide);
       const pos = scalper.getPosition(symbol);
       const sideEmoji = tradeSide === 'LONG' ? '📈' : '📉';
+      const fmtStop   = pos?.stopPrice     != null ? `$${pos.stopPrice.toFixed(2)}`     : 'pending';
+      const fmtTrail  = pos?.trailingStop   != null ? `$${pos.trailingStop.toFixed(2)}`   : 'pending';
+      const fmtTarget = pos?.targetPrice    != null ? `$${pos.targetPrice.toFixed(2)}`    : 'pending';
+      const fmtRsi    = rsi          != null ? rsi.toFixed(0)          : '--';
+      const fmtVol    = volumeRatio  != null ? volumeRatio.toFixed(1)  : '--';
+
       const stopInfo = strategy === 'MEAN_REVERSION'
-        ? `Stop: $${pos?.stopPrice?.toFixed(2)} | Target: $${pos?.targetPrice?.toFixed(2)}`
-        : `Trail: $${pos?.trailingStop?.toFixed(2)} | TP: $${pos?.targetPrice?.toFixed(2)}`;
+        ? `Stop: ${fmtStop} | Target: ${fmtTarget}`
+        : `Trail: ${fmtTrail} | TP: ${fmtTarget}`;
 
       logger.buy(coin,
         `${sideEmoji} ${coin} [${strategy} ${tradeSide}] entered at $${trade.price.toFixed(2)}. Size: $${trade.cost.toFixed(2)}. ${stopInfo}`,
-        `${strategy} ${tradeSide}, RSI ${rsi?.toFixed(0)}, vol ${volumeRatio?.toFixed(1)}x`
+        `${strategy} ${tradeSide}, RSI ${fmtRsi}, vol ${fmtVol}x`
       );
       dashboard.pushUpdate();
     }

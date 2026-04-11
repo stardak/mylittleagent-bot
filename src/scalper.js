@@ -9,7 +9,7 @@
 // Entry: fires when Kronos confidence ≥ 52%
 // Stop:  1.5× ATR below/above entry
 // Target: Kronos forecast close at horizon candle 5 (75 min)
-// Breakeven stop: moves to entry once 0.5× ATR in profit
+// Breakeven stop: moves to entry once 1.5× ATR in profit
 //
 // Position sizing: 10% of current portfolio (compounding)
 // Max concurrent: 3 positions | Cooldown: 5 min | 24/7
@@ -34,7 +34,7 @@ export class Scalper extends EventEmitter {
     // ── ATR for stop sizing ──
     this.atrPeriod = 14;
     this.stopAtrMult = 1.5;          // Stop = 1.5× ATR from entry
-    this.breakevenAtrMult = 0.5;     // Move stop to entry once 0.5× ATR in profit
+    this.breakevenAtrMult = 1.5;     // Move stop to entry once 1.5× ATR in profit
     this.maxBarsHeld = 20;           // Force exit after 20 × 15m bars (~5h)
 
     // ── Aggressive mode params ──
@@ -465,10 +465,6 @@ export class Scalper extends EventEmitter {
       symbol, price, atr, candleCount,
       regime: 'KRONOS',
       hasPosition: !!this.positions[symbol],
-      // Legacy fields dashboard may reference — send neutrals
-      rsi: 50, adx: 0, plusDI: 0, minusDI: 0,
-      bbUpper: 0, bbLower: 0, bbMiddle: price,
-      donchianHigh: 0, donchianLow: 0, volumeRatio: 1,
     });
 
     // ── Check exits for existing positions ──
@@ -505,7 +501,6 @@ export class Scalper extends EventEmitter {
         passed: [], failed: ['Kronos offline'],
         auditLine: `${coin} | Kronos offline — holding`,
         failedStr: 'Kronos service not reachable',
-        adx: 0, rsi: 50, volumeRatio: 1,
       });
       return;
     }
@@ -530,7 +525,6 @@ export class Scalper extends EventEmitter {
         failed: [`Confidence ${confPct}% below ${(KRONOS_CONF * 100).toFixed(0)}%`],
         auditLine: `${coin} | Kronos: ${forecast.direction} ${confPct}% | Below threshold`,
         failedStr: reason,
-        adx: 0, rsi: 50, volumeRatio: 1,
       });
       return;
     }
@@ -547,7 +541,6 @@ export class Scalper extends EventEmitter {
         passed: [`Kronos: UP ${confPct}%`], failed: [],
         auditLine: `${coin} | Kronos UP ${confPct}% | LONG signal`,
         failedStr: '',
-        adx: 0, rsi: 50, volumeRatio: 1,
       });
       this.emit('signal', {
         symbol, signal: 'BUY', side: 'LONG', strategy: 'KRONOS',
@@ -564,7 +557,6 @@ export class Scalper extends EventEmitter {
         passed: [`Kronos: DOWN ${confPct}%`], failed: [],
         auditLine: `${coin} | Kronos DOWN ${confPct}% | SHORT signal`,
         failedStr: '',
-        adx: 0, rsi: 50, volumeRatio: 1,
       });
       this.emit('signal', {
         symbol, signal: 'SELL_SHORT', side: 'SHORT', strategy: 'KRONOS',
