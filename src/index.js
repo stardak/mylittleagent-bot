@@ -367,8 +367,9 @@ async function main() {
 
     const positionPct = (positionUsd / binanceTrader.portfolio.balance) * 100;
     const tradeSide = side || 'LONG';
+    const kronosInfo = { confidence: signal?.kronos?.confidence, direction: signal?.kronos?.direction, side: tradeSide };
 
-    const trade = await binanceTrader.buy(symbol, price, positionPct, strategy);
+    const trade = await binanceTrader.buy(symbol, price, positionPct, strategy, kronosInfo);
     if (trade) {
       scalper.openPosition(symbol, trade.price, trade.quantity, strategy, tradeSide);
       const pos = scalper.getPosition(symbol);

@@ -73,6 +73,22 @@
     .ticker-val { color: #d1d5db; font-size: 11px; font-weight: 500; }
     .ticker-session { color: #93c5fd; font-size: 11px; font-weight: 700; }
     .ticker-divider { color: rgba(255,255,255,0.12); font-size: 11px; padding: 0 4px; }
+
+    /* Kronos Intelligence Panel */
+    @keyframes streak-pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(248,113,113,0); }
+      50% { box-shadow: 0 0 0 6px rgba(248,113,113,0.15); }
+    }
+    .streak-alert { animation: streak-pulse 2s ease-in-out infinite; }
+    .bias-bar-long { background: linear-gradient(90deg, rgba(52,211,153,0.8), rgba(52,211,153,0.4)); }
+    .bias-bar-short { background: linear-gradient(90deg, rgba(248,113,113,0.8), rgba(248,113,113,0.4)); }
+    @keyframes uptime-blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+    .uptime-degraded { animation: uptime-blink 1.5s ease-in-out infinite; }
+    .conf-bar { height: 3px; border-radius: 9px; background: rgba(99,102,241,0.2); overflow: hidden; }
+    .conf-bar-fill { height: 100%; border-radius: 9px; background: linear-gradient(90deg, #6366f1, #818cf8); transition: width 0.4s ease; }
   </style>
 </head>
 <body class="h-full font-sans antialiased text-gray-100">
@@ -285,6 +301,60 @@
           </dl>
         </div>
 
+        <!-- ── Kronos Intelligence Panel ─────────────────────────── -->
+        <div id="kronosPanel" class="mb-6">
+          <div class="flex items-center gap-2 mb-3">
+            <h2 class="text-xs font-semibold uppercase tracking-widest text-gray-400">🔮 Kronos Intelligence</h2>
+            <span id="kronosUptimeBadge" class="rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider">Checking...</span>
+          </div>
+          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+
+            <!-- Accuracy Today -->
+            <div class="rounded-xl bg-gray-800/60 backdrop-blur px-5 py-4 ring-1 ring-white/5">
+              <dt class="text-xs font-medium text-gray-400 mb-2">Accuracy Today</dt>
+              <dd class="text-2xl font-bold tracking-tight" id="kronosAccuracyToday">—</dd>
+              <p class="text-xs font-gray-500 mt-1" id="kronosAccuracyTodaySub">No resolved calls yet</p>
+              <div class="conf-bar mt-2"><div class="conf-bar-fill" id="kronosAccuracyTodayBar" style="width:0%"></div></div>
+            </div>
+
+            <!-- Accuracy All-Time -->
+            <div class="rounded-xl bg-gray-800/60 backdrop-blur px-5 py-4 ring-1 ring-white/5">
+              <dt class="text-xs font-medium text-gray-400 mb-2">Accuracy All-Time</dt>
+              <dd class="text-2xl font-bold tracking-tight" id="kronosAccuracyAllTime">—</dd>
+              <p class="text-xs font-gray-500 mt-1" id="kronosAccuracyAllTimeSub">No resolved calls yet</p>
+              <div class="conf-bar mt-2"><div class="conf-bar-fill" id="kronosAccuracyAllTimeBar" style="width:0%"></div></div>
+            </div>
+
+            <!-- Directional Bias -->
+            <div class="rounded-xl bg-gray-800/60 backdrop-blur px-5 py-4 ring-1 ring-white/5">
+              <dt class="text-xs font-medium text-gray-400 mb-2">Directional Bias Today</dt>
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-bold text-profit" id="kronosBiasLongPct">—% LONG</span>
+                <span class="text-xs font-bold text-loss" id="kronosBiasShortPct">—% SHORT</span>
+              </div>
+              <div class="flex rounded-full overflow-hidden" style="height:6px;background:rgba(255,255,255,0.05)">
+                <div id="kronosBiasBarLong" class="bias-bar-long transition-all" style="width:50%"></div>
+                <div id="kronosBiasBarShort" class="bias-bar-short transition-all" style="width:50%"></div>
+              </div>
+              <p class="text-xs text-gray-500 mt-1" id="kronosBiasCalls">0 calls today</p>
+            </div>
+
+            <!-- Kronos Uptime -->
+            <div class="rounded-xl bg-gray-800/60 backdrop-blur px-5 py-4 ring-1 ring-white/5">
+              <dt class="text-xs font-medium text-gray-400 mb-2">Kronos Service</dt>
+              <div class="flex items-center gap-2 mb-1">
+                <span id="kronosReachDot" class="size-2.5 rounded-full bg-gray-600"></span>
+                <dd class="text-sm font-bold tracking-tight" id="kronosReachLabel">Unknown</dd>
+              </div>
+              <p class="text-xs text-gray-500" id="kronosOutages">Outages: —</p>
+              <p class="text-xs text-gray-600 mt-0.5" id="kronosLastSeen"></p>
+            </div>
+          </div>
+
+          <!-- Per-Coin Streak Warnings -->
+          <div id="kronosStreakWarnings" class="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3"></div>
+        </div>
+
         <!-- ── Open Positions ────────────────────────────────── -->
         <div id="scalperPositions" class="hidden mb-6">
           <h2 class="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-3">Open Positions</h2>
@@ -451,7 +521,7 @@
     socket.on('disconnect', () => { els.connectionDot.className = 'size-2 rounded-full bg-red-400'; els.connectionText.textContent = 'Disconnected'; });
 
     function updateDashboard(data) {
-      const { status, trades, binanceStatus, prices, isLive, binancePortfolio: bp } = data;
+      const { status, trades, binanceStatus, prices, isLive, binancePortfolio: bp, kronosAnalytics } = data;
       els.modeBadge.textContent = isLive ? 'Live' : 'Paper';
       els.modeBadge.className = isLive ? 'rounded-full bg-loss/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-widest text-loss' : 'rounded-full bg-brand-950/60 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-widest text-brand-400';
       if (binanceStatus?.allConnected) { els.connectionDot.className = 'size-2 rounded-full bg-profit shadow-[0_0_6px_rgba(52,211,153,0.5)] animate-pulse-glow'; els.connectionText.textContent = 'Connected'; }
@@ -470,17 +540,27 @@
       els.portfolioValue.textContent = fmtUsd(currentBalance);
       els.portfolioValue.className = 'text-5xl sm:text-6xl font-extrabold tracking-tighter ' + (bp ? pnlColor(bp.totalPnl) : 'text-white');
       els.portfolioStart.textContent = `Started at ${fmtUsd(status.startingPortfolio)}`;
-      els.todayPnl.textContent = (status.todayPnl >= 0 ? '+' : '') + fmtUsd(status.todayPnl);
-      els.todayPnl.className = 'mt-2 text-2xl font-bold tracking-tight ' + pnlColor(status.todayPnl);
-      els.todayTrades.textContent = `${status.todayTradeCount} trade${status.todayTradeCount !== 1 ? 's' : ''} today`;
-      els.winRate.textContent = status.winRate + '%';
-      els.totalTrades.textContent = `${status.totalTrades} total (${status.totalWins}W)`;
+
+      // Prefer scalper (Binance) stats when available — RiskManager only tracks Polymarket
+      const todayPnl      = bp ? bp.todayPnl        : status.todayPnl;
+      const todayCount    = bp ? bp.todayTradeCount  : status.todayTradeCount;
+      const winRatePct    = bp ? bp.winRate.toFixed(1)     : status.winRate;
+      const totalTradesLbl = bp
+        ? `${bp.totalTrades} total (${bp.wins}W / ${bp.losses}L)`
+        : `${status.totalTrades} total (${status.totalWins}W)`;
+
+      els.todayPnl.textContent = (todayPnl >= 0 ? '+' : '') + fmtUsd(todayPnl);
+      els.todayPnl.className = 'mt-2 text-2xl font-bold tracking-tight ' + pnlColor(todayPnl);
+      els.todayTrades.textContent = `${todayCount} trade${todayCount !== 1 ? 's' : ''} today`;
+      els.winRate.textContent = winRatePct + '%';
+      els.totalTrades.textContent = totalTradesLbl;
 
       if (prices.btcusdt?.price) { els.btcPrice.textContent = fmtUsd(prices.btcusdt.price); setMomentum(els.btcMomentum, prices.btcusdt.momentum); }
       if (prices.ethusdt?.price) { els.ethPrice.textContent = fmtUsd(prices.ethusdt.price); setMomentum(els.ethMomentum, prices.ethusdt.momentum); }
       if (prices.solusdt?.price) { els.solPrice.textContent = fmtUsd(prices.solusdt.price); setMomentum(els.solMomentum, prices.solusdt.momentum); }
 
       updateScalper(data);
+      updateKronosPanel(kronosAnalytics);
     }
 
     // ── Scalper UI ──────────────────────────────────────────
@@ -506,11 +586,21 @@
         if (stf && binancePortfolio.recentTrades.length > 0) {
           stf.innerHTML = binancePortfolio.recentTrades.map(t => {
             const icon = t.type === 'BUY' ? '📈' : t.pnl >= 0 ? '✅' : '❌';
-            const pnlStr = t.pnl != null ? `<span class="text-sm font-bold ${pnlColor(t.pnl)}">${t.pnl >= 0 ? '+' : ''}${fmtUsd(t.pnl)}</span>` : `<span class="text-sm font-bold text-gray-400">${fmtUsd(t.cost || 0)}</span>`;
+            const pnlStr = t.pnl != null
+              ? `<span class="text-sm font-bold ${pnlColor(t.pnl)}">${t.pnl >= 0 ? '+' : ''}${fmtUsd(t.pnl)}</span>`
+              : `<span class="text-sm font-bold text-gray-400">${fmtUsd(t.cost || 0)}</span>`;
+            // Direction badge with confidence
+            const dirBadge = t.kronosDirection
+              ? `<span class="inline-flex rounded-full px-1.5 py-0.5 text-[9px] font-bold ml-1 ${
+                  t.kronosDirection === 'UP' ? 'bg-profit/10 text-profit' : 'bg-loss/10 text-loss'
+                }">${t.kronosDirection === 'UP' ? '↑ LONG' : '↓ SHORT'}${
+                  t.kronosConfidence ? ` ${(t.kronosConfidence * 100).toFixed(0)}%` : ''
+                }</span>`
+              : '';
             return `<div class="flex items-center gap-3 px-4 py-3 hover:bg-white/[0.02] transition-colors">
               <span class="flex size-8 items-center justify-center rounded-lg ${t.pnl > 0 ? 'bg-profit/10' : t.pnl < 0 ? 'bg-loss/10' : 'bg-white/5'} text-sm">${icon}</span>
               <div class="flex-1 min-w-0">
-                <p class="text-sm font-medium text-white truncate">${t.type} ${t.symbol} · ${t.mode}</p>
+                <p class="text-sm font-medium text-white truncate">${t.type} ${t.symbol} · ${t.mode}${dirBadge}</p>
                 <p class="text-xs text-gray-500 truncate">@ $${Number(t.price).toLocaleString('en-US', {minimumFractionDigits: 2})}</p>
               </div>
               ${pnlStr}
@@ -563,7 +653,146 @@
       }
       const sig = position ? 'IN TRADE' : signal.signal;
       sigEl.textContent = sig; sigEl.className = 'mt-1.5 text-xl font-bold ' + (sig === 'BUY' || sig === 'IN TRADE' ? 'text-profit' : 'text-white');
-      indEl.textContent = signal.lastSkipReason || '✅ Kronos signal confirmed';
+      // Show confidence if available
+      const confPct = signal.kronosConfidence ? `${(signal.kronosConfidence * 100).toFixed(0)}% conf` : '';
+      const dir = signal.kronosDirection ? (signal.kronosDirection === 'UP' ? '↑ LONG' : '↓ SHORT') : '';
+      const confStr = (dir || confPct) ? `<span class="inline-flex rounded-full px-1.5 py-0.5 text-[9px] font-bold ${
+        signal.kronosDirection === 'UP' ? 'bg-profit/10 text-profit' : signal.kronosDirection === 'DOWN' ? 'bg-loss/10 text-loss' : 'bg-white/5 text-gray-400'
+      }">${dir}${dir && confPct ? ' · ' : ''}${confPct}</span>` : '';
+      indEl.innerHTML = (signal.lastSkipReason || '✅ Kronos signal confirmed') + (confStr ? ' ' + confStr : '');
+    }
+
+    // ── Kronos Intelligence Panel ─────────────────────────────────
+    function updateKronosPanel(analytics) {
+      if (!analytics) return;
+      const { accuracy, dirBias, consecutiveLossStreaks, uptime } = analytics;
+
+      // Accuracy today
+      const todayAcc = accuracy.today.total > 0
+        ? Math.round((accuracy.today.wins / accuracy.today.total) * 100)
+        : null;
+      const todayAccEl = $('kronosAccuracyToday');
+      if (todayAccEl) {
+        todayAccEl.textContent = todayAcc !== null ? `${todayAcc}%` : '—';
+        todayAccEl.className = 'text-2xl font-bold tracking-tight ' + (
+          todayAcc === null ? 'text-white' : todayAcc >= 55 ? 'text-profit' : todayAcc >= 45 ? 'text-warn' : 'text-loss'
+        );
+      }
+      const todaySubEl = $('kronosAccuracyTodaySub');
+      if (todaySubEl) todaySubEl.textContent = accuracy.today.total > 0
+        ? `${accuracy.today.wins}W / ${accuracy.today.losses}L today`
+        : 'No resolved calls yet';
+      const todayBarEl = $('kronosAccuracyTodayBar');
+      if (todayBarEl) {
+        todayBarEl.style.width = `${todayAcc || 0}%`;
+        todayBarEl.style.background = todayAcc >= 55 ? 'linear-gradient(90deg,#34d399,#6ee7b7)'
+          : todayAcc >= 45 ? 'linear-gradient(90deg,#fbbf24,#fde68a)'
+          : 'linear-gradient(90deg,#f87171,#fca5a5)';
+      }
+
+      // Accuracy all-time
+      const allAcc = accuracy.allTime.total > 0
+        ? Math.round((accuracy.allTime.wins / accuracy.allTime.total) * 100)
+        : null;
+      const allAccEl = $('kronosAccuracyAllTime');
+      if (allAccEl) {
+        allAccEl.textContent = allAcc !== null ? `${allAcc}%` : '—';
+        allAccEl.className = 'text-2xl font-bold tracking-tight ' + (
+          allAcc === null ? 'text-white' : allAcc >= 55 ? 'text-profit' : allAcc >= 45 ? 'text-warn' : 'text-loss'
+        );
+      }
+      const allSubEl = $('kronosAccuracyAllTimeSub');
+      if (allSubEl) allSubEl.textContent = accuracy.allTime.total > 0
+        ? `${accuracy.allTime.wins}W / ${accuracy.allTime.losses}L all time`
+        : 'No resolved calls yet';
+      const allBarEl = $('kronosAccuracyAllTimeBar');
+      if (allBarEl) {
+        allBarEl.style.width = `${allAcc || 0}%`;
+        allBarEl.style.background = allAcc >= 55 ? 'linear-gradient(90deg,#34d399,#6ee7b7)'
+          : allAcc >= 45 ? 'linear-gradient(90deg,#fbbf24,#fde68a)'
+          : 'linear-gradient(90deg,#f87171,#fca5a5)';
+      }
+
+      // Directional bias
+      const { longs, shorts, total } = dirBias.today;
+      const longPct = total > 0 ? Math.round((longs / total) * 100) : 50;
+      const shortPct = 100 - longPct;
+      const longPctEl = $('kronosBiasLongPct');
+      const shortPctEl = $('kronosBiasShortPct');
+      const barLong = $('kronosBiasBarLong');
+      const barShort = $('kronosBiasBarShort');
+      const biasCalls = $('kronosBiasCalls');
+      if (longPctEl) longPctEl.textContent = `${longPct}% LONG`;
+      if (shortPctEl) shortPctEl.textContent = `${shortPct}% SHORT`;
+      if (barLong) barLong.style.width = `${longPct}%`;
+      if (barShort) barShort.style.width = `${shortPct}%`;
+      if (biasCalls) {
+        const biasNote = total > 0 && (longPct >= 75 || shortPct >= 75)
+          ? `⚠️ Strong ${longPct >= 75 ? 'LONG' : 'SHORT'} bias (${total} calls today)`
+          : `${total} call${total !== 1 ? 's' : ''} today`;
+        biasCalls.textContent = biasNote;
+        biasCalls.className = 'text-xs mt-1 ' + (total > 0 && (longPct >= 75 || shortPct >= 75) ? 'text-warn' : 'text-gray-500');
+      }
+
+      // Uptime
+      const reachDot = $('kronosReachDot');
+      const reachLabel = $('kronosReachLabel');
+      const outagesEl = $('kronosOutages');
+      const lastSeenEl = $('kronosLastSeen');
+      const uptimeBadge = $('kronosUptimeBadge');
+      if (reachDot) {
+        if (uptime.reachable === true) {
+          reachDot.className = 'size-2.5 rounded-full bg-profit shadow-[0_0_8px_rgba(52,211,153,0.6)] animate-pulse-glow';
+          if (reachLabel) { reachLabel.textContent = 'Online'; reachLabel.className = 'text-sm font-bold tracking-tight text-profit'; }
+        } else if (uptime.reachable === false) {
+          reachDot.className = 'size-2.5 rounded-full bg-loss uptime-degraded';
+          if (reachLabel) { reachLabel.textContent = 'Offline'; reachLabel.className = 'text-sm font-bold tracking-tight text-loss'; }
+        } else {
+          reachDot.className = 'size-2.5 rounded-full bg-gray-600';
+          if (reachLabel) { reachLabel.textContent = 'Checking...'; reachLabel.className = 'text-sm font-bold tracking-tight text-gray-400'; }
+        }
+      }
+      if (outagesEl) {
+        const pctStr = uptime.uptimePct !== null ? ` (${uptime.uptimePct}% uptime)` : '';
+        outagesEl.textContent = `Outages 24h: ${uptime.outages24h}${pctStr}`;
+        outagesEl.className = 'text-xs ' + (uptime.outages24h > 0 ? 'text-warn' : 'text-gray-500');
+      }
+      if (lastSeenEl && uptime.lastOutage) {
+        const mins = Math.round((Date.now() - uptime.lastOutage) / 60000);
+        lastSeenEl.textContent = `Last outage: ${mins < 60 ? mins + 'm ago' : Math.round(mins/60) + 'h ago'}`;
+      } else if (lastSeenEl) {
+        lastSeenEl.textContent = uptime.reachable === null ? '' : 'No outages recorded';
+      }
+      if (uptimeBadge) {
+        if (uptime.reachable === true) {
+          uptimeBadge.textContent = 'Online'; uptimeBadge.className = 'rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider bg-profit/10 text-profit';
+        } else if (uptime.reachable === false) {
+          uptimeBadge.textContent = 'Offline ⚠'; uptimeBadge.className = 'rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider bg-loss/10 text-loss';
+        } else {
+          uptimeBadge.textContent = 'Checking...'; uptimeBadge.className = 'rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider bg-gray-700 text-gray-400';
+        }
+      }
+
+      // Streak warnings per coin
+      const streakEl = $('kronosStreakWarnings');
+      if (streakEl && consecutiveLossStreaks) {
+        const coinLabels = { btcusdt: 'BTC', ethusdt: 'ETH', solusdt: 'SOL' };
+        const warnings = Object.entries(consecutiveLossStreaks)
+          .filter(([, v]) => v.streak >= 3)
+          .map(([sym, v]) => {
+            const coin = coinLabels[sym] || sym;
+            const dir = v.direction === 'UP' ? 'LONG' : 'SHORT';
+            return `<div class="rounded-xl px-4 py-3 ring-1 ring-red-400/30 bg-red-400/5 streak-alert flex items-center gap-3">
+              <span class="text-xl">🔴</span>
+              <div>
+                <p class="text-xs font-bold text-red-300">${coin} — ${v.streak}× ${dir} losses in a row</p>
+                <p class="text-[11px] text-red-400/60 mt-0.5">Kronos has called ${dir} on ${coin} ${v.streak} times and lost each time</p>
+              </div>
+            </div>`;
+          });
+        streakEl.innerHTML = warnings.join('');
+        streakEl.classList.toggle('hidden', warnings.length === 0);
+      }
     }
 
     // ── Bloomberg Ticker ────────────────────────────────────

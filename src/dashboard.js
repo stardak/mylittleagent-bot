@@ -95,6 +95,7 @@ export class Dashboard {
     const binancePortfolio = this.binanceTrader ? this.binanceTrader.getPortfolio() : null;
     const marketCards = this.polyScanner ? this.polyScanner.getMarketCards() : {};
     const backtestResults = this._backtestCache || null;
+    const kronosAnalytics = this.scalper ? this.scalper.getKronosAnalytics() : null;
 
     return {
       status, trades, binanceStatus, prices,
@@ -102,6 +103,7 @@ export class Dashboard {
       binancePortfolio,
       marketCards,
       backtestResults,
+      kronosAnalytics,
       isLive: this.isLive,
       timestamp: new Date().toISOString()
     };

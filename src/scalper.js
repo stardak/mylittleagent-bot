@@ -51,6 +51,16 @@ export class Scalper extends EventEmitter {
     this.lastTradeTime = {};
     this.websockets = {};
 
+    // ── Kronos analytics tracking ──
+    // kronosCallLog[sym] = [{ direction, confidence, outcome: 'WIN'|'LOSS'|'PENDING', side, timestamp }]
+    this.kronosCallLog = {};
+    // pendingKronosCalls[sym] = { direction, confidence, side, entryPrice, timestamp } — set on entry, resolved on close
+    this.pendingKronosCalls = {};
+    // Kronos uptime tracking
+    this.kronosUptimeLog = [];  // [{ ts, reachable }]
+    this.kronosLastCheck = 0;
+    this.kronosReachable = null; // null = unknown, true/false
+
     for (const sym of this.symbols) {
       this.candles[sym] = [];
       this.signals[sym] = {
@@ -65,6 +75,8 @@ export class Scalper extends EventEmitter {
       };
       this.positions[sym] = null;
       this.lastTradeTime[sym] = 0;
+      this.kronosCallLog[sym] = [];
+      this.pendingKronosCalls[sym] = null;
     }
   }
 
@@ -493,6 +505,10 @@ export class Scalper extends EventEmitter {
     const coin = symbol.replace('usdt', '').toUpperCase();
     const forecast = await this._getKronosForecast(symbol);
 
+    // Track Kronos reachability for uptime log
+    const reachable = !!forecast;
+    this._recordKronosUptime(reachable);
+
     if (!forecast) {
       this.signals[symbol].lastSkipReason = 'Kronos offline — holding';
       console.log(`⏳ ${coin} | Kronos offline — no signal`);
@@ -535,6 +551,8 @@ export class Scalper extends EventEmitter {
       const target = hasTarget ? Math.max(...forecastCloses) : price * 1.02;
       this.signals[symbol].signal = 'BUY';
       this.signals[symbol].lastSkipReason = '';
+      // Record pending Kronos call for accuracy tracking
+      this.pendingKronosCalls[symbol] = { direction: 'UP', confidence: forecast.confidence, side: 'LONG', entryPrice: price, timestamp: Date.now() };
       console.log(`\n🟢 ${coin} KRONOS LONG | ${confPct}% | $${price.toFixed(2)} → target $${target.toFixed(2)} | stop $${stop.toFixed(2)}`);
       this.emit('filter-audit', {
         symbol, coin, price, regime: 'KRONOS', signal: 'BUY',
@@ -551,6 +569,8 @@ export class Scalper extends EventEmitter {
       const target = hasTarget ? Math.min(...forecastCloses) : price * 0.98;
       this.signals[symbol].signal = 'SELL_SHORT';
       this.signals[symbol].lastSkipReason = '';
+      // Record pending Kronos call for accuracy tracking
+      this.pendingKronosCalls[symbol] = { direction: 'DOWN', confidence: forecast.confidence, side: 'SHORT', entryPrice: price, timestamp: Date.now() };
       console.log(`\n🔴 ${coin} KRONOS SHORT | ${confPct}% | $${price.toFixed(2)} → target $${target.toFixed(2)} | stop $${stop.toFixed(2)}`);
       this.emit('filter-audit', {
         symbol, coin, price, regime: 'KRONOS', signal: 'SELL_SHORT',
@@ -661,6 +681,17 @@ export class Scalper extends EventEmitter {
     const sideLabel = isLong ? 'LONG' : 'SHORT';
     console.log(`\n🔴 ${coin} CLOSE ${sideLabel} [${position.strategy}]: ${reason} @ $${exitPrice.toFixed(2)} (${pnlPct >= 0 ? '+' : ''}${pnlPct.toFixed(2)}%)`);
 
+    // Resolve pending Kronos call for accuracy tracking
+    const pending = this.pendingKronosCalls[symbol];
+    if (pending) {
+      const outcome = pnlPct >= 0 ? 'WIN' : 'LOSS';
+      const logEntry = { ...pending, outcome, exitPrice, pnlPct, resolvedAt: Date.now() };
+      this.kronosCallLog[symbol].push(logEntry);
+      // Keep last 200 calls per coin
+      if (this.kronosCallLog[symbol].length > 200) this.kronosCallLog[symbol].shift();
+      this.pendingKronosCalls[symbol] = null;
+    }
+
     this.emit('close-position', {
       symbol, reason, strategy: position.strategy, side: position.side,
       entryPrice: position.entryPrice, exitPrice, pnlPct, quantity: position.quantity,
@@ -720,6 +751,99 @@ export class Scalper extends EventEmitter {
 
   getActiveStrategy(symbol) {
     return this.signals[symbol]?.activeStrategy || 'NONE';
+  }
+
+  // ── Kronos uptime recorder ─────────────────────────────────────────────
+  _recordKronosUptime(reachable) {
+    const now = Date.now();
+    // Debounce: only log a new entry if state changed or >60s since last check
+    const last = this.kronosUptimeLog[this.kronosUptimeLog.length - 1];
+    if (!last || last.reachable !== reachable || (now - last.ts) > 60_000) {
+      this.kronosUptimeLog.push({ ts: now, reachable });
+      if (this.kronosUptimeLog.length > 1000) this.kronosUptimeLog.shift();
+    }
+    this.kronosReachable = reachable;
+    this.kronosLastCheck = now;
+  }
+
+  // ── Kronos analytics ──────────────────────────────────────────────────
+  getKronosAnalytics() {
+    const todayStart = new Date(); todayStart.setHours(0,0,0,0);
+    const todayTs = todayStart.getTime();
+
+    // Aggregate call log across all symbols
+    const allCalls = this.symbols.flatMap(sym =>
+      this.kronosCallLog[sym].map(c => ({ ...c, symbol: sym }))
+    );
+
+    // Accuracy: resolved calls only
+    const resolved = allCalls.filter(c => c.outcome !== 'PENDING');
+    const todayResolved = resolved.filter(c => c.resolvedAt >= todayTs);
+
+    const wins = resolved.filter(c => c.outcome === 'WIN').length;
+    const todayWins = todayResolved.filter(c => c.outcome === 'WIN').length;
+
+    // Directional bias today (all calls including pending)
+    const todayCalls = allCalls.filter(c => c.timestamp >= todayTs);
+    const todayLongs = todayCalls.filter(c => c.direction === 'UP').length;
+    const todayShorts = todayCalls.filter(c => c.direction === 'DOWN').length;
+
+    // Per-coin consecutive directional losses (same direction, same coin)
+    const consecutiveLossStreaks = {};
+    for (const sym of this.symbols) {
+      const log = this.kronosCallLog[sym].filter(c => c.outcome !== 'PENDING');
+      let streak = 0;
+      let streakDir = null;
+      // Walk backwards to find current streak
+      for (let i = log.length - 1; i >= 0; i--) {
+        const c = log[i];
+        if (i === log.length - 1) { streakDir = c.direction; }
+        if (c.direction === streakDir && c.outcome === 'LOSS') streak++;
+        else break;
+      }
+      consecutiveLossStreaks[sym] = { streak, direction: streakDir };
+    }
+
+    // Kronos uptime: outage events in last 24h
+    const h24ago = Date.now() - 86_400_000;
+    const recentUptime = this.kronosUptimeLog.filter(e => e.ts >= h24ago);
+    const outages = recentUptime.filter(e => !e.reachable).length;
+    const totalChecks = recentUptime.length;
+    const uptimePct = totalChecks > 0
+      ? ((recentUptime.filter(e => e.reachable).length / totalChecks) * 100).toFixed(1)
+      : null;
+
+    // Last seen timestamps
+    const lastReachableEntry = [...this.kronosUptimeLog].reverse().find(e => e.reachable);
+    const lastUnreachableEntry = [...this.kronosUptimeLog].reverse().find(e => !e.reachable);
+
+    return {
+      accuracy: {
+        allTime: { wins, losses: resolved.length - wins, total: resolved.length },
+        today: { wins: todayWins, losses: todayResolved.length - todayWins, total: todayResolved.length },
+      },
+      dirBias: {
+        today: { longs: todayLongs, shorts: todayShorts, total: todayCalls.length },
+      },
+      consecutiveLossStreaks,
+      uptime: {
+        reachable: this.kronosReachable,
+        lastCheck: this.kronosLastCheck,
+        outages24h: outages,
+        uptimePct,
+        lastSeen: lastReachableEntry?.ts || null,
+        lastOutage: lastUnreachableEntry?.ts || null,
+      },
+      perCoin: this.symbols.reduce((acc, sym) => {
+        const sig = this.signals[sym];
+        acc[sym] = {
+          direction: sig.kronosDirection,
+          confidence: sig.kronosConfidence,
+          callLog: this.kronosCallLog[sym].slice(-10), // last 10 for sparklines
+        };
+        return acc;
+      }, {}),
+    };
   }
 
   // ── Getters ─────────────────────────────────────────────────────────────

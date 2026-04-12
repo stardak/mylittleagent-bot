@@ -72,6 +72,9 @@ export class BinanceTrader {
     try { this.db.exec(`ALTER TABLE scalper_trades ADD COLUMN fee REAL DEFAULT 0`); } catch(e) { /* already exists */ }
     try { this.db.exec(`ALTER TABLE scalper_trades ADD COLUMN strategy TEXT DEFAULT 'UNKNOWN'`); } catch(e) { /* already exists */ }
     try { this.db.exec(`ALTER TABLE scalper_trades ADD COLUMN exit_reason TEXT`); } catch(e) { /* already exists */ }
+    try { this.db.exec(`ALTER TABLE scalper_trades ADD COLUMN kronos_confidence REAL`); } catch(e) { /* already exists */ }
+    try { this.db.exec(`ALTER TABLE scalper_trades ADD COLUMN kronos_direction TEXT`); } catch(e) { /* already exists */ }
+    try { this.db.exec(`ALTER TABLE scalper_trades ADD COLUMN side TEXT DEFAULT 'LONG'`); } catch(e) { /* already exists */ }
   }
 
   _loadScalperState() {
@@ -129,6 +132,9 @@ export class BinanceTrader {
       entryPrice: r.entry_price,
       strategy: r.strategy || 'UNKNOWN',
       exitReason: r.exit_reason || '',
+      kronosConfidence: r.kronos_confidence || null,
+      kronosDirection: r.kronos_direction || null,
+      side: r.side || 'LONG',
       timestamp: r.timestamp,
       mode: r.mode,
     }));
@@ -138,18 +144,19 @@ export class BinanceTrader {
 
   _persistTrade(trade) {
     this.db.prepare(`
-      INSERT INTO scalper_trades (timestamp, type, symbol, price, quantity, cost, revenue, pnl, pnl_pct, entry_price, fee, strategy, exit_reason, mode)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO scalper_trades (timestamp, type, symbol, price, quantity, cost, revenue, pnl, pnl_pct, entry_price, fee, strategy, exit_reason, mode, kronos_confidence, kronos_direction, side)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       trade.timestamp, trade.type, trade.symbol, trade.price, trade.quantity,
       trade.cost || null, trade.revenue || null, trade.pnl || null,
       trade.pnlPct || null, trade.entryPrice || null, trade.fee || 0,
-      trade.strategy || 'UNKNOWN', trade.exitReason || null, trade.mode
+      trade.strategy || 'UNKNOWN', trade.exitReason || null, trade.mode,
+      trade.kronosConfidence || null, trade.kronosDirection || null, trade.side || 'LONG'
     );
   }
 
   // ── Execute a BUY ───────────────────────────────────────────────────────
-  async buy(symbol, price, portfolioPct, strategy = 'UNKNOWN') {
+  async buy(symbol, price, portfolioPct, strategy = 'UNKNOWN', kronosInfo = {}) {
     const amountUsd = this.portfolio.balance * (portfolioPct / 100);
     if (amountUsd < 5) {
       console.log(`📈 Skipping buy: balance too low ($${this.portfolio.balance.toFixed(2)})`);
@@ -159,9 +166,9 @@ export class BinanceTrader {
     const quantity = amountUsd / price;
 
     if (this.live) {
-      return await this._liveBuy(symbol, quantity, price, strategy);
+      return await this._liveBuy(symbol, quantity, price, strategy, kronosInfo);
     } else {
-      return this._paperBuy(symbol, quantity, price, amountUsd, strategy);
+      return this._paperBuy(symbol, quantity, price, amountUsd, strategy, kronosInfo);
     }
   }
 
@@ -175,9 +182,9 @@ export class BinanceTrader {
   }
 
   // ── Paper Trading ───────────────────────────────────────────────────────
-  _paperBuy(symbol, quantity, price, amountUsd, strategy = 'UNKNOWN') {
+  _paperBuy(symbol, quantity, price, amountUsd, strategy = 'UNKNOWN', kronosInfo = {}) {
     const fillPrice = price;
-    const fee = quantity * fillPrice * this.feePct; // Buy-side fee
+    const fee = quantity * fillPrice * this.feePct;
     const cost = quantity * fillPrice + fee;
 
     this.portfolio.balance -= cost;
@@ -191,6 +198,9 @@ export class BinanceTrader {
       cost,
       fee,
       strategy,
+      kronosConfidence: kronosInfo.confidence || null,
+      kronosDirection: kronosInfo.direction || null,
+      side: kronosInfo.side || 'LONG',
       timestamp: Date.now(),
       mode: 'PAPER',
     };
@@ -405,6 +415,18 @@ export class BinanceTrader {
   // ── Getters ─────────────────────────────────────────────────────────────
   getPortfolio() {
     const totalTrades = this.portfolio.wins + this.portfolio.losses;
+
+    // Today's stats — query DB directly so it survives restarts
+    const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+    const todayStats = this.db.prepare(`
+      SELECT
+        COALESCE(SUM(pnl), 0) as todayPnl,
+        COUNT(*) as todayTrades,
+        COALESCE(SUM(CASE WHEN pnl > 0 THEN 1 ELSE 0 END), 0) as todayWins,
+        COALESCE(SUM(CASE WHEN pnl <= 0 THEN 1 ELSE 0 END), 0) as todayLosses
+      FROM scalper_trades WHERE type='SELL' AND timestamp >= ?
+    `).get(todayStart.getTime());
+
     return {
       balance: this.portfolio.balance,
       startingBalance: this.portfolio.startingBalance,
@@ -414,6 +436,10 @@ export class BinanceTrader {
       losses: this.portfolio.losses,
       winRate: totalTrades > 0 ? (this.portfolio.wins / totalTrades) * 100 : 0,
       totalTrades,
+      todayPnl: todayStats.todayPnl,
+      todayTradeCount: todayStats.todayTrades,
+      todayWins: todayStats.todayWins,
+      todayLosses: todayStats.todayLosses,
       recentTrades: this.portfolio.trades.slice(-20).reverse(),
       strategyStats: this.portfolio.strategyStats,
       mode: this.live ? 'LIVE' : 'PAPER',
