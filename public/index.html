@@ -822,6 +822,7 @@
     setInterval(fetchTickerMarketData, 30000);
 
     function buildTickerHTML() {
+      const now = new Date();
       const syms = ['btcusdt', 'ethusdt', 'solusdt'];
       const labels = { ethusdt: 'ETH', btcusdt: 'BTC', solusdt: 'SOL' };
       let html = '';
