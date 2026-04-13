@@ -6,10 +6,11 @@
 //   Pre-trained on K-line data from 45 global exchanges
 //   Sends last 96 OHLCV candles → receives UP|DOWN + confidence
 //
-// Entry: fires when Kronos confidence ≥ 52%
+// Entry: fires when Kronos confidence ≥ 65%
 // Stop:  1.5× ATR below/above entry
 // Target: Kronos forecast close at horizon candle 5 (75 min)
-// Breakeven stop: moves to entry once 1.5× ATR in profit
+// Min R:R: 1.5:1 required (target must offer ≥1.5× the ATR-stop risk)
+// Breakeven stop: moves to entry once 0.5× ATR in profit
 //
 // Position sizing: 10% of current portfolio (compounding)
 // Max concurrent: 3 positions | Cooldown: 5 min | 24/7
@@ -22,7 +23,7 @@ import { EventEmitter } from 'events';
 
 // ── Kronos config ─────────────────────────────────────────────────────────────
 const KRONOS_URL  = process.env.KRONOS_URL  || 'http://localhost:5001';
-const KRONOS_CONF = parseFloat(process.env.KRONOS_MIN_CONFIDENCE || '0.52');
+const KRONOS_CONF = parseFloat(process.env.KRONOS_MIN_CONFIDENCE || '0.65');
 
 export class Scalper extends EventEmitter {
   constructor(options = {}) {
@@ -34,7 +35,7 @@ export class Scalper extends EventEmitter {
     // ── ATR for stop sizing ──
     this.atrPeriod = 14;
     this.stopAtrMult = 1.5;          // Stop = 1.5× ATR from entry
-    this.breakevenAtrMult = 1.5;     // Move stop to entry once 1.5× ATR in profit
+    this.breakevenAtrMult = 0.5;     // Move stop to entry once 0.5× ATR in profit
     this.maxBarsHeld = 20;           // Force exit after 20 × 15m bars (~5h)
 
     // ── Aggressive mode params ──
@@ -546,17 +547,33 @@ export class Scalper extends EventEmitter {
     }
 
     // ── FIRE TRADE ──
+    const MIN_RR = 1.5; // Minimum risk:reward ratio required to enter
     if (forecast.direction === 'UP') {
       const stop   = price - atr * this.stopAtrMult;
       const target = hasTarget ? Math.max(...forecastCloses) : price * 1.02;
+      const risk   = price - stop;
+      const reward = target - price;
+      if (reward < risk * MIN_RR) {
+        const rrRatio = (reward / risk).toFixed(2);
+        const reason = `Kronos: UP ${confPct}% | R:R ${rrRatio} < ${MIN_RR} minimum`;
+        this.signals[symbol].lastSkipReason = reason;
+        console.log(`⚪ ${coin} | ${reason} — skipping`);
+        this.emit('filter-audit', {
+          symbol, coin, price, regime: 'KRONOS', signal: 'HOLD',
+          passed: [`Kronos: UP ${confPct}%`], failed: [`R:R ${rrRatio} below ${MIN_RR}`],
+          auditLine: `${coin} | Kronos UP ${confPct}% | Poor R:R`,
+          failedStr: reason,
+        });
+        return;
+      }
       this.signals[symbol].signal = 'BUY';
       this.signals[symbol].lastSkipReason = '';
       // Record pending Kronos call for accuracy tracking
       this.pendingKronosCalls[symbol] = { direction: 'UP', confidence: forecast.confidence, side: 'LONG', entryPrice: price, timestamp: Date.now() };
-      console.log(`\n🟢 ${coin} KRONOS LONG | ${confPct}% | $${price.toFixed(2)} → target $${target.toFixed(2)} | stop $${stop.toFixed(2)}`);
+      console.log(`\n🟢 ${coin} KRONOS LONG | ${confPct}% | R:R ${(reward/risk).toFixed(2)} | $${price.toFixed(2)} → target $${target.toFixed(2)} | stop $${stop.toFixed(2)}`);
       this.emit('filter-audit', {
         symbol, coin, price, regime: 'KRONOS', signal: 'BUY',
-        passed: [`Kronos: UP ${confPct}%`], failed: [],
+        passed: [`Kronos: UP ${confPct}%`, `R:R ${(reward/risk).toFixed(2)}`], failed: [],
         auditLine: `${coin} | Kronos UP ${confPct}% | LONG signal`,
         failedStr: '',
       });
@@ -567,14 +584,29 @@ export class Scalper extends EventEmitter {
     } else {
       const stop   = price + atr * this.stopAtrMult;
       const target = hasTarget ? Math.min(...forecastCloses) : price * 0.98;
+      const risk   = stop - price;
+      const reward = price - target;
+      if (reward < risk * MIN_RR) {
+        const rrRatio = (reward / risk).toFixed(2);
+        const reason = `Kronos: DOWN ${confPct}% | R:R ${rrRatio} < ${MIN_RR} minimum`;
+        this.signals[symbol].lastSkipReason = reason;
+        console.log(`⚪ ${coin} | ${reason} — skipping`);
+        this.emit('filter-audit', {
+          symbol, coin, price, regime: 'KRONOS', signal: 'HOLD',
+          passed: [`Kronos: DOWN ${confPct}%`], failed: [`R:R ${rrRatio} below ${MIN_RR}`],
+          auditLine: `${coin} | Kronos DOWN ${confPct}% | Poor R:R`,
+          failedStr: reason,
+        });
+        return;
+      }
       this.signals[symbol].signal = 'SELL_SHORT';
       this.signals[symbol].lastSkipReason = '';
       // Record pending Kronos call for accuracy tracking
       this.pendingKronosCalls[symbol] = { direction: 'DOWN', confidence: forecast.confidence, side: 'SHORT', entryPrice: price, timestamp: Date.now() };
-      console.log(`\n🔴 ${coin} KRONOS SHORT | ${confPct}% | $${price.toFixed(2)} → target $${target.toFixed(2)} | stop $${stop.toFixed(2)}`);
+      console.log(`\n🔴 ${coin} KRONOS SHORT | ${confPct}% | R:R ${(reward/risk).toFixed(2)} | $${price.toFixed(2)} → target $${target.toFixed(2)} | stop $${stop.toFixed(2)}`);
       this.emit('filter-audit', {
         symbol, coin, price, regime: 'KRONOS', signal: 'SELL_SHORT',
-        passed: [`Kronos: DOWN ${confPct}%`], failed: [],
+        passed: [`Kronos: DOWN ${confPct}%`, `R:R ${(reward/risk).toFixed(2)}`], failed: [],
         auditLine: `${coin} | Kronos DOWN ${confPct}% | SHORT signal`,
         failedStr: '',
       });
