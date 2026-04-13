@@ -89,6 +89,8 @@
     .uptime-degraded { animation: uptime-blink 1.5s ease-in-out infinite; }
     .conf-bar { height: 3px; border-radius: 9px; background: rgba(99,102,241,0.2); overflow: hidden; }
     .conf-bar-fill { height: 100%; border-radius: 9px; background: linear-gradient(90deg, #6366f1, #818cf8); transition: width 0.4s ease; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
   </style>
 </head>
 <body class="h-full font-sans antialiased text-gray-100">
@@ -389,6 +391,18 @@
               <span id="backtestStatus" class="text-xs text-gray-500"></span>
             </div>
             <div id="backtestResults" class="hidden">
+              <!-- Loader shown while running -->
+              <div id="backtestLoader" class="hidden mb-6 rounded-xl overflow-hidden ring-1 ring-brand-500/20" style="background:rgba(99,102,241,0.06)">
+                <div id="backtestLoaderBar" style="height:3px;background:linear-gradient(90deg,transparent,#6366f1,#818cf8,transparent);background-size:200% 100%;animation:shimmer 1.4s ease-in-out infinite"></div>
+                <div class="flex items-center gap-3 px-5 py-4">
+                  <div style="width:18px;height:18px;border:2px solid rgba(99,102,241,0.3);border-top-color:#818cf8;border-radius:50%;animation:spin 0.8s linear infinite;flex-shrink:0"></div>
+                  <div>
+                    <p id="backtestLoaderLabel" class="text-sm font-semibold text-brand-400">Running backtest…</p>
+                    <p class="text-xs text-gray-500 mt-0.5">Calling Kronos for each 15m candle — this takes 2–4 minutes. Don't close the tab.</p>
+                  </div>
+                  <span id="backtestElapsed" class="ml-auto text-xs font-mono text-gray-500 shrink-0">0s</span>
+                </div>
+              </div>
               <div id="backtestModeLabel" class="flex items-center gap-3 mb-4"></div>
               <dl id="backtestStats" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-4"></dl>
               <h3 class="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-3">Per Symbol</h3>
@@ -992,9 +1006,31 @@
 
     // ── Backtest ───────────────────────────────────────────
     function btLoad(btn, origLabel) {
-      btn.disabled = true; btn.textContent = '⏳ Running…';
-      $('backtestStatus').textContent = 'Calling Kronos for each candle — takes ~2 min…';
-      return () => { btn.disabled = false; btn.textContent = origLabel; $('backtestStatus').textContent = 'Done'; };
+      btn.disabled = true;
+      btn.textContent = '⏳ Running…';
+      $('backtestStatus').textContent = '';
+
+      // Show loader panel
+      const loader = $('backtestLoader');
+      const label  = $('backtestLoaderLabel');
+      const elapsed = $('backtestElapsed');
+      if (loader) { loader.classList.remove('hidden'); }
+      if (label)  { label.textContent = `${origLabel} — running…`; }
+      $('backtestResults').classList.remove('hidden');
+
+      const start = Date.now();
+      const timer = setInterval(() => {
+        const s = Math.floor((Date.now() - start) / 1000);
+        if (elapsed) elapsed.textContent = s < 60 ? `${s}s` : `${Math.floor(s/60)}m ${s%60}s`;
+      }, 1000);
+
+      return () => {
+        clearInterval(timer);
+        btn.disabled = false;
+        btn.textContent = origLabel;
+        if (loader) loader.classList.add('hidden');
+        $('backtestStatus').textContent = 'Done';
+      };
     }
 
     $('runBacktestBtn').addEventListener('click', async () => {
