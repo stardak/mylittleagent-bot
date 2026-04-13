@@ -435,13 +435,23 @@
 
               <h3 class="text-base font-bold text-white mt-8 mb-3">How It Trades Now (v7 — Kronos Direct)</h3>
               <p>The bot monitors <strong class="text-white font-semibold">BTC, ETH, and SOL</strong> on 15-minute candles, 24 hours a day. On every candle close, it sends the last 96 candles (24 hours of OHLCV data) to a locally-running AI model called <strong class="text-white font-semibold">Kronos</strong>.</p>
-              <p>Kronos returns two things: a direction (<strong class="text-white font-semibold">UP or DOWN</strong>) and a confidence score. If confidence is ≥52%, the bot enters a trade in that direction — immediately. No regime detection, no Bollinger Bands, no RSI thresholds. The AI is the signal.</p>
+              <p>Kronos returns two things: a direction (<strong class="text-white font-semibold">UP or DOWN</strong>) and a confidence score. If confidence is ≥65%, the bot enters a trade — but only if the forecast also clears a <strong class="text-white font-semibold">minimum 1.5:1 risk/reward threshold</strong>. No regime detection, no Bollinger Bands, no RSI. The AI is the signal, and the math has to make sense.</p>
               <ul class="list-disc pl-5 space-y-1.5 text-gray-400">
                 <li><strong class="text-white font-semibold">Entry</strong> — market order at close of the triggering candle</li>
                 <li><strong class="text-white font-semibold">Stop loss</strong> — 1.5× ATR below entry (LONG) or above (SHORT). Adapts to volatility.</li>
-                <li><strong class="text-white font-semibold">Target</strong> — derived from Kronos own 5-candle price forecast (~75 min)</li>
-                <li><strong class="text-white font-semibold">Breakeven stop</strong> — once 0.5× ATR in profit, stop moves to entry. Zero risk.</li>
+                <li><strong class="text-white font-semibold">Target</strong> — derived from Kronos's own 5-candle price forecast (~75 min). Must offer ≥1.5× the stop distance.</li>
+                <li><strong class="text-white font-semibold">Breakeven stop</strong> — once 0.5× ATR in profit, stop moves to entry. Zero risk from that point.</li>
                 <li><strong class="text-white font-semibold">Time exit</strong> — if still open after 20 bars (~5 hours), exit regardless</li>
+              </ul>
+
+              <h3 class="text-base font-bold text-white mt-8 mb-3">What the Data Is Showing</h3>
+              <p>Live paper trading revealed something unexpected: Kronos's all-time directional accuracy was sitting at <strong class="text-white font-semibold">23%</strong> — well below the 50% you'd expect from random guessing. That number is both a problem and a clue.</p>
+              <p>A model that's consistently wrong isn't useless. If the error is <em>systematic</em>, inverting every signal should theoretically yield the mirror outcome — in this case, ~77% win rate. The <strong class="text-white font-semibold">🔄 Kronos Inverted backtest</strong> on this dashboard tests exactly that hypothesis against 30 days of real price data. If it holds, it becomes the next version of the strategy.</p>
+              <p>Three changes were deployed to stabilise the current mode while that's being tested:</p>
+              <ul class="list-disc pl-5 space-y-1.5 text-gray-400">
+                <li><strong class="text-white font-semibold">Confidence threshold raised 52% → 65%</strong> — fewer trades, only high-conviction calls</li>
+                <li><strong class="text-white font-semibold">Minimum 1.5:1 R:R guard added</strong> — skips entries where the forecast target doesn't justify the stop</li>
+                <li><strong class="text-white font-semibold">Breakeven stop corrected 1.5× → 0.5× ATR</strong> — was mistakenly cutting winners before they could run</li>
               </ul>
 
               <h3 class="text-base font-bold text-white mt-8 mb-3">Why Kronos?</h3>
@@ -453,8 +463,9 @@
 
               <h3 class="text-base font-bold text-white mt-8 mb-3">Safety Nets</h3>
               <ul class="list-disc pl-5 space-y-1.5 text-gray-400">
-                <li><strong class="text-white font-semibold">$95 hard floor</strong> — trading pauses if the portfolio drops 5%</li>
-                <li><strong class="text-white font-semibold">Breakeven stop</strong> — once 0.5× ATR in profit, stop moves to entry. Zero risk.</li>
+                <li><strong class="text-white font-semibold">$95 hard floor</strong> — trading pauses if the portfolio drops below $95</li>
+                <li><strong class="text-white font-semibold">1.5:1 minimum R:R</strong> — no entry unless the potential reward justifies the risk</li>
+                <li><strong class="text-white font-semibold">Breakeven stop</strong> — once 0.5× ATR in profit, stop moves to entry. Zero risk from that point.</li>
                 <li><strong class="text-white font-semibold">Max 3 positions</strong> — BTC, ETH, and SOL move together. Caps total correlated exposure.</li>
                 <li><strong class="text-white font-semibold">5-min cooldown</strong> — prevents re-entering the same coin immediately after a trade</li>
                 <li><strong class="text-white font-semibold">5% daily loss limit</strong> — stops trading until tomorrow</li>
