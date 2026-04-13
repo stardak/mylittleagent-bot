@@ -19,7 +19,7 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { runBacktest } from './backtester.js';
+import { runBacktest, runKronosBacktest } from './backtester.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -43,6 +43,10 @@ export class Dashboard {
     this._backtestCache = null;
     this._backtestCacheTime = 0;
     this._backtestRunning = false;
+
+    // Kronos backtest caches (normal + inverted, keyed by `${invert}_${confidence}`)
+    this._kronosBtCache = {};
+    this._kronosBtRunning = false;
 
     // Serve index.html with no-cache headers so Cloudflare never caches it
     const publicDir = path.join(__dirname, '..', 'public');
@@ -166,6 +170,40 @@ export class Dashboard {
       } catch (err) {
         this._backtestRunning = false;
         console.error('Backtest error:', err);
+        res.status(500).json({ error: err.message });
+      }
+    });
+    // Kronos backtest endpoint — ?invert=true&confidence=0.65&days=30
+    this.app.get('/api/backtest/kronos', async (req, res) => {
+      const invert     = req.query.invert === 'true';
+      const confidence = parseFloat(req.query.confidence || process.env.KRONOS_MIN_CONFIDENCE || '0.65');
+      const days       = parseInt(req.query.days || '30');
+      const cacheKey   = `${invert}_${confidence}_${days}`;
+      const now        = Date.now();
+
+      const cached = this._kronosBtCache[cacheKey];
+      if (cached && (now - cached.ts) < 3600_000) {
+        return res.json({ cached: true, ...cached.results });
+      }
+
+      if (this._kronosBtRunning) {
+        return res.status(429).json({ error: 'Kronos backtest already running, please wait...' });
+      }
+
+      this._kronosBtRunning = true;
+      try {
+        const results = await runKronosBacktest({
+          startingBalance: parseFloat(process.env.STARTING_PORTFOLIO) || 100,
+          days,
+          invert,
+          confidence,
+        });
+        this._kronosBtCache[cacheKey] = { ts: now, results };
+        this._kronosBtRunning = false;
+        res.json(results);
+      } catch (err) {
+        this._kronosBtRunning = false;
+        console.error('Kronos backtest error:', err);
         res.status(500).json({ error: err.message });
       }
     });

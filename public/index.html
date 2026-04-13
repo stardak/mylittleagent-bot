@@ -382,11 +382,14 @@
             <span class="info-icon" data-info="backtest">i</span>
           </div>
           <div id="backtestSection">
-            <div class="flex items-center gap-3 mb-5">
-              <button id="runBacktestBtn" class="rounded-lg bg-brand-600 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-brand-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">▶ Run 30-Day Backtest</button>
+            <div class="flex flex-wrap items-center gap-3 mb-5">
+              <button id="runBacktestBtn" class="rounded-lg bg-gray-700 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-gray-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">▶ MR/Breakout (30d)</button>
+              <button id="runKronosNormalBtn" class="rounded-lg bg-brand-600 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-brand-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">🔮 Kronos Normal (30d)</button>
+              <button id="runKronosInvertBtn" class="rounded-lg px-4 py-2 text-xs font-semibold text-white shadow-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed" style="background:linear-gradient(135deg,#7c3aed,#db2777)">🔄 Kronos Inverted (30d)</button>
               <span id="backtestStatus" class="text-xs text-gray-500"></span>
             </div>
             <div id="backtestResults" class="hidden">
+              <div id="backtestModeLabel" class="flex items-center gap-3 mb-4"></div>
               <dl id="backtestStats" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-4"></dl>
               <h3 class="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-3">Per Symbol</h3>
               <dl id="backtestPerSymbol" class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4"></dl>
@@ -977,41 +980,83 @@
     $('infoOverlay').addEventListener('click', (e) => { if (e.target === $('infoOverlay') || e.target === $('infoClose')) $('infoOverlay').style.display = 'none'; });
 
     // ── Backtest ───────────────────────────────────────────
+    function btLoad(btn, origLabel) {
+      btn.disabled = true; btn.textContent = '⏳ Running…';
+      $('backtestStatus').textContent = 'Calling Kronos for each candle — takes ~2 min…';
+      return () => { btn.disabled = false; btn.textContent = origLabel; $('backtestStatus').textContent = 'Done'; };
+    }
+
     $('runBacktestBtn').addEventListener('click', async () => {
-      const btn = $('runBacktestBtn'), status = $('backtestStatus');
-      btn.disabled = true; btn.textContent = '⏳ Running...';
-      status.textContent = 'Fetching 30 days of data & replaying strategy...';
+      const btn = $('runBacktestBtn'); const done = btLoad(btn, '▶ MR/Breakout (30d)');
       try {
         const res = await fetch('/api/backtest'); const data = await res.json();
         if (data.error) throw new Error(data.error);
-        renderBacktest(data); btn.textContent = '✅ Complete';
-        status.textContent = data.cached ? '(cached result)' : `Ran at ${new Date(data.ranAt).toLocaleTimeString()}`;
-      } catch (err) { btn.textContent = '❌ Failed'; status.textContent = err.message; }
-      setTimeout(() => { btn.disabled = false; btn.textContent = '▶ Run 30-Day Backtest'; }, 5000);
+        renderBacktest(data, 'legacy');
+      } catch (err) { $('backtestStatus').textContent = '❌ ' + err.message; }
+      done();
     });
 
-    function renderBacktest(data) {
-      $('backtestResults').classList.remove('hidden'); $('backtestTradeCount').textContent = data.totalTrades;
+    $('runKronosNormalBtn').addEventListener('click', async () => {
+      const btn = $('runKronosNormalBtn'); const done = btLoad(btn, '🔮 Kronos Normal (30d)');
+      try {
+        const res = await fetch('/api/backtest/kronos?invert=false'); const data = await res.json();
+        if (data.error) throw new Error(data.error);
+        renderBacktest(data, 'kronos-normal');
+      } catch (err) { $('backtestStatus').textContent = '❌ ' + err.message; }
+      done();
+    });
+
+    $('runKronosInvertBtn').addEventListener('click', async () => {
+      const btn = $('runKronosInvertBtn'); const done = btLoad(btn, '🔄 Kronos Inverted (30d)');
+      try {
+        const res = await fetch('/api/backtest/kronos?invert=true'); const data = await res.json();
+        if (data.error) throw new Error(data.error);
+        renderBacktest(data, 'kronos-inverted');
+      } catch (err) { $('backtestStatus').textContent = '❌ ' + err.message; }
+      done();
+    });
+
+    function renderBacktest(data, mode) {
+      $('backtestResults').classList.remove('hidden');
+      $('backtestTradeCount').textContent = data.totalTrades;
+
+      const modeEl = $('backtestModeLabel');
+      if (modeEl) {
+        const callStats = data.kronosCallCount != null
+          ? `<span class="text-xs text-gray-500">${data.kronosCallCount} calls · ${data.kronosSkipConf} low-conf · ${data.kronosSkipRR} poor R:R</span>` : '';
+        if (mode === 'kronos-inverted') modeEl.innerHTML = `<span class="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-bold" style="background:rgba(124,58,237,0.15);color:#c4b5fd;border:1px solid rgba(124,58,237,0.3)">🔄 INVERTED — Kronos signal flipped</span>${callStats}`;
+        else if (mode === 'kronos-normal') modeEl.innerHTML = `<span class="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-bold bg-brand-500/10 text-brand-400 ring-1 ring-brand-500/20">🔮 NORMAL — Kronos as-is</span>${callStats}`;
+        else modeEl.innerHTML = `<span class="text-xs text-gray-500">Mean Reversion + Breakout strategy (legacy)</span>`;
+      }
+
+      const pnlPct = data.totalPnlPct != null ? data.totalPnlPct : (data.startingBalance > 0 ? ((data.totalPnlUsd / data.startingBalance) * 100).toFixed(2) : 0);
       $('backtestStats').innerHTML = [
-        { label: 'Win Rate', value: data.winRate + '%', cls: data.winRate >= 50 ? 'text-profit' : 'text-loss' },
-        { label: 'Total P&L', value: (data.totalPnlUsd >= 0 ? '+' : '') + fmtUsd(data.totalPnlUsd) + ` (${data.totalPnlPct >= 0 ? '+' : ''}${data.totalPnlPct}%)`, cls: data.totalPnlUsd >= 0 ? 'text-profit' : 'text-loss' },
-        { label: 'Max Drawdown', value: fmtUsd(data.maxDrawdown) + ` (${data.maxDrawdownPct}%)`, cls: 'text-loss' },
-        { label: 'Trades', value: `${data.totalTrades} (${data.wins}W / ${data.losses}L)`, cls: 'text-white' },
-        { label: 'Avg Win', value: fmtUsd(data.avgWin), cls: 'text-profit' },
-        { label: 'Avg Loss', value: fmtUsd(data.avgLoss), cls: 'text-loss' },
+        { label: 'Win Rate',       value: data.winRate + '%',  cls: data.winRate >= 50 ? 'text-profit' : 'text-loss' },
+        { label: 'Total P&L',      value: (data.totalPnlUsd >= 0?'+':'') + fmtUsd(data.totalPnlUsd) + ` (${pnlPct >= 0?'+':''}${Number(pnlPct).toFixed(1)}%)`, cls: data.totalPnlUsd >= 0 ? 'text-profit' : 'text-loss' },
+        { label: 'Max Drawdown',   value: `${data.maxDrawdownPct}%`, cls: 'text-loss' },
+        { label: 'Trades',         value: `${data.totalTrades} (${data.wins}W / ${data.losses}L)`, cls: 'text-white' },
+        { label: 'Profit Factor',  value: (data.profitFactor ?? 0).toFixed(2), cls: (data.profitFactor||0) >= 1 ? 'text-profit' : 'text-loss' },
+        { label: 'Avg W / L',      value: `${fmtUsd(data.avgWin||0)} / ${fmtUsd(data.avgLoss||0)}`, cls: 'text-white' },
       ].map(s => `<div class="rounded-xl bg-gray-800/60 ring-1 ring-white/5 px-4 py-3"><dt class="text-[10px] font-medium uppercase tracking-wider text-gray-500">${s.label}</dt><dd class="mt-1 text-lg font-bold ${s.cls}">${s.value}</dd></div>`).join('');
 
       $('backtestPerSymbol').innerHTML = Object.entries(data.perSymbol || {}).map(([sym, d]) => {
         const wr = d.trades > 0 ? (d.wins / d.trades * 100).toFixed(0) : 0;
-        return `<div class="rounded-xl bg-gray-800/60 ring-1 ring-white/5 px-4 py-3"><dt class="text-xs font-medium text-gray-400">${sym}</dt><dd class="mt-1 text-lg font-bold ${d.totalPnl >= 0 ? 'text-profit' : 'text-loss'}">${d.totalPnl >= 0 ? '+' : ''}${fmtUsd(d.totalPnl)}</dd><p class="text-xs text-gray-500">${d.trades} trades · ${wr}% win</p></div>`;
+        const pnl = d.pnl ?? d.totalPnl ?? 0;
+        return `<div class="rounded-xl bg-gray-800/60 ring-1 ring-white/5 px-4 py-3"><dt class="text-xs font-medium text-gray-400">${sym.replace('USDT','')}</dt><dd class="mt-1 text-lg font-bold ${pnl >= 0?'text-profit':'text-loss'}">${pnl>=0?'+':''}${fmtUsd(pnl)}</dd><p class="text-xs text-gray-500">${d.trades} trades · ${wr}% win</p></div>`;
       }).join('');
 
-      $('backtestTradeFeed').innerHTML = (data.trades || []).map(t => `<div class="flex items-center gap-3 px-4 py-3">
-        <span class="flex size-7 items-center justify-center rounded-lg ${t.pnlUsd >= 0 ? 'bg-profit/10' : 'bg-loss/10'} text-xs">${t.pnlUsd >= 0 ? '✅' : '❌'}</span>
-        <div class="flex-1 min-w-0"><p class="text-xs font-medium text-white">${t.symbol} · ${t.reason}</p><p class="text-[11px] text-gray-500">$${t.entryPrice.toLocaleString()} → $${t.exitPrice.toLocaleString()} · Cost: ${fmtUsd(t.cost)}</p></div>
-        <span class="text-xs font-bold ${t.pnlUsd >= 0 ? 'text-profit' : 'text-loss'}">${t.pnlUsd >= 0 ? '+' : ''}${fmtUsd(t.pnlUsd)} (${t.pnlPct >= 0 ? '+' : ''}${t.pnlPct}%)</span>
-        <span class="text-[10px] text-gray-600">${new Date(t.entryTime).toLocaleDateString('en-GB', {day:'numeric',month:'short'})}</span>
-      </div>`).join('');
+      $('backtestTradeFeed').innerHTML = (data.trades || []).slice(-100).map(t => {
+        const dirBadge = t.side ? `<span class="ml-1 inline-flex rounded-full px-1.5 py-0.5 text-[9px] font-bold ${
+          t.inverted ? 'bg-purple-500/10 text-purple-300' : t.side==='LONG' ? 'bg-profit/10 text-profit' : 'bg-loss/10 text-loss'
+        }">${t.inverted?'🔄 ':''}${t.side}${t.confidence ? ' '+(t.confidence*100).toFixed(0)+'%':''}</span>` : '';
+        return `<div class="flex items-center gap-3 px-4 py-3">
+          <span class="flex size-7 items-center justify-center rounded-lg ${t.pnlUsd>=0?'bg-profit/10':'bg-loss/10'} text-xs">${t.pnlUsd>=0?'✅':'❌'}</span>
+          <div class="flex-1 min-w-0"><p class="text-xs font-medium text-white truncate">${(t.symbol||'').replace('USDT','')} · ${t.reason||''}${dirBadge}</p>
+          <p class="text-[11px] text-gray-500">$${Number(t.entryPrice||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})} → $${Number(t.exitPrice||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</p></div>
+          <span class="text-xs font-bold ${t.pnlUsd>=0?'text-profit':'text-loss'}">${t.pnlUsd>=0?'+':''}${fmtUsd(t.pnlUsd)}</span>
+          <span class="text-[10px] text-gray-600">${new Date(t.entryTime).toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</span>
+        </div>`;
+      }).join('');
     }
   </script>
 

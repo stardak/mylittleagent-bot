@@ -576,3 +576,318 @@ export async function runBacktest(options = {}) {
     trades: allTrades,
   };
 }
+
+// ══════════════════════════════════════════════════════════════════════════════
+// KRONOS BACKTEST — replay historical candles through the live Kronos service
+// ══════════════════════════════════════════════════════════════════════════════
+//
+// For each closed 15m candle (in sequence), sends the prior 96 candles to
+// Kronos and gets a forecast. If confidence ≥ threshold, simulates a trade.
+// Set invert=true to flip every signal (LONG→SHORT, SHORT→LONG).
+//
+// Trade mechanics match scalper v7:
+//   Stop:      1.5× ATR from entry
+//   Target:    Kronos forecast high (LONG) or low (SHORT) over horizon
+//   Breakeven: once 0.5× ATR in profit, stop moves to entry
+//   Time exit: 20 bars (5 hours)
+//   Sizing:    10% compounding
+//   Max conc:  3 positions
+//   Fee:       0.1% per side
+//
+export async function runKronosBacktest(options = {}) {
+  const startingBalance = options.startingBalance || 100;
+  const days            = options.days            || 30;
+  const symbols         = options.symbols         || ['ETHUSDT', 'BTCUSDT', 'SOLUSDT'];
+  const kronosUrl       = options.kronosUrl       || process.env.KRONOS_URL || 'http://localhost:5001';
+  const confidence      = options.confidence      || parseFloat(process.env.KRONOS_MIN_CONFIDENCE || '0.65');
+  const invert          = options.invert          || false;
+  const betPct          = 0.10;
+  const stopAtrMult     = 1.5;
+  const breakevenAtrMult = 0.5;
+  const maxBarsHeld     = 20;
+  const maxConcurrent   = 3;
+  const feePct          = 0.001;
+  const minRR           = 1.5;
+
+  const modeLabel = invert ? 'INVERTED' : 'NORMAL';
+  console.log(`\n${'═'.repeat(70)}`);
+  console.log(`🔮 KRONOS BACKTEST [${modeLabel}] — ${days} days | Conf ≥ ${(confidence*100).toFixed(0)}% | 10% sizing`);
+  console.log(`${'═'.repeat(70)}`);
+
+  // ── 1. Fetch historical candles ──────────────────────────────────────────
+  const candleData = {};
+  for (const sym of symbols) {
+    candleData[sym] = await fetchCandles(sym, INTERVAL, days + 1); // +1 day buffer for warm-up
+    console.log(`   ${sym}: ${candleData[sym].length} candles loaded`);
+  }
+
+  // Interleave all candles by time
+  const events = [];
+  for (const [sym, candles] of Object.entries(candleData)) {
+    for (const c of candles) events.push({ ...c, symbol: sym });
+  }
+  events.sort((a, b) => a.openTime - b.openTime);
+
+  // ── 2. State ──────────────────────────────────────────────────────────────
+  let equity = startingBalance;
+  const buffers      = {};   // rolling candle windows per symbol
+  const positions    = {};   // open positions per symbol
+  const lastTradeTs  = {};   // last trade timestamp per symbol
+  const barCounts    = {};   // bar counter per symbol
+  const allTrades    = [];
+  const dailyEquity  = {};
+  let kronosCallCount = 0, kronosSkipConf = 0, kronosSkipRR = 0;
+  let kronosOnline = true;
+
+  for (const sym of symbols) {
+    buffers[sym]     = [];
+    positions[sym]   = null;
+    lastTradeTs[sym] = 0;
+    barCounts[sym]   = 0;
+  }
+
+  // ── 3. Replay ─────────────────────────────────────────────────────────────
+  for (const ev of events) {
+    const sym = ev.symbol;
+    const buf = buffers[sym];
+    buf.push(ev);
+    if (buf.length > 120) buf.shift();
+    barCounts[sym]++;
+
+    const closes = buf.map(c => c.close);
+    // Need at least 96 candles for Kronos + 15 for ATR
+    if (buf.length < 100) continue;
+
+    const price = ev.close;
+    const atr   = atrF(buf, 14);
+    if (!atr) continue;
+
+    const day = new Date(ev.openTime).toISOString().split('T')[0];
+
+    // ── Check exits for open position ────────────────────────────────────
+    if (positions[sym]) {
+      const pos  = positions[sym];
+      const isL  = pos.side === 'LONG';
+      const barsHeld = barCounts[sym] - pos.entryBar;
+
+      // Breakeven stop
+      if (!pos.breakevenStop) {
+        const beThresh = pos.entryATR * breakevenAtrMult;
+        const inProfit = isL ? (price - pos.entryPrice) >= beThresh : (pos.entryPrice - price) >= beThresh;
+        if (inProfit) { pos.stopPrice = pos.entryPrice; pos.breakevenStop = true; }
+      }
+
+      let exitReason = null;
+      if (pos.targetPrice && (isL ? price >= pos.targetPrice : price <= pos.targetPrice)) exitReason = 'TARGET';
+      else if (isL ? price <= pos.stopPrice : price >= pos.stopPrice) exitReason = pos.breakevenStop ? 'BREAKEVEN' : 'STOP';
+      else if (barsHeld >= maxBarsHeld) exitReason = 'TIME';
+
+      if (exitReason) {
+        const raw  = isL ? pos.qty * (price - pos.entryPrice) : pos.qty * (pos.entryPrice - price);
+        const fees = pos.qty * price * feePct + pos.qty * pos.entryPrice * feePct;
+        const pnl  = raw - fees;
+        equity += pnl;
+        dailyEquity[day] = equity;
+        allTrades.push({
+          symbol: sym, side: pos.side,
+          kronosDirection: pos.kronosDirection, inverted: invert,
+          confidence: pos.confidence,
+          entryPrice: pos.entryPrice, exitPrice: price,
+          quantity: pos.qty, pnlUsd: pnl,
+          pnlPct: (isL ? (price - pos.entryPrice)/pos.entryPrice : (pos.entryPrice - price)/pos.entryPrice) * 100 - feePct*2*100,
+          reason: exitReason, entryTime: pos.entryTime, exitTime: ev.openTime,
+          barsHeld,
+        });
+        positions[sym] = null;
+      }
+      continue; // don't look for new entry while in position
+    }
+
+    // ── Hard floor ────────────────────────────────────────────────────────
+    if (equity < 95) continue;
+
+    // ── Cooldown (5 min = 1 bar on 15m) ──────────────────────────────────
+    if ((ev.openTime - lastTradeTs[sym]) < 5 * 60 * 1000) continue;
+
+    // ── Max concurrent ────────────────────────────────────────────────────
+    const openCount = Object.values(positions).filter(p => p !== null).length;
+    if (openCount >= maxConcurrent) continue;
+
+    // ── Ask Kronos ────────────────────────────────────────────────────────
+    let forecast = null;
+    try {
+      const payload = {
+        candles: buf.slice(-96).map(c => ({
+          open: c.open ?? c.close, high: c.high ?? c.close,
+          low: c.low ?? c.close, close: c.close,
+          volume: c.volume ?? 0, openTime: c.openTime ?? null,
+        })),
+        horizon: 5,
+        interval_minutes: 15,
+      };
+      const res = await fetch(`${kronosUrl}/forecast`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(10000),
+      });
+      if (res.ok) {
+        const d = await res.json();
+        forecast = { direction: d.direction, confidence: d.confidence, forecast: d.forecast || [] };
+        kronosOnline = true;
+      }
+    } catch { kronosOnline = false; }
+
+    if (!forecast) continue;
+    kronosCallCount++;
+
+    // Filter by confidence
+    if (forecast.confidence < confidence) { kronosSkipConf++; continue; }
+
+    // Invert if requested
+    const effectiveDir = invert
+      ? (forecast.direction === 'UP' ? 'DOWN' : 'UP')
+      : forecast.direction;
+
+    const forecastCloses = (forecast.forecast || []).map(f => f.close).filter(Boolean);
+    const hasTarget = forecastCloses.length > 0;
+
+    // R:R check
+    let stop, target, risk, reward;
+    if (effectiveDir === 'UP') {
+      stop   = price - atr * stopAtrMult;
+      target = hasTarget ? Math.max(...forecastCloses) : price * 1.02;
+      risk   = price - stop;
+      reward = target - price;
+    } else {
+      stop   = price + atr * stopAtrMult;
+      target = hasTarget ? Math.min(...forecastCloses) : price * 0.98;
+      risk   = stop - price;
+      reward = price - target;
+    }
+
+    if (reward < risk * minRR) { kronosSkipRR++; continue; }
+
+    // ── Open position ─────────────────────────────────────────────────────
+    const betSize = equity * betPct;
+    const qty     = betSize / price;
+
+    positions[sym] = {
+      side: effectiveDir === 'UP' ? 'LONG' : 'SHORT',
+      kronosDirection: forecast.direction,
+      confidence: forecast.confidence,
+      entryPrice: price, qty,
+      stopPrice: stop, targetPrice: target,
+      entryATR: atr, breakevenStop: false,
+      entryTime: ev.openTime, entryBar: barCounts[sym],
+    };
+    lastTradeTs[sym] = ev.openTime;
+  }
+
+  // ── Close any remaining positions at last candle ───────────────────────
+  for (const sym of symbols) {
+    if (positions[sym]) {
+      const last = candleData[sym][candleData[sym].length - 1];
+      const p    = last.close;
+      const pos  = positions[sym];
+      const isL  = pos.side === 'LONG';
+      const raw  = isL ? pos.qty * (p - pos.entryPrice) : pos.qty * (pos.entryPrice - p);
+      const fees = pos.qty * p * feePct + pos.qty * pos.entryPrice * feePct;
+      const pnl  = raw - fees;
+      equity += pnl;
+      allTrades.push({
+        symbol: sym, side: pos.side,
+        kronosDirection: pos.kronosDirection, inverted: invert,
+        confidence: pos.confidence,
+        entryPrice: pos.entryPrice, exitPrice: p,
+        quantity: pos.qty, pnlUsd: pnl,
+        pnlPct: (isL ? (p - pos.entryPrice)/pos.entryPrice : (pos.entryPrice - p)/pos.entryPrice) * 100 - feePct*2*100,
+        reason: 'END_OF_DATA', entryTime: pos.entryTime, exitTime: last.openTime,
+        barsHeld: 0,
+      });
+    }
+  }
+
+  allTrades.sort((a, b) => a.entryTime - b.entryTime);
+
+  // ── Stats ──────────────────────────────────────────────────────────────
+  const wins   = allTrades.filter(t => t.pnlUsd > 0);
+  const losses = allTrades.filter(t => t.pnlUsd <= 0);
+  const totalTrades = allTrades.length;
+  const winRate     = totalTrades > 0 ? wins.length / totalTrades * 100 : 0;
+  const totalPnl    = allTrades.reduce((s, t) => s + t.pnlUsd, 0);
+  const avgWin      = wins.length   > 0 ? wins.reduce((s,t) => s+t.pnlUsd,0) / wins.length   : 0;
+  const avgLoss     = losses.length > 0 ? losses.reduce((s,t) => s+t.pnlUsd,0) / losses.length : 0;
+  const grossProfit = wins.reduce((s,t) => s+t.pnlUsd,0);
+  const grossLoss   = Math.abs(losses.reduce((s,t) => s+t.pnlUsd,0));
+  const profitFactor = grossLoss > 0 ? grossProfit / grossLoss : 0;
+
+  let eq = startingBalance, peak = eq, maxDDpct = 0, maxDD = 0;
+  let maxWS = 0, maxLS = 0, cw = 0, cl = 0;
+  for (const t of allTrades) {
+    eq += t.pnlUsd;
+    if (eq > peak) peak = eq;
+    const ddp = ((peak - eq) / peak) * 100;
+    if (ddp > maxDDpct) { maxDDpct = ddp; maxDD = peak - eq; }
+    if (t.pnlUsd > 0) { cw++; cl = 0; maxWS = Math.max(maxWS, cw); }
+    else               { cl++; cw = 0; maxLS = Math.max(maxLS, cl); }
+  }
+
+  const exitReasons = {};
+  for (const t of allTrades) exitReasons[t.reason] = (exitReasons[t.reason] || 0) + 1;
+
+  const longTrades  = allTrades.filter(t => t.side === 'LONG');
+  const shortTrades = allTrades.filter(t => t.side === 'SHORT');
+  const longWR  = longTrades.length  > 0 ? (longTrades.filter(t=>t.pnlUsd>0).length/longTrades.length*100)   : 0;
+  const shortWR = shortTrades.length > 0 ? (shortTrades.filter(t=>t.pnlUsd>0).length/shortTrades.length*100) : 0;
+
+  const perSymbol = {};
+  for (const sym of symbols) {
+    const st = allTrades.filter(t => t.symbol === sym);
+    perSymbol[sym] = {
+      trades: st.length,
+      wins:   st.filter(t => t.pnlUsd > 0).length,
+      losses: st.filter(t => t.pnlUsd <= 0).length,
+      pnl:    st.reduce((s,t) => s+t.pnlUsd, 0),
+    };
+  }
+
+  // ── Print ──────────────────────────────────────────────────────────────
+  console.log(`\n  Mode:          ${modeLabel} Kronos signals`);
+  console.log(`  Confidence:    ≥${(confidence*100).toFixed(0)}%`);
+  console.log(`  Kronos calls:  ${kronosCallCount} (skipped: ${kronosSkipConf} conf, ${kronosSkipRR} R:R)`);
+  console.log(`  Starting:      $${startingBalance.toFixed(2)}`);
+  console.log(`  Ending:        $${equity.toFixed(4)} (${((equity-startingBalance)/startingBalance*100).toFixed(2)}%)`);
+  console.log(`  Total trades:  ${totalTrades} (${wins.length}W / ${losses.length}L)`);
+  console.log(`  Win rate:      ${winRate.toFixed(1)}%`);
+  console.log(`  Avg win:       $${avgWin.toFixed(4)}  |  Avg loss: $${avgLoss.toFixed(4)}`);
+  console.log(`  Profit factor: ${profitFactor.toFixed(2)}`);
+  console.log(`  Max drawdown:  ${maxDDpct.toFixed(2)}% ($${maxDD.toFixed(4)})`);
+  console.log(`  Max win streak: ${maxWS}  |  Max loss streak: ${maxLS}`);
+  console.log(`\n  LONG:  ${longTrades.length} trades, ${longWR.toFixed(1)}% WR, $${longTrades.reduce((s,t)=>s+t.pnlUsd,0).toFixed(4)}`);
+  console.log(`  SHORT: ${shortTrades.length} trades, ${shortWR.toFixed(1)}% WR, $${shortTrades.reduce((s,t)=>s+t.pnlUsd,0).toFixed(4)}`);
+  console.log(`\n  ── Per-Coin ──`);
+  for (const sym of symbols) {
+    const ps = perSymbol[sym]; const wr = ps.trades > 0 ? (ps.wins/ps.trades*100).toFixed(1) : '0.0';
+    console.log(`  ${sym.replace('USDT','').padEnd(4)} ${String(ps.trades).padEnd(4)} trades  ${wr}% WR  $${ps.pnl.toFixed(4)}`);
+  }
+  console.log(`\n  ── Exit Reasons ──`);
+  for (const [r,c] of Object.entries(exitReasons).sort((a,b)=>b[1]-a[1])) console.log(`  ${r.padEnd(12)} ${c}`);
+  console.log(`${'═'.repeat(70)}\n`);
+
+  return {
+    mode: modeLabel, invert, confidence, startingBalance,
+    finalEquity: equity, daysBacktested: days,
+    totalTrades, wins: wins.length, losses: losses.length,
+    winRate: parseFloat(winRate.toFixed(1)),
+    totalPnlUsd: parseFloat(totalPnl.toFixed(4)),
+    profitFactor: parseFloat(profitFactor.toFixed(2)),
+    maxDrawdownPct: parseFloat(maxDDpct.toFixed(2)),
+    maxConsecutiveLosses: maxLS, maxConsecutiveWins: maxWS,
+    avgWin: parseFloat(avgWin.toFixed(4)),
+    avgLoss: parseFloat(avgLoss.toFixed(4)),
+    kronosCallCount, kronosSkipConf, kronosSkipRR,
+    perSymbol, exitReasons, dailyEquity,
+    trades: allTrades,
+  };
+}
