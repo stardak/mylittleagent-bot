@@ -1029,39 +1029,36 @@
         btn.disabled = false;
         btn.textContent = origLabel;
         if (loader) loader.classList.add('hidden');
-        $('backtestStatus').textContent = 'Done';
+        if (!hadError) $('backtestStatus').textContent = 'Done';
       };
+      return done;
     }
 
-    $('runBacktestBtn').addEventListener('click', async () => {
-      const btn = $('runBacktestBtn'); const done = btLoad(btn, '▶ MR/Breakout (30d)');
-      try {
-        const res = await fetch('/api/backtest'); const data = await res.json();
-        if (data.error) throw new Error(data.error);
-        renderBacktest(data, 'legacy');
-      } catch (err) { $('backtestStatus').textContent = '❌ ' + err.message; }
-      done();
-    });
+    function btRun(btn, origLabel, url, mode) {
+      let hadError = false;
+      const done = btLoad(btn, origLabel, () => hadError);
+      fetch(url)
+        .then(r => r.json())
+        .then(data => {
+          if (data.error) throw new Error(data.error);
+          console.log('[Backtest] result:', data);
+          renderBacktest(data, mode);
+        })
+        .catch(err => {
+          hadError = true;
+          console.error('[Backtest] error:', err);
+          $('backtestStatus').textContent = '\u274c ' + err.message;
+          $('backtestResults').classList.remove('hidden');
+          $('backtestModeLabel').innerHTML = `<span class="text-xs text-loss">❌ Failed: ${err.message}</span>`;
+        })
+        .finally(() => done(hadError));
+    }
 
-    $('runKronosNormalBtn').addEventListener('click', async () => {
-      const btn = $('runKronosNormalBtn'); const done = btLoad(btn, '🔮 Kronos Normal (30d)');
-      try {
-        const res = await fetch('/api/backtest/kronos?invert=false'); const data = await res.json();
-        if (data.error) throw new Error(data.error);
-        renderBacktest(data, 'kronos-normal');
-      } catch (err) { $('backtestStatus').textContent = '❌ ' + err.message; }
-      done();
-    });
 
-    $('runKronosInvertBtn').addEventListener('click', async () => {
-      const btn = $('runKronosInvertBtn'); const done = btLoad(btn, '🔄 Kronos Inverted (30d)');
-      try {
-        const res = await fetch('/api/backtest/kronos?invert=true'); const data = await res.json();
-        if (data.error) throw new Error(data.error);
-        renderBacktest(data, 'kronos-inverted');
-      } catch (err) { $('backtestStatus').textContent = '❌ ' + err.message; }
-      done();
-    });
+
+    $('runBacktestBtn').addEventListener('click',      () => btRun($('runBacktestBtn'),      '▶ MR/Breakout (30d)',       '/api/backtest',                     'legacy'));
+    $('runKronosNormalBtn').addEventListener('click',  () => btRun($('runKronosNormalBtn'),  '🔮 Kronos Normal (30d)',    '/api/backtest/kronos?invert=false',  'kronos-normal'));
+    $('runKronosInvertBtn').addEventListener('click',  () => btRun($('runKronosInvertBtn'),  '🔄 Kronos Inverted (30d)', '/api/backtest/kronos?invert=true',   'kronos-inverted'));
 
     function renderBacktest(data, mode) {
       $('backtestResults').classList.remove('hidden');
