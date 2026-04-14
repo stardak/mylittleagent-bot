@@ -26,13 +26,15 @@ export class PolymarketArbScanner {
     this.stats = {
       totalScans:            0,
       marketsChecked:        0,
-      opportunitiesFound:    0,   // Any gap > 0
-      tradesAutoTaken:       0,   // Gaps ≥ MIN_GAP
+      opportunitiesFound:    0,
+      tradesAutoTaken:       0,
       totalTheoreticalProfit: 0,
       avgGapCents:           0,
       _allGaps:              [],
       lastScan:              null,
       lastScanDuration:      null,
+      startingBalance:       100,
+      currentBalance:        100,
     };
   }
 
@@ -88,6 +90,7 @@ export class PolymarketArbScanner {
         if (opp.gap >= MIN_GAP) {
           this.stats.tradesAutoTaken++;
           this.stats.totalTheoreticalProfit = +(this.stats.totalTheoreticalProfit + opp.profit).toFixed(4);
+          this.stats.currentBalance = +(100 + this.stats.totalTheoreticalProfit).toFixed(2);
           this.paperTrades.unshift({
             ...opp,
             takenAt: new Date().toISOString(),
@@ -200,6 +203,8 @@ export class PolymarketArbScanner {
         tradesAutoTaken:        s.tradesAutoTaken,
         totalTheoreticalProfit: +s.totalTheoreticalProfit.toFixed(2),
         avgGapCents:            +(s.avgGapCents * 100).toFixed(2),
+        startingBalance:        s.startingBalance,
+        currentBalance:         +s.currentBalance.toFixed(2),
         lastScan:               s.lastScan,
         lastScanDuration:       s.lastScanDuration,
         running:                !!this._interval,

@@ -181,7 +181,7 @@
 
     <!-- ── Main Content (overlaps branded header) ──────────── -->
     <main class="-mt-32">
-      <div class="mx-auto max-w-7xl px-4 pb-16 sm:px-6 lg:px-8">
+      <div id="mainTabContent" class="mx-auto max-w-7xl px-4 pb-16 sm:px-6 lg:px-8">
 
         <!-- ── Tab Switcher ─────────────────────────────────────── -->
         <div class="flex gap-1 mb-6 p-1 rounded-xl bg-gray-800/60 ring-1 ring-white/5 w-fit backdrop-blur-sm">
@@ -505,81 +505,94 @@
         <!-- ── Tab: Polymarket Arb ────────────────────────────────── -->
         <div id="panePoly" class="hidden">
 
-          <!-- Header -->
-          <div class="flex flex-wrap items-start justify-between gap-4 mb-6">
-            <div>
-              <h2 class="text-xl font-bold text-white flex items-center gap-2">🎯 Polymarket Arb Scanner</h2>
-              <p class="text-sm text-gray-400 mt-1">Scanning ALL active binary markets for YES + NO < $1.00 gaps. The difference is theoretical free money.</p>
-            </div>
-            <div class="flex items-center gap-3">
-              <span id="polyLastScan" class="text-xs text-gray-500">Starting scanner…</span>
-              <span id="polyStatusBadge" class="inline-flex items-center gap-1.5 rounded-full bg-gray-800 px-3 py-1.5 text-xs font-semibold text-gray-400 ring-1 ring-white/5">
-                <span id="polyStatusDot" class="size-2 rounded-full bg-gray-500 animate-pulse-glow"></span>
-                <span id="polyStatusText">Waiting</span>
-              </span>
+          <!-- ── Arb Hero ────────────────────────────────────────── -->
+          <div class="relative overflow-hidden rounded-2xl mb-6 px-6 py-5" style="background:linear-gradient(135deg,rgba(16,185,129,0.1) 0%,rgba(6,78,59,0.06) 100%);border:1px solid rgba(16,185,129,0.18)">
+            <div class="absolute inset-0 opacity-5" style="background-image:radial-gradient(circle at 80% 50%,#10b981 0%,transparent 60%)"></div>
+            <div class="relative flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <p class="text-[10px] uppercase tracking-[0.2em] font-semibold mb-1" style="color:rgba(52,211,153,0.5)">Polymarket Arbitrage · Paper Mode</p>
+                <div class="flex items-baseline gap-3 flex-wrap">
+                  <span id="polyCurrentBalance" class="text-4xl font-extrabold tracking-tighter text-white">$100.00</span>
+                  <span id="polyBalancePnl" class="text-sm font-semibold text-gray-400">+$0.00 (0.00%)</span>
+                </div>
+                <p class="text-xs text-gray-500 mt-1">Scanning 250 markets every 30s for YES + NO &lt; $1.00 · $10 notional per trade</p>
+              </div>
+              <div class="flex items-center gap-3">
+                <div class="relative flex items-center justify-center w-12 h-12">
+                  <span class="absolute inline-flex w-10 h-10 rounded-full opacity-30 animate-ping" style="background:rgba(16,185,129,0.4)"></span>
+                  <span class="relative inline-flex w-5 h-5 rounded-full shadow-lg" style="background:#10b981;box-shadow:0 0 12px rgba(16,185,129,0.5)"></span>
+                </div>
+                <div>
+                  <p class="text-sm font-semibold text-white" id="polyStatusText">Scanning…</p>
+                  <p class="text-[11px] text-gray-500" id="polyLastScan">—</p>
+                </div>
+              </div>
             </div>
           </div>
 
-          <!-- Stats Grid -->
-          <dl class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            <div class="rounded-xl bg-gray-800/80 ring-1 ring-white/5 px-5 py-4 backdrop-blur-sm">
+          <!-- ── Stats Strip ────────────────────────────────────────── -->
+          <dl class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+            <div class="rounded-xl bg-gray-800/70 ring-1 ring-white/5 px-4 py-3">
               <dt class="text-[10px] font-medium uppercase tracking-widest text-gray-500">Markets / Scan</dt>
-              <dd id="polyMarketsChecked" class="mt-2 text-2xl font-bold text-white">0</dd>
-              <p id="polyTotalScans" class="text-xs text-gray-600 mt-1">0 scans complete</p>
+              <dd id="polyMarketsChecked" class="mt-1.5 text-xl font-bold text-white">—</dd>
+              <p id="polyTotalScans" class="text-[11px] text-gray-600 mt-0.5">0 scans run</p>
             </div>
-            <div class="rounded-xl bg-gray-800/80 ring-1 ring-white/5 px-5 py-4 backdrop-blur-sm">
-              <dt class="text-[10px] font-medium uppercase tracking-widest text-gray-500">Gaps Found</dt>
-              <dd id="polyOppsFound" class="mt-2 text-2xl font-bold text-profit">0</dd>
-              <p id="polyAvgGap" class="text-xs text-gray-600 mt-1">Avg gap: &mdash;</p>
+            <div class="rounded-xl bg-gray-800/70 ring-1 ring-white/5 px-4 py-3">
+              <dt class="text-[10px] font-medium uppercase tracking-widest text-gray-500">Gaps Detected</dt>
+              <dd id="polyOppsFound" class="mt-1.5 text-xl font-bold text-profit">0</dd>
+              <p id="polyAvgGap" class="text-[11px] text-gray-600 mt-0.5">Avg: —</p>
             </div>
-            <div class="rounded-xl bg-gray-800/80 ring-1 ring-white/5 px-5 py-4 backdrop-blur-sm">
-              <dt class="text-[10px] font-medium uppercase tracking-widest text-gray-500">Trades Taken</dt>
-              <dd id="polyTradesTaken" class="mt-2 text-2xl font-bold text-warn">0</dd>
-              <p class="text-xs text-gray-600 mt-1">Paper, gaps ≥ 2¢</p>
+            <div class="rounded-xl bg-gray-800/70 ring-1 ring-white/5 px-4 py-3">
+              <dt class="text-[10px] font-medium uppercase tracking-widest text-gray-500">Trades Auto-taken</dt>
+              <dd id="polyTradesTaken" class="mt-1.5 text-xl font-bold text-warn">0</dd>
+              <p class="text-[11px] text-gray-600 mt-0.5">Gaps ≥ 2¢</p>
             </div>
-            <div class="rounded-xl ring-1 ring-white/5 px-5 py-4 backdrop-blur-sm" style="background:rgba(52,211,153,0.06);border-color:rgba(52,211,153,0.2)">
-              <dt class="text-[10px] font-medium uppercase tracking-widest" style="color:rgba(52,211,153,0.6)">Theoretical P&amp;L</dt>
-              <dd id="polyTotalProfit" class="mt-2 text-2xl font-bold text-profit">$0.00</dd>
-              <p class="text-xs text-gray-600 mt-1">$10 per trade</p>
+            <div class="rounded-xl bg-gray-800/70 ring-1 ring-white/5 px-4 py-3">
+              <dt class="text-[10px] font-medium uppercase tracking-widest text-gray-500">Live Gaps Now</dt>
+              <dd id="polyOppCount" class="mt-1.5 text-xl font-bold text-white">0</dd>
+              <p class="text-[11px] text-gray-600 mt-0.5">In latest scan</p>
             </div>
           </dl>
 
-          <!-- Live Opportunities -->
-          <div class="border-t border-white/5 pt-6 mb-8">
-            <div class="flex items-center gap-2 mb-4">
-              <h3 class="text-xs font-semibold uppercase tracking-widest text-gray-400">Live Opportunities</h3>
-              <span id="polyOppCount" class="rounded-full bg-gray-700 px-2 py-0.5 text-[10px] font-bold text-gray-400">0</span>
-              <span class="text-xs text-gray-600">sorted by gap size</span>
-            </div>
-            <div id="polyOpportunities" class="space-y-3">
-              <div class="rounded-xl bg-gray-800/40 ring-1 ring-white/5 px-6 py-10 text-center text-sm text-gray-500">First scan running… results in ~5 seconds</div>
-            </div>
-          </div>
+          <!-- ── Opportunities + Activity (2/3 + 1/3) ──────────────── -->
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-5">
 
-          <!-- Paper Trades + Activity Log -->
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-            <!-- Paper Trades -->
-            <div>
+            <!-- Opportunities -->
+            <div class="lg:col-span-2">
               <div class="flex items-center gap-2 mb-3">
-                <h3 class="text-xs font-semibold uppercase tracking-widest text-gray-400">📝 Paper Trades</h3>
-                <span id="polyPaperTradeCount" class="rounded-full bg-gray-700 px-2 py-0.5 text-[10px] font-bold text-gray-400">0</span>
-                <span class="text-xs text-gray-600">auto-taken ≥ 2¢</span>
+                <h3 class="text-xs font-semibold uppercase tracking-widest text-gray-400">Live Opportunities</h3>
+                <span class="text-xs text-gray-600">≥ 2¢ gap = tradeable</span>
               </div>
-              <div id="polyPaperTrades" class="divide-y divide-white/5 rounded-xl bg-gray-800/60 ring-1 ring-white/5 overflow-y-auto" style="max-height:420px">
-                <div class="px-4 py-10 text-center text-xs text-gray-600">No trades yet — waiting for gaps ≥ 2¢</div>
+              <div id="polyOpportunities">
+                <div class="rounded-xl bg-gray-800/40 ring-1 ring-white/5 px-6 py-12 text-center">
+                  <div class="text-3xl mb-3">&#x1F50D;</div>
+                  <p class="text-sm font-medium text-gray-300">First scan in progress…</p>
+                  <p class="text-xs text-gray-500 mt-1">Checking 250 Polymarket markets for YES + NO &lt; $1.00</p>
+                </div>
               </div>
             </div>
 
             <!-- Activity Log -->
             <div>
               <div class="flex items-center gap-2 mb-3">
-                <h3 class="text-xs font-semibold uppercase tracking-widest text-gray-400">📡 Activity Log</h3>
-                <span class="text-xs text-gray-600">all gaps detected</span>
+                <h3 class="text-xs font-semibold uppercase tracking-widest text-gray-400">&#x1F4E1; Activity</h3>
+                <span class="text-xs text-gray-600">all gaps</span>
               </div>
-              <div id="polyActivityLog" class="divide-y divide-white/5 rounded-xl bg-gray-800/60 ring-1 ring-white/5 overflow-y-auto" style="max-height:420px">
-                <div class="px-4 py-10 text-center text-xs text-gray-600">Waiting for first scan…</div>
+              <div id="polyActivityLog" class="divide-y divide-white/[0.04] rounded-xl bg-gray-800/60 ring-1 ring-white/5 overflow-y-auto" style="max-height:460px">
+                <div class="px-4 py-10 text-center text-xs text-gray-600">Waiting…</div>
               </div>
+            </div>
+          </div>
+
+          <!-- ── Paper Trades ────────────────────────────────────────── -->
+          <div>
+            <div class="flex items-center gap-2 mb-3">
+              <h3 class="text-xs font-semibold uppercase tracking-widest text-gray-400">&#x1F4DD; Paper Trades</h3>
+              <span id="polyPaperTradeCount" class="rounded-full bg-gray-700 px-2 py-0.5 text-[10px] font-bold text-gray-400">0</span>
+              <span class="text-xs text-gray-600">auto-taken ≥ 2¢ · $10 notional · all theoretical</span>
+            </div>
+            <div id="polyPaperTrades" class="divide-y divide-white/[0.04] rounded-xl bg-gray-800/60 ring-1 ring-white/5 overflow-y-auto" style="max-height:300px">
+              <div class="px-4 py-10 text-center text-xs text-gray-600">No arb trades yet — gaps need to exceed 2¢</div>
             </div>
           </div>
 
@@ -1236,9 +1249,8 @@
     let _polyInterval = null;
 
     function switchTab(tab) {
-      // panePoly may have been mis-parented by the browser HTML parser (due to unclosed
-      // div inside paneKronos content). Fix it by re-parenting to the correct container.
-      const container = document.querySelector('.mx-auto.max-w-7xl');
+      // Ensure panePoly is a direct child of mainTabContent (not inside paneKronos)
+      const container = document.getElementById('mainTabContent');
       const kronos    = document.getElementById('paneKronos');
       const poly      = document.getElementById('panePoly');
       const btnK      = document.getElementById('tabBtnKronos');
@@ -1283,22 +1295,30 @@
       const s = state.stats || {};
       const fmtUsdP = v => '$' + Number(v || 0).toFixed(2);
 
-      // Status badge
-      const dot  = document.getElementById('polyStatusDot');
+      // Status text + last scan
       const txt  = document.getElementById('polyStatusText');
       const last = document.getElementById('polyLastScan');
-      if (s.running) { dot.style.background='#34d399'; txt.textContent='Live'; }
-      else           { dot.style.background='#6b7280'; txt.textContent='Idle'; }
-      if (s.lastScan) last.textContent = 'Last scan: ' + new Date(s.lastScan).toLocaleTimeString();
+      if (txt)  txt.textContent  = s.running ? 'Scanning…' : 'Idle';
+      if (last) last.textContent = s.lastScan
+        ? 'Last scan: ' + new Date(s.lastScan).toLocaleTimeString() + (s.lastScanDuration ? ` (${s.lastScanDuration}ms)` : '')
+        : '—';
 
       // Stats cards
       const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
-      set('polyMarketsChecked', s.totalScans > 0 ? Math.round(s.marketsChecked / s.totalScans).toLocaleString() : '0');
-      set('polyTotalScans',     `${s.totalScans || 0} scans complete`);
+      set('polyMarketsChecked', s.totalScans > 0 ? Math.round(s.marketsChecked / s.totalScans).toLocaleString() : '—');
+      set('polyTotalScans',     `${s.totalScans || 0} scans run`);
       set('polyOppsFound',      (s.opportunitiesFound || 0).toLocaleString());
-      set('polyAvgGap',         s.opportunitiesFound ? `Avg gap: ${(s.avgGapCents || 0).toFixed(1)}¢` : 'Avg gap: —');
+      set('polyAvgGap',         s.opportunitiesFound ? `Avg: ${(s.avgGapCents || 0).toFixed(1)}¢` : 'Avg: —');
       set('polyTradesTaken',    s.tradesAutoTaken || 0);
-      set('polyTotalProfit',    fmtUsdP(s.totalTheoreticalProfit));
+
+      // Portfolio balance hero
+      const bal    = s.currentBalance   || 100;
+      const pnl    = s.totalTheoreticalProfit || 0;
+      const pnlPct = ((pnl / 100) * 100).toFixed(2);
+      set('polyCurrentBalance', '$' + bal.toFixed(2));
+      set('polyBalancePnl',     `${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)} (${pnl >= 0 ? '+' : ''}${pnlPct}%)`);
+      const balEl = document.getElementById('polyCurrentBalance');
+      if (balEl) balEl.style.color = pnl >= 0 ? '#34d399' : '#f87171';
 
       // Opportunities
       const opps   = state.opportunities || [];
