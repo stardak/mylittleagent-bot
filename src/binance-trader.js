@@ -78,33 +78,50 @@ export class BinanceTrader {
   }
 
   _loadScalperState() {
-    // Restore wins/losses/totalPnl from database
+    // ── Read reset marker from bot_state ──────────────────────────────────────
+    let resetAt      = 0;
+    let resetBalance = this.portfolio.startingBalance;
+    try {
+      const resetRow = this.db.prepare("SELECT value FROM bot_state WHERE key='stats_reset_at'").get();
+      const balRow   = this.db.prepare("SELECT value FROM bot_state WHERE key='stats_reset_balance'").get();
+      if (resetRow?.value) resetAt      = parseInt(resetRow.value, 10);
+      if (balRow?.value)   resetBalance = parseFloat(balRow.value);
+    } catch(e) { /* bot_state not yet created */ }
+
+    this.portfolio.startingBalance = resetBalance;
+    this.portfolio.statsResetAt    = resetAt || null;
+
+    // ── Restore wins/losses/totalPnl — only trades AFTER the reset point ──────
     const stats = this.db.prepare(`
       SELECT
-        COALESCE(SUM(CASE WHEN type='SELL' AND pnl > 0 THEN 1 ELSE 0 END), 0) as wins,
-        COALESCE(SUM(CASE WHEN type='SELL' AND pnl <= 0 THEN 1 ELSE 0 END), 0) as losses,
-        COALESCE(SUM(CASE WHEN type='SELL' THEN pnl ELSE 0 END), 0) as totalPnl
+        COALESCE(SUM(CASE WHEN type='SELL' AND pnl_pct > 0  THEN 1 ELSE 0 END), 0) as wins,
+        COALESCE(SUM(CASE WHEN type='SELL' AND pnl_pct <= 0 THEN 1 ELSE 0 END), 0) as losses,
+        COALESCE(SUM(CASE WHEN type='SELL' THEN COALESCE(pnl, 0) ELSE 0 END), 0)   as totalPnl
       FROM scalper_trades
-    `).get();
+      WHERE timestamp >= ?
+    `).get(resetAt);
 
     if (stats) {
-      this.portfolio.wins = stats.wins;
-      this.portfolio.losses = stats.losses;
+      this.portfolio.wins     = stats.wins;
+      this.portfolio.losses   = stats.losses;
       this.portfolio.totalPnl = stats.totalPnl;
-      this.portfolio.balance = this.portfolio.startingBalance + stats.totalPnl;
+      this.portfolio.balance  = resetBalance + stats.totalPnl;
+    } else {
+      this.portfolio.balance  = resetBalance;
     }
 
-    // Restore per-strategy stats
+    // ── Restore per-strategy stats (post-reset only) ───────────────────────────
     try {
       const stratStats = this.db.prepare(`
         SELECT
           COALESCE(strategy, 'UNKNOWN') as strategy,
-          COALESCE(SUM(CASE WHEN pnl > 0 THEN 1 ELSE 0 END), 0) as wins,
-          COALESCE(SUM(CASE WHEN pnl <= 0 THEN 1 ELSE 0 END), 0) as losses,
-          COALESCE(SUM(pnl), 0) as pnl
-        FROM scalper_trades WHERE type='SELL'
+          COALESCE(SUM(CASE WHEN pnl_pct > 0  THEN 1 ELSE 0 END), 0) as wins,
+          COALESCE(SUM(CASE WHEN pnl_pct <= 0 THEN 1 ELSE 0 END), 0) as losses,
+          COALESCE(SUM(COALESCE(pnl, 0)), 0)                          as pnl
+        FROM scalper_trades
+        WHERE type='SELL' AND timestamp >= ?
         GROUP BY strategy
-      `).all();
+      `).all(resetAt);
 
       for (const row of stratStats) {
         const key = row.strategy || 'UNKNOWN';
@@ -112,9 +129,9 @@ export class BinanceTrader {
           this.portfolio.strategyStats[key] = { wins: row.wins, losses: row.losses, pnl: row.pnl };
         }
       }
-    } catch(e) { /* strategy column might not exist yet */ }
+    } catch(e) { /* migration guard */ }
 
-    // Load recent trades for dashboard display
+    // ── Load recent trade history (all time, for reference log) ───────────────
     const recentRows = this.db.prepare(
       'SELECT * FROM scalper_trades ORDER BY id DESC LIMIT 40'
     ).all();
@@ -139,7 +156,10 @@ export class BinanceTrader {
       mode: r.mode,
     }));
 
-    console.log(`📊 Scalper state restored: ${this.portfolio.wins}W/${this.portfolio.losses}L, P&L: $${this.portfolio.totalPnl.toFixed(2)}, Balance: $${this.portfolio.balance.toFixed(2)}`);
+    const resetLabel = resetAt
+      ? ` (clean stats from ${new Date(resetAt).toLocaleDateString()})`
+      : '';
+    console.log(`📊 Scalper state restored: ${this.portfolio.wins}W/${this.portfolio.losses}L, P&L: $${this.portfolio.totalPnl.toFixed(2)}, Balance: $${this.portfolio.balance.toFixed(2)}${resetLabel}`);
   }
 
   _persistTrade(trade) {
@@ -148,12 +168,13 @@ export class BinanceTrader {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       trade.timestamp, trade.type, trade.symbol, trade.price, trade.quantity,
-      trade.cost || null, trade.revenue || null, trade.pnl || null,
-      trade.pnlPct || null, trade.entryPrice || null, trade.fee || 0,
-      trade.strategy || 'UNKNOWN', trade.exitReason || null, trade.mode,
-      trade.kronosConfidence || null, trade.kronosDirection || null, trade.side || 'LONG'
+      trade.cost    ?? null, trade.revenue   ?? null, trade.pnl     ?? null,
+      trade.pnlPct  ?? null, trade.entryPrice ?? null, trade.fee     ?? 0,
+      trade.strategy ?? 'UNKNOWN', trade.exitReason ?? null, trade.mode,
+      trade.kronosConfidence ?? null, trade.kronosDirection ?? null, trade.side ?? 'LONG'
     );
   }
+
 
   // ── Execute a BUY ───────────────────────────────────────────────────────
   async buy(symbol, price, portfolioPct, strategy = 'UNKNOWN', kronosInfo = {}) {
