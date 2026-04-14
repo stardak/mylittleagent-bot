@@ -505,52 +505,34 @@
         <!-- ── Tab: Polymarket Arb ────────────────────────────────── -->
         <div id="panePoly" class="hidden">
 
-          <!-- ── Arb Hero ────────────────────────────────────────── -->
-          <div class="relative overflow-hidden rounded-2xl mb-6 px-6 py-5" style="background:linear-gradient(135deg,rgba(16,185,129,0.1) 0%,rgba(6,78,59,0.06) 100%);border:1px solid rgba(16,185,129,0.18)">
-            <div class="absolute inset-0 opacity-5" style="background-image:radial-gradient(circle at 80% 50%,#10b981 0%,transparent 60%)"></div>
-            <div class="relative flex flex-wrap items-center justify-between gap-4">
-              <div>
-                <p class="text-[10px] uppercase tracking-[0.2em] font-semibold mb-1" style="color:rgba(52,211,153,0.5)">Polymarket Arbitrage · Paper Mode</p>
-                <div class="flex items-baseline gap-3 flex-wrap">
-                  <span id="polyCurrentBalance" class="text-4xl font-extrabold tracking-tighter text-white">$100.00</span>
-                  <span id="polyBalancePnl" class="text-sm font-semibold text-gray-400">+$0.00 (0.00%)</span>
-                </div>
-                <p class="text-xs text-gray-500 mt-1">Scanning 250 markets every 30s for YES + NO &lt; $1.00 · $10 notional per trade</p>
+          <!-- ── Stats Grid (Kronos-style) ──────────────────── -->
+          <dl class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
+            <div class="relative overflow-hidden rounded-xl px-5 pt-5 pb-4 shadow-lg ring-1" style="background:rgba(31,41,55,0.85);border-color:rgba(52,211,153,0.3);backdrop-filter:blur(12px)">
+              <dt class="truncate text-xs font-medium" style="color:rgba(52,211,153,0.7)">Arb Portfolio</dt>
+              <dd id="polyCurrentBalance" class="mt-2 text-2xl font-bold tracking-tight text-profit">$100.00</dd>
+              <p id="polyBalancePnl" class="mt-1 text-xs text-gray-500">+$0.00 (+0.00%)</p>
+            </div>
+            <div class="relative overflow-hidden rounded-xl bg-gray-800/80 backdrop-blur-lg px-5 pt-5 pb-4 shadow-lg ring-1 ring-white/5">
+              <div class="absolute top-4 right-4 flex items-center gap-1.5">
+                <span class="relative flex size-2">
+                  <span class="absolute inline-flex size-full rounded-full opacity-75 animate-ping" style="background:#34d399"></span>
+                  <span class="relative inline-flex size-2 rounded-full" style="background:#34d399"></span>
+                </span>
+                <span id="polyStatusText" class="text-[10px] text-gray-500 ml-1">Live</span>
               </div>
-              <div class="flex items-center gap-3">
-                <div class="relative flex items-center justify-center w-12 h-12">
-                  <span class="absolute inline-flex w-10 h-10 rounded-full opacity-30 animate-ping" style="background:rgba(16,185,129,0.4)"></span>
-                  <span class="relative inline-flex w-5 h-5 rounded-full shadow-lg" style="background:#10b981;box-shadow:0 0 12px rgba(16,185,129,0.5)"></span>
-                </div>
-                <div>
-                  <p class="text-sm font-semibold text-white" id="polyStatusText">Scanning…</p>
-                  <p class="text-[11px] text-gray-500" id="polyLastScan">—</p>
-                </div>
-              </div>
+              <dt class="truncate text-xs font-medium text-gray-400">Markets / Scan</dt>
+              <dd id="polyMarketsChecked" class="mt-2 text-2xl font-bold tracking-tight text-white">—</dd>
+              <p class="mt-1 text-xs text-gray-500"><span id="polyTotalScans">0 scans</span> · <span id="polyLastScan" class="text-gray-600">—</span></p>
             </div>
-          </div>
-
-          <!-- ── Stats Strip ────────────────────────────────────────── -->
-          <dl class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-            <div class="rounded-xl bg-gray-800/70 ring-1 ring-white/5 px-4 py-3">
-              <dt class="text-[10px] font-medium uppercase tracking-widest text-gray-500">Markets / Scan</dt>
-              <dd id="polyMarketsChecked" class="mt-1.5 text-xl font-bold text-white">—</dd>
-              <p id="polyTotalScans" class="text-[11px] text-gray-600 mt-0.5">0 scans run</p>
+            <div class="relative overflow-hidden rounded-xl bg-gray-800/80 backdrop-blur-lg px-5 pt-5 pb-4 shadow-lg ring-1 ring-white/5">
+              <dt class="truncate text-xs font-medium text-gray-400">Gaps Detected</dt>
+              <dd id="polyOppsFound" class="mt-2 text-2xl font-bold tracking-tight text-profit">0</dd>
+              <p id="polyAvgGap" class="mt-1 text-xs text-gray-500">Avg size: —</p>
             </div>
-            <div class="rounded-xl bg-gray-800/70 ring-1 ring-white/5 px-4 py-3">
-              <dt class="text-[10px] font-medium uppercase tracking-widest text-gray-500">Gaps Detected</dt>
-              <dd id="polyOppsFound" class="mt-1.5 text-xl font-bold text-profit">0</dd>
-              <p id="polyAvgGap" class="text-[11px] text-gray-600 mt-0.5">Avg: —</p>
-            </div>
-            <div class="rounded-xl bg-gray-800/70 ring-1 ring-white/5 px-4 py-3">
-              <dt class="text-[10px] font-medium uppercase tracking-widest text-gray-500">Trades Auto-taken</dt>
-              <dd id="polyTradesTaken" class="mt-1.5 text-xl font-bold text-warn">0</dd>
-              <p class="text-[11px] text-gray-600 mt-0.5">Gaps ≥ 2¢</p>
-            </div>
-            <div class="rounded-xl bg-gray-800/70 ring-1 ring-white/5 px-4 py-3">
-              <dt class="text-[10px] font-medium uppercase tracking-widest text-gray-500">Live Gaps Now</dt>
-              <dd id="polyOppCount" class="mt-1.5 text-xl font-bold text-white">0</dd>
-              <p class="text-[11px] text-gray-600 mt-0.5">In latest scan</p>
+            <div class="relative overflow-hidden rounded-xl bg-gray-800/80 backdrop-blur-lg px-5 pt-5 pb-4 shadow-lg ring-1 ring-white/5">
+              <dt class="truncate text-xs font-medium text-gray-400">Trades Auto-taken</dt>
+              <dd id="polyTradesTaken" class="mt-2 text-2xl font-bold tracking-tight text-warn">0</dd>
+              <p class="mt-1 text-xs text-gray-500">Gaps ≥ 2¢ · $10 each</p>
             </div>
           </dl>
 
@@ -1298,10 +1280,13 @@
       // Status text + last scan
       const txt  = document.getElementById('polyStatusText');
       const last = document.getElementById('polyLastScan');
-      if (txt)  txt.textContent  = s.running ? 'Scanning…' : 'Idle';
-      if (last) last.textContent = s.lastScan
-        ? 'Last scan: ' + new Date(s.lastScan).toLocaleTimeString() + (s.lastScanDuration ? ` (${s.lastScanDuration}ms)` : '')
-        : '—';
+      if (txt)  txt.textContent  = s.running ? 'Live' : 'Idle';
+      if (last) {
+        const d = s.lastScanDuration;
+        last.textContent = s.lastScan
+          ? new Date(s.lastScan).toLocaleTimeString() + (d ? ` (${d}ms)` : '')
+          : '—';
+      }
 
       // Stats cards
       const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
