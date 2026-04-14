@@ -183,6 +183,15 @@
     <main class="-mt-32">
       <div class="mx-auto max-w-7xl px-4 pb-16 sm:px-6 lg:px-8">
 
+        <!-- ── Tab Switcher ─────────────────────────────────────── -->
+        <div class="flex gap-1 mb-6 p-1 rounded-xl bg-gray-800/60 ring-1 ring-white/5 w-fit backdrop-blur-sm">
+          <button id="tabBtnKronos" onclick="switchTab('kronos')" class="px-5 py-2 rounded-lg text-xs font-semibold text-white transition-all" style="background:rgba(99,102,241,0.7)">&#x26A1; Kronos Scalper</button>
+          <button id="tabBtnPoly"   onclick="switchTab('poly')"   class="px-5 py-2 rounded-lg text-xs font-semibold text-gray-400 hover:text-white transition-all">🎯 Polymarket Arb</button>
+        </div>
+
+        <!-- ── Tab: Kronos ──────────────────────────────────────── -->
+        <div id="paneKronos">
+
         <!-- ── Stats Grid ────────────────────────────────────── -->
         <dl class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
           <div class="relative overflow-hidden rounded-xl bg-gray-800/80 backdrop-blur-lg px-5 pt-5 pb-4 shadow-lg ring-1 ring-white/5">
@@ -491,7 +500,90 @@
               <p class="text-gray-600 italic mt-6">— Stef Michalak</p>
             </div>
           </div>
-        </div>
+        </div><!-- /paneKronos -->
+
+        <!-- ── Tab: Polymarket Arb ────────────────────────────────── -->
+        <div id="panePoly" class="hidden">
+
+          <!-- Header -->
+          <div class="flex flex-wrap items-start justify-between gap-4 mb-6">
+            <div>
+              <h2 class="text-xl font-bold text-white flex items-center gap-2">🎯 Polymarket Arb Scanner</h2>
+              <p class="text-sm text-gray-400 mt-1">Scanning ALL active binary markets for YES + NO < $1.00 gaps. The difference is theoretical free money.</p>
+            </div>
+            <div class="flex items-center gap-3">
+              <span id="polyLastScan" class="text-xs text-gray-500">Starting scanner…</span>
+              <span id="polyStatusBadge" class="inline-flex items-center gap-1.5 rounded-full bg-gray-800 px-3 py-1.5 text-xs font-semibold text-gray-400 ring-1 ring-white/5">
+                <span id="polyStatusDot" class="size-2 rounded-full bg-gray-500 animate-pulse-glow"></span>
+                <span id="polyStatusText">Waiting</span>
+              </span>
+            </div>
+          </div>
+
+          <!-- Stats Grid -->
+          <dl class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <div class="rounded-xl bg-gray-800/80 ring-1 ring-white/5 px-5 py-4 backdrop-blur-sm">
+              <dt class="text-[10px] font-medium uppercase tracking-widest text-gray-500">Markets / Scan</dt>
+              <dd id="polyMarketsChecked" class="mt-2 text-2xl font-bold text-white">0</dd>
+              <p id="polyTotalScans" class="text-xs text-gray-600 mt-1">0 scans complete</p>
+            </div>
+            <div class="rounded-xl bg-gray-800/80 ring-1 ring-white/5 px-5 py-4 backdrop-blur-sm">
+              <dt class="text-[10px] font-medium uppercase tracking-widest text-gray-500">Gaps Found</dt>
+              <dd id="polyOppsFound" class="mt-2 text-2xl font-bold text-profit">0</dd>
+              <p id="polyAvgGap" class="text-xs text-gray-600 mt-1">Avg gap: &mdash;</p>
+            </div>
+            <div class="rounded-xl bg-gray-800/80 ring-1 ring-white/5 px-5 py-4 backdrop-blur-sm">
+              <dt class="text-[10px] font-medium uppercase tracking-widest text-gray-500">Trades Taken</dt>
+              <dd id="polyTradesTaken" class="mt-2 text-2xl font-bold text-warn">0</dd>
+              <p class="text-xs text-gray-600 mt-1">Paper, gaps ≥ 2¢</p>
+            </div>
+            <div class="rounded-xl ring-1 ring-white/5 px-5 py-4 backdrop-blur-sm" style="background:rgba(52,211,153,0.06);border-color:rgba(52,211,153,0.2)">
+              <dt class="text-[10px] font-medium uppercase tracking-widest" style="color:rgba(52,211,153,0.6)">Theoretical P&amp;L</dt>
+              <dd id="polyTotalProfit" class="mt-2 text-2xl font-bold text-profit">$0.00</dd>
+              <p class="text-xs text-gray-600 mt-1">$10 per trade</p>
+            </div>
+          </dl>
+
+          <!-- Live Opportunities -->
+          <div class="border-t border-white/5 pt-6 mb-8">
+            <div class="flex items-center gap-2 mb-4">
+              <h3 class="text-xs font-semibold uppercase tracking-widest text-gray-400">Live Opportunities</h3>
+              <span id="polyOppCount" class="rounded-full bg-gray-700 px-2 py-0.5 text-[10px] font-bold text-gray-400">0</span>
+              <span class="text-xs text-gray-600">sorted by gap size</span>
+            </div>
+            <div id="polyOpportunities" class="space-y-3">
+              <div class="rounded-xl bg-gray-800/40 ring-1 ring-white/5 px-6 py-10 text-center text-sm text-gray-500">First scan running… results in ~5 seconds</div>
+            </div>
+          </div>
+
+          <!-- Paper Trades + Activity Log -->
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+            <!-- Paper Trades -->
+            <div>
+              <div class="flex items-center gap-2 mb-3">
+                <h3 class="text-xs font-semibold uppercase tracking-widest text-gray-400">📝 Paper Trades</h3>
+                <span id="polyPaperTradeCount" class="rounded-full bg-gray-700 px-2 py-0.5 text-[10px] font-bold text-gray-400">0</span>
+                <span class="text-xs text-gray-600">auto-taken ≥ 2¢</span>
+              </div>
+              <div id="polyPaperTrades" class="divide-y divide-white/5 rounded-xl bg-gray-800/60 ring-1 ring-white/5 overflow-y-auto" style="max-height:420px">
+                <div class="px-4 py-10 text-center text-xs text-gray-600">No trades yet — waiting for gaps ≥ 2¢</div>
+              </div>
+            </div>
+
+            <!-- Activity Log -->
+            <div>
+              <div class="flex items-center gap-2 mb-3">
+                <h3 class="text-xs font-semibold uppercase tracking-widest text-gray-400">📡 Activity Log</h3>
+                <span class="text-xs text-gray-600">all gaps detected</span>
+              </div>
+              <div id="polyActivityLog" class="divide-y divide-white/5 rounded-xl bg-gray-800/60 ring-1 ring-white/5 overflow-y-auto" style="max-height:420px">
+                <div class="px-4 py-10 text-center text-xs text-gray-600">Waiting for first scan…</div>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /panePoly -->
 
       </div>
     </main>
@@ -1037,22 +1129,25 @@
     function btRun(btn, origLabel, url, mode) {
       let hadError = false;
       const done = btLoad(btn, origLabel, () => hadError);
-      fetch(url)
-        .then(r => r.json())
-        .then(data => {
-          if (data.error) throw new Error(data.error);
-          console.log('[Backtest] result:', data);
-          renderBacktest(data, mode);
-        })
-        .catch(err => {
-          hadError = true;
-          console.error('[Backtest] error:', err);
-          $('backtestStatus').textContent = '\u274c ' + err.message;
-          $('backtestResults').classList.remove('hidden');
-          $('backtestModeLabel').innerHTML = `<span class="text-xs text-loss">❌ Failed: ${err.message}</span>`;
-        })
-        .finally(() => done(hadError));
+      const fail = (msg) => { hadError = true; $('backtestResults').classList.remove('hidden'); $('backtestModeLabel').innerHTML = `<span class="text-xs text-loss">❌ ${msg}</span>`; done(true); };
+      if (url === '/api/backtest') {
+        fetch(url).then(r => r.json()).then(data => { if (data.error) throw new Error(data.error); renderBacktest(data, mode); done(false); }).catch(e => fail(e.message));
+        return;
+      }
+      const pollUrl = url.replace('/api/backtest/kronos', '/api/backtest/kronos/status');
+      fetch(url).then(r => r.json()).then(initial => {
+        if (initial.done)  { renderBacktest(initial, mode); done(false); return; }
+        if (initial.error) { fail(initial.error); return; }
+        const iv = setInterval(() => {
+          fetch(pollUrl).then(r => r.json()).then(s => {
+            if (s.done)       { clearInterval(iv); renderBacktest(s, mode); done(false); }
+            else if (s.error) { clearInterval(iv); fail(s.error); }
+          }).catch(() => {});
+        }, 3000);
+      }).catch(e => fail(e.message));
     }
+
+
 
 
 
@@ -1133,6 +1228,156 @@
         video.addEventListener('loadedmetadata', () => video.play());
       }
     })();
+  </script>
+
+  <!-- ── Polymarket Arb + Tab Switcher ─────────────────────────────────────── -->
+  <script>
+    // ── Tab switching ─────────────────────────────────────────────────────────
+    let _polyInterval = null;
+
+    function switchTab(tab) {
+      const kronos = document.getElementById('paneKronos');
+      const poly   = document.getElementById('panePoly');
+      const btnK   = document.getElementById('tabBtnKronos');
+      const btnP   = document.getElementById('tabBtnPoly');
+
+      if (tab === 'poly') {
+        kronos.classList.add('hidden');
+        poly.classList.remove('hidden');
+        btnK.style.background = 'transparent';
+        btnK.classList.remove('text-white');
+        btnK.classList.add('text-gray-400');
+        btnP.style.background = 'rgba(16,185,129,0.5)';
+        btnP.classList.add('text-white');
+        btnP.classList.remove('text-gray-400');
+        startPolyScanner();
+      } else {
+        poly.classList.add('hidden');
+        kronos.classList.remove('hidden');
+        btnP.style.background = 'transparent';
+        btnP.classList.remove('text-white');
+        btnP.classList.add('text-gray-400');
+        btnK.style.background = 'rgba(99,102,241,0.7)';
+        btnK.classList.add('text-white');
+        btnK.classList.remove('text-gray-400');
+      }
+    }
+
+    // ── Polling ───────────────────────────────────────────────────────────────
+    function startPolyScanner() {
+      if (_polyInterval) return;
+      pollPolyState();
+      _polyInterval = setInterval(pollPolyState, 10_000);
+    }
+
+    async function pollPolyState() {
+      try {
+        const res  = await fetch('/api/polymarket-arb/state');
+        const data = await res.json();
+        renderPolyDashboard(data);
+      } catch (e) { console.warn('[Poly]', e.message); }
+    }
+
+    // ── Render ────────────────────────────────────────────────────────────────
+    function renderPolyDashboard(state) {
+      const s = state.stats || {};
+      const fmtUsdP = v => '$' + Number(v || 0).toFixed(2);
+
+      // Status badge
+      const dot  = document.getElementById('polyStatusDot');
+      const txt  = document.getElementById('polyStatusText');
+      const last = document.getElementById('polyLastScan');
+      if (s.running) { dot.style.background='#34d399'; txt.textContent='Live'; }
+      else           { dot.style.background='#6b7280'; txt.textContent='Idle'; }
+      if (s.lastScan) last.textContent = 'Last scan: ' + new Date(s.lastScan).toLocaleTimeString();
+
+      // Stats cards
+      const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+      set('polyMarketsChecked', s.totalScans > 0 ? Math.round(s.marketsChecked / s.totalScans).toLocaleString() : '0');
+      set('polyTotalScans',     `${s.totalScans || 0} scans complete`);
+      set('polyOppsFound',      (s.opportunitiesFound || 0).toLocaleString());
+      set('polyAvgGap',         s.opportunitiesFound ? `Avg gap: ${(s.avgGapCents || 0).toFixed(1)}¢` : 'Avg gap: —');
+      set('polyTradesTaken',    s.tradesAutoTaken || 0);
+      set('polyTotalProfit',    fmtUsdP(s.totalTheoreticalProfit));
+
+      // Opportunities
+      const opps   = state.opportunities || [];
+      const oppEl  = document.getElementById('polyOpportunities');
+      const cntEl  = document.getElementById('polyOppCount');
+      if (cntEl) cntEl.textContent = opps.length;
+      if (oppEl) {
+        if (opps.length === 0) {
+          oppEl.innerHTML = `<div class="rounded-xl bg-gray-800/40 ring-1 ring-white/5 px-6 py-10 text-center text-sm text-gray-500">${
+            s.totalScans ? 'No mispriced markets in this scan — all prices efficiently sum to $1.00' : 'First scan in progress…'
+          }</div>`;
+        } else {
+          oppEl.innerHTML = opps.map(o => `
+            <div class="rounded-xl mb-3 overflow-hidden ring-1" style="background:rgba(16,185,129,0.04);border-color:rgba(16,185,129,${o.gap >= 0.02 ? '0.25' : '0.10'})">
+              <div class="px-5 py-4">
+                <div class="flex items-start justify-between gap-3 mb-3">
+                  <p class="text-sm font-medium text-gray-200 leading-snug flex-1 min-w-0">${o.question}</p>
+                  <div class="shrink-0 text-right">
+                    <div class="text-lg font-bold ${o.gap >= 0.02 ? 'text-profit' : 'text-gray-400'}">+${(o.gap * 100).toFixed(1)}¢</div>
+                    <div class="text-xs text-gray-500">${fmtUsdP(o.profit)} on $10</div>
+                  </div>
+                </div>
+                <div class="flex flex-wrap items-center gap-3 text-xs text-gray-500">
+                  <span class="rounded-full px-2 py-0.5 font-bold text-profit bg-profit/10">YES ${(o.yesPrice * 100).toFixed(1)}¢</span>
+                  <span>+</span>
+                  <span class="rounded-full px-2 py-0.5 font-bold text-loss bg-loss/10">NO ${(o.noPrice * 100).toFixed(1)}¢</span>
+                  <span>=</span>
+                  <span class="font-semibold text-white">${(o.total * 100).toFixed(1)}¢</span>
+                  <span class="text-gray-600">· Vol ${o.volumeStr}</span>
+                  ${o.gap >= 0.02 ? '<span class="rounded-full bg-profit/10 px-2 py-0.5 text-profit font-bold text-[10px]">TRADEABLE ✓</span>' : ''}
+                  <a href="${o.url}" target="_blank" rel="noopener" class="ml-auto text-brand-400 hover:text-brand-300 transition-colors">→ View on Polymarket</a>
+                </div>
+              </div>
+            </div>
+          `).join('');
+        }
+      }
+
+      // Paper trades
+      const trades  = state.paperTrades || [];
+      const tCntEl  = document.getElementById('polyPaperTradeCount');
+      const tradesEl = document.getElementById('polyPaperTrades');
+      if (tCntEl) tCntEl.textContent = trades.length;
+      if (tradesEl) {
+        tradesEl.innerHTML = trades.length === 0
+          ? '<div class="px-4 py-10 text-center text-xs text-gray-600">No trades yet — waiting for gaps ≥ 2¢</div>'
+          : trades.map(t => `
+            <div class="flex items-start gap-3 px-4 py-3 hover:bg-white/[0.02] transition-colors">
+              <span class="flex size-7 shrink-0 items-center justify-center rounded-lg bg-profit/10 text-xs mt-0.5">💰</span>
+              <div class="flex-1 min-w-0">
+                <p class="text-xs font-medium text-gray-200 truncate">${t.question.slice(0, 60)}…</p>
+                <p class="text-[11px] text-gray-500 mt-0.5">YES ${(t.yesPrice*100).toFixed(1)}¢ + NO ${(t.noPrice*100).toFixed(1)}¢ = ${(t.total*100).toFixed(1)}¢ · Vol ${t.volumeStr}</p>
+              </div>
+              <div class="shrink-0 text-right">
+                <div class="text-xs font-bold text-profit">+${fmtUsdP(t.profit)}</div>
+                <div class="text-[10px] text-gray-600">${new Date(t.takenAt).toLocaleTimeString()}</div>
+              </div>
+            </div>
+          `).join('');
+      }
+
+      // Activity log
+      const logs  = state.activityLog || [];
+      const logEl = document.getElementById('polyActivityLog');
+      if (logEl) {
+        logEl.innerHTML = logs.length === 0
+          ? '<div class="px-4 py-10 text-center text-xs text-gray-600">Waiting for first scan…</div>'
+          : logs.map(l => `
+            <div class="flex items-center gap-3 px-4 py-2.5 hover:bg-white/[0.02] transition-colors">
+              <span class="text-xs shrink-0 ${l.tradeable ? 'text-profit' : 'text-gray-600'}">${l.tradeable ? '🟢' : '⚪'}</span>
+              <div class="flex-1 min-w-0">
+                <p class="text-xs text-gray-400 truncate">${l.question}</p>
+              </div>
+              <span class="shrink-0 text-xs font-bold ${l.tradeable ? 'text-profit' : 'text-gray-500'}">${(l.gap * 100).toFixed(1)}¢</span>
+              <span class="shrink-0 text-[10px] text-gray-600">${l.time}</span>
+            </div>
+          `).join('');
+      }
+    }
   </script>
 </body>
 </html>

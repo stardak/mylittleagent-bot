@@ -20,6 +20,7 @@ import { Server } from 'socket.io';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { runBacktest, runKronosBacktest } from './backtester.js';
+import { PolymarketArbScanner } from './polymarket-arb.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -47,6 +48,10 @@ export class Dashboard {
     // Kronos backtest caches (normal + inverted, keyed by `${invert}_${confidence}`)
     this._kronosBtCache = {};
     this._kronosBtRunning = false;
+
+    // Polymarket Arb Scanner — runs independently, 30s scan interval
+    this._arbScanner = new PolymarketArbScanner();
+    this._arbScanner.start(30_000);
 
     // Serve index.html with no-cache headers so Cloudflare never caches it
     const publicDir = path.join(__dirname, '..', 'public');
@@ -173,39 +178,56 @@ export class Dashboard {
         res.status(500).json({ error: err.message });
       }
     });
-    // Kronos backtest endpoint — ?invert=true&confidence=0.65&days=30
-    this.app.get('/api/backtest/kronos', async (req, res) => {
+    // Kronos backtest — fire-and-forget start, then poll /status
+    // Cloudflare has a 100s proxy timeout so we return immediately and let the client poll
+    this.app.get('/api/backtest/kronos', (req, res) => {
       const invert     = req.query.invert === 'true';
       const confidence = parseFloat(req.query.confidence || process.env.KRONOS_MIN_CONFIDENCE || '0.65');
       const days       = parseInt(req.query.days || '30');
       const cacheKey   = `${invert}_${confidence}_${days}`;
-      const now        = Date.now();
 
       const cached = this._kronosBtCache[cacheKey];
-      if (cached && (now - cached.ts) < 3600_000) {
-        return res.json({ cached: true, ...cached.results });
+      if (cached && (Date.now() - cached.ts) < 3600_000) {
+        return res.json({ done: true, running: false, cached: true, ...cached.results });
       }
-
       if (this._kronosBtRunning) {
-        return res.status(429).json({ error: 'Kronos backtest already running, please wait...' });
+        return res.json({ done: false, running: true });
       }
 
+      // Fire and forget
       this._kronosBtRunning = true;
-      try {
-        const results = await runKronosBacktest({
-          startingBalance: parseFloat(process.env.STARTING_PORTFOLIO) || 100,
-          days,
-          invert,
-          confidence,
-        });
-        this._kronosBtCache[cacheKey] = { ts: now, results };
+      this._kronosBtError   = null;
+      runKronosBacktest({
+        startingBalance: parseFloat(process.env.STARTING_PORTFOLIO) || 100,
+        days, invert, confidence,
+      }).then(results => {
+        this._kronosBtCache[cacheKey] = { ts: Date.now(), results };
         this._kronosBtRunning = false;
-        res.json(results);
-      } catch (err) {
+        console.log(`\u2705 Kronos backtest done: ${results.totalTrades} trades, ${results.winRate}% WR`);
+      }).catch(err => {
         this._kronosBtRunning = false;
+        this._kronosBtError   = err.message;
         console.error('Kronos backtest error:', err);
-        res.status(500).json({ error: err.message });
-      }
+      });
+
+      res.json({ done: false, running: true, started: true });
+    });
+
+    // Poll endpoint — browser calls this every 3s until done:true
+    this.app.get('/api/backtest/kronos/status', (req, res) => {
+      const invert     = req.query.invert === 'true';
+      const confidence = parseFloat(req.query.confidence || process.env.KRONOS_MIN_CONFIDENCE || '0.65');
+      const days       = parseInt(req.query.days || '30');
+      const cacheKey   = `${invert}_${confidence}_${days}`;
+      const cached     = this._kronosBtCache[cacheKey];
+      if (cached)             return res.json({ done: true,  running: false, ...cached.results });
+      if (this._kronosBtError) return res.json({ done: false, running: false, error: this._kronosBtError });
+      res.json({ done: false, running: this._kronosBtRunning });
+    });
+
+    // Polymarket Arb — state (opportunities, paper trades, stats, activity log)
+    this.app.get('/api/polymarket-arb/state', (req, res) => {
+      res.json(this._arbScanner.getState());
     });
   }
 
