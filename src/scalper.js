@@ -7,10 +7,10 @@
 //   Sends last 96 OHLCV candles → receives UP|DOWN + confidence
 //
 // Entry: fires when Kronos confidence ≥ 65%
-// Stop:  1.5× ATR below/above entry
+// Stop:  3.0× ATR below/above entry
 // Target: Kronos forecast close at horizon candle 5 (75 min)
 // Min R:R: 1.5:1 required (target must offer ≥1.5× the ATR-stop risk)
-// Breakeven stop: moves to entry once 0.5× ATR in profit
+// Breakeven stop: moves to entry once 1.5× ATR in profit
 //
 // Position sizing: 10% of current portfolio (compounding)
 // Max concurrent: 3 positions | Cooldown: 5 min | 24/7
@@ -34,8 +34,8 @@ export class Scalper extends EventEmitter {
 
     // ── ATR for stop sizing ──
     this.atrPeriod = 14;
-    this.stopAtrMult = 1.5;          // Stop = 1.5× ATR from entry
-    this.breakevenAtrMult = 0.5;     // Move stop to entry once 0.5× ATR in profit
+    this.stopAtrMult = 3.0;          // Stop = 3.0× ATR from entry (wider to survive 15m noise)
+    this.breakevenAtrMult = 1.5;     // Move stop to entry once 1.5× ATR in profit
     this.maxBarsHeld = 20;           // Force exit after 20 × 15m bars (~5h)
 
     // ── Aggressive mode params ──

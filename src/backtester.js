@@ -586,9 +586,9 @@ export async function runBacktest(options = {}) {
 // Set invert=true to flip every signal (LONG→SHORT, SHORT→LONG).
 //
 // Trade mechanics match scalper v7:
-//   Stop:      1.5× ATR from entry
+//   Stop:      3.0× ATR from entry
 //   Target:    Kronos forecast high (LONG) or low (SHORT) over horizon
-//   Breakeven: once 0.5× ATR in profit, stop moves to entry
+//   Breakeven: once 1.5× ATR in profit, stop moves to entry
 //   Time exit: 20 bars (5 hours)
 //   Sizing:    10% compounding
 //   Max conc:  3 positions
@@ -602,8 +602,8 @@ export async function runKronosBacktest(options = {}) {
   const confidence      = options.confidence      || parseFloat(process.env.KRONOS_MIN_CONFIDENCE || '0.65');
   const invert          = options.invert          || false;
   const betPct          = 0.10;
-  const stopAtrMult     = 1.5;
-  const breakevenAtrMult = 0.5;
+  const stopAtrMult     = 3.0;        // Matches live scalper — wider stop to survive 15m noise
+  const breakevenAtrMult = 1.5;       // Don't move to breakeven until 1.5× ATR in profit
   const maxBarsHeld     = 20;
   const maxConcurrent   = 3;
   const feePct          = 0.001;
