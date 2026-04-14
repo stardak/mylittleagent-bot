@@ -1236,30 +1236,30 @@
     let _polyInterval = null;
 
     function switchTab(tab) {
-      const kronos = document.getElementById('paneKronos');
-      const poly   = document.getElementById('panePoly');
-      const btnK   = document.getElementById('tabBtnKronos');
-      const btnP   = document.getElementById('tabBtnPoly');
+      // panePoly may have been mis-parented by the browser HTML parser (due to unclosed
+      // div inside paneKronos content). Fix it by re-parenting to the correct container.
+      const container = document.querySelector('.mx-auto.max-w-7xl');
+      const kronos    = document.getElementById('paneKronos');
+      const poly      = document.getElementById('panePoly');
+      const btnK      = document.getElementById('tabBtnKronos');
+      const btnP      = document.getElementById('tabBtnPoly');
+
+      // Ensure panePoly is a direct child of container (not inside paneKronos)
+      if (poly && container && poly.parentElement !== container) {
+        container.appendChild(poly);
+      }
 
       if (tab === 'poly') {
-        kronos.classList.add('hidden');
-        poly.classList.remove('hidden');
-        btnK.style.background = 'transparent';
-        btnK.classList.remove('text-white');
-        btnK.classList.add('text-gray-400');
-        btnP.style.background = 'rgba(16,185,129,0.5)';
-        btnP.classList.add('text-white');
-        btnP.classList.remove('text-gray-400');
+        if (kronos) kronos.classList.add('hidden');
+        if (poly)   poly.classList.remove('hidden');
+        if (btnK) { btnK.style.background = 'transparent'; btnK.classList.remove('text-white'); btnK.classList.add('text-gray-400'); }
+        if (btnP) { btnP.style.background = 'rgba(16,185,129,0.5)'; btnP.classList.add('text-white'); btnP.classList.remove('text-gray-400'); }
         startPolyScanner();
       } else {
-        poly.classList.add('hidden');
-        kronos.classList.remove('hidden');
-        btnP.style.background = 'transparent';
-        btnP.classList.remove('text-white');
-        btnP.classList.add('text-gray-400');
-        btnK.style.background = 'rgba(99,102,241,0.7)';
-        btnK.classList.add('text-white');
-        btnK.classList.remove('text-gray-400');
+        if (poly)   poly.classList.add('hidden');
+        if (kronos) kronos.classList.remove('hidden');
+        if (btnP) { btnP.style.background = 'transparent'; btnP.classList.remove('text-white'); btnP.classList.add('text-gray-400'); }
+        if (btnK) { btnK.style.background = 'rgba(99,102,241,0.7)'; btnK.classList.add('text-white'); btnK.classList.remove('text-gray-400'); }
       }
     }
 
