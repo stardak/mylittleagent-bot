@@ -511,6 +511,13 @@
               <dt class="truncate text-xs font-medium" style="color:rgba(52,211,153,0.7)">Arb Portfolio</dt>
               <dd id="polyCurrentBalance" class="mt-2 text-2xl font-bold tracking-tight text-profit">$100.00</dd>
               <p id="polyBalancePnl" class="mt-1 text-xs text-gray-500">+$0.00 (+0.00%)</p>
+              <p class="mt-0.5 text-[11px]">
+                <span class="text-gray-600">Verified: </span>
+                <span id="polyVerifiedPnl" class="font-semibold text-gray-400">$0.00</span>
+                <span class="text-gray-700 mx-1">·</span>
+                <span class="text-gray-600">Unverified: </span>
+                <span id="polyUnverifiedPnl" class="font-semibold text-gray-600">$0.00</span>
+              </p>
             </div>
             <div class="relative overflow-hidden rounded-xl bg-gray-800/80 backdrop-blur-lg px-5 pt-5 pb-4 shadow-lg ring-1 ring-white/5">
               <div class="absolute top-4 right-4 flex items-center gap-1.5">
@@ -532,7 +539,7 @@
             <div class="relative overflow-hidden rounded-xl bg-gray-800/80 backdrop-blur-lg px-5 pt-5 pb-4 shadow-lg ring-1 ring-white/5">
               <dt class="truncate text-xs font-medium text-gray-400">Trades Auto-taken</dt>
               <dd id="polyTradesTaken" class="mt-2 text-2xl font-bold tracking-tight text-warn">0</dd>
-              <p class="mt-1 text-xs text-gray-500">Gaps ≥ 2¢ · $10 each</p>
+              <p class="mt-1 text-xs text-gray-500"><span id="polyOpenPositions" class="font-semibold text-profit">0</span> open · Gaps ≥ 2¢ · $10 each</p>
             </div>
           </dl>
 
@@ -1328,13 +1335,27 @@
       set('polyOppsFound',      (s.opportunitiesFound || 0).toLocaleString());
       set('polyAvgGap',         s.opportunitiesFound ? `Avg: ${(s.avgGapCents || 0).toFixed(1)}¢` : 'Avg: —');
       set('polyTradesTaken',    s.tradesAutoTaken || 0);
+      set('polyOpenPositions',  s.openPositions || 0);
+
+      // Verified / unverified P&L
+      const vPnl  = s.verifiedPnl   || 0;
+      const uvPnl = s.unverifiedPnl || 0;
+      const setColorEl = (id, v, pos = true) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.textContent = (v >= 0 ? '+' : '') + fmtUsdP(v);
+        el.style.color = pos && v > 0 ? '#34d399' : (v < 0 ? '#f87171' : '');
+      };
+      setColorEl('polyVerifiedPnl', vPnl);
+      const uvEl = document.getElementById('polyUnverifiedPnl');
+      if (uvEl) uvEl.textContent = (uvPnl >= 0 ? '+' : '') + fmtUsdP(uvPnl);
 
       // Portfolio balance hero
-      const bal    = s.currentBalance   || 100;
-      const pnl    = s.totalTheoreticalProfit || 0;
+      const bal    = s.currentBalance || 100;
+      const pnl    = s.realizedPnl    || s.totalTheoreticalProfit || 0;
       const pnlPct = ((pnl / 100) * 100).toFixed(2);
       set('polyCurrentBalance', '$' + bal.toFixed(2));
-      set('polyBalancePnl',     `${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)} (${pnl >= 0 ? '+' : ''}${pnlPct}%)`);
+      set('polyBalancePnl',     `${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)} (${pnl >= 0 ? '+' : ''}${pnlPct}%) realized`);
       const balEl = document.getElementById('polyCurrentBalance');
       if (balEl) balEl.style.color = pnl >= 0 ? '#34d399' : '#f87171';
 
@@ -1383,26 +1404,44 @@
       }
 
       // Paper trades
-      const trades  = state.paperTrades || [];
-      const tCntEl  = document.getElementById('polyPaperTradeCount');
+      const trades   = state.paperTrades || [];
+      const tCntEl   = document.getElementById('polyPaperTradeCount');
       const tradesEl = document.getElementById('polyPaperTrades');
+      const openCount = trades.filter(t => t.status === 'open').length;
       if (tCntEl) tCntEl.textContent = trades.length;
       if (tradesEl) {
-        tradesEl.innerHTML = trades.length === 0
-          ? '<div class="px-4 py-10 text-center text-xs text-gray-600">No trades yet — waiting for gaps ≥ 2¢</div>'
-          : trades.map(t => `
-            <div class="flex items-start gap-3 px-4 py-3 hover:bg-white/[0.02] transition-colors">
-              <span class="flex size-7 shrink-0 items-center justify-center rounded-lg bg-profit/10 text-xs mt-0.5">💰</span>
+        if (trades.length === 0) {
+          tradesEl.innerHTML = '<div class="px-4 py-10 text-center text-xs text-gray-600">No trades yet — waiting for gaps ≥ 2¢</div>';
+        } else {
+          tradesEl.innerHTML = trades.map(t => {
+            const isOpen   = t.status === 'open';
+            const isFlagged = t.invalid;
+            const statusBadge = isOpen
+              ? '<span class="inline-flex rounded-full px-1.5 py-0.5 text-[9px] font-bold bg-profit/10 text-profit">● OPEN</span>'
+              : '<span class="inline-flex rounded-full px-1.5 py-0.5 text-[9px] font-bold bg-gray-700 text-gray-400">✓ CLOSED</span>';
+            const flagBadge = isFlagged
+              ? `<span class="inline-flex rounded-full px-1.5 py-0.5 text-[9px] font-bold bg-warn/10 text-warn" title="${t.flagReason}">⚠ FLAGGED</span>`
+              : '';
+            const deltaStr = `<span class="text-gray-600" title="Both YES and NO prices fetched from same API response">Δ${t.priceDeltaMs ?? 0}ms</span>`;
+            const profitColor = isFlagged ? 'text-gray-500' : (t.profit >= 0 ? 'text-profit' : 'text-loss');
+            const profitLine  = isFlagged
+              ? `<div class="text-xs ${profitColor} line-through">+${fmtUsdP(t.profit)}</div><div class="text-[10px] text-warn">excluded from P&L</div>`
+              : `<div class="text-xs font-bold ${profitColor}">${isOpen ? '~' : ''}+${fmtUsdP(t.profit)}</div>`;
+            return `<div class="flex items-start gap-3 px-4 py-3 hover:bg-white/[0.02] transition-colors ${isFlagged ? 'opacity-60' : ''}">
+              <span class="flex size-7 shrink-0 items-center justify-center rounded-lg ${isOpen ? 'bg-profit/10' : 'bg-gray-700/50'} text-xs mt-0.5">${isOpen ? '⏳' : '💰'}</span>
               <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-1.5 flex-wrap mb-0.5">${statusBadge}${flagBadge}</div>
                 <p class="text-xs font-medium text-gray-200 truncate">${t.question.slice(0, 60)}…</p>
-                <p class="text-[11px] text-gray-500 mt-0.5">YES ${(t.yesPrice*100).toFixed(1)}¢ + NO ${(t.noPrice*100).toFixed(1)}¢ = ${(t.total*100).toFixed(1)}¢ · Vol ${t.volumeStr}</p>
+                <p class="text-[11px] text-gray-500 mt-0.5">YES ${(t.yesPrice*100).toFixed(1)}¢ + NO ${(t.noPrice*100).toFixed(1)}¢ = ${(t.total*100).toFixed(1)}¢ · Vol ${t.volumeStr} · ${deltaStr}</p>
+                ${isFlagged ? `<p class="text-[10px] text-warn/70 mt-0.5">⚠ ${t.flagReason}</p>` : ''}
               </div>
               <div class="shrink-0 text-right">
-                <div class="text-xs font-bold text-profit">+${fmtUsdP(t.profit)}</div>
+                ${profitLine}
                 <div class="text-[10px] text-gray-600">${new Date(t.takenAt).toLocaleTimeString()}</div>
               </div>
-            </div>
-          `).join('');
+            </div>`;
+          }).join('');
+        }
       }
 
       // Activity log
