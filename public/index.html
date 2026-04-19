@@ -534,7 +534,7 @@
             <div class="relative overflow-hidden rounded-xl bg-gray-800/80 backdrop-blur-lg px-5 pt-5 pb-4 shadow-lg ring-1 ring-white/5">
               <dt class="truncate text-xs font-medium text-gray-400">Gaps Detected</dt>
               <dd id="polyOppsFound" class="mt-2 text-2xl font-bold tracking-tight text-profit">0</dd>
-              <p id="polyAvgGap" class="mt-1 text-xs text-gray-500">Avg size: —</p>
+              <p id="polyAvgGap" class="mt-1 text-xs text-gray-500">Avg size: &mdash; &middot; avg duration: <span id="polyAvgDuration">&mdash;</span></p>
             </div>
             <div class="relative overflow-hidden rounded-xl bg-gray-800/80 backdrop-blur-lg px-5 pt-5 pb-4 shadow-lg ring-1 ring-white/5">
               <dt class="truncate text-xs font-medium text-gray-400">Trades Auto-taken</dt>
@@ -593,6 +593,32 @@
             <div id="polyPaperTrades" class="divide-y divide-white/[0.04] rounded-xl bg-gray-800/60 ring-1 ring-white/5 overflow-y-auto" style="max-height:300px">
               <div class="px-4 py-10 text-center text-xs text-gray-600">No arb trades yet — gaps need to exceed 2¢</div>
             </div>
+          </div>
+
+          <!-- ── Best Gaps Ever Seen (leaderboard) ─────────────────── -->
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mt-5">
+
+            <div>
+              <div class="flex items-center gap-2 mb-3">
+                <h3 class="text-xs font-semibold uppercase tracking-widest text-gray-400">&#x1F3C6; Best Gaps Ever Seen</h3>
+                <span class="text-xs text-gray-600">top 5 by size &middot; persists across restarts</span>
+              </div>
+              <div id="polyLeaderboard" class="rounded-xl bg-gray-800/60 ring-1 ring-white/5 divide-y divide-white/[0.04]">
+                <div class="px-4 py-8 text-center text-xs text-gray-600">No closed gaps yet &mdash; waiting for data</div>
+              </div>
+            </div>
+
+            <!-- ── Category Breakdown ──────────────────────────────── -->
+            <div>
+              <div class="flex items-center gap-2 mb-3">
+                <h3 class="text-xs font-semibold uppercase tracking-widest text-gray-400">&#x1F4CA; Gaps by Category</h3>
+                <span class="text-xs text-gray-600">where are the inefficiencies?</span>
+              </div>
+              <div id="polyCategoryStats" class="rounded-xl bg-gray-800/60 ring-1 ring-white/5 divide-y divide-white/[0.04]">
+                <div class="px-4 py-8 text-center text-xs text-gray-600">Scanning&hellip;</div>
+              </div>
+            </div>
+
           </div>
 
         </div><!-- /panePoly -->
@@ -1343,7 +1369,11 @@
       set('polyMarketsChecked', s.totalScans > 0 ? Math.round(s.marketsChecked / s.totalScans).toLocaleString() : '—');
       set('polyTotalScans',     `${s.totalScans || 0} scans run`);
       set('polyOppsFound',      (s.opportunitiesFound || 0).toLocaleString());
-      set('polyAvgGap',         s.opportunitiesFound ? `Avg: ${(s.avgGapCents || 0).toFixed(1)}¢` : 'Avg: —');
+      set('polyAvgGap', s.opportunitiesFound
+        ? `Avg: ${(s.avgGapCents || 0).toFixed(1)}¢`
+        : 'Avg: —');
+      const durEl = document.getElementById('polyAvgDuration');
+      if (durEl) durEl.textContent = s.avgGapDurationSec ? `${s.avgGapDurationSec}s` : '—';
       set('polyTradesTaken',    s.tradesAutoTaken || 0);
       set('polyOpenPositions',  s.openPositions || 0);
 
@@ -1466,7 +1496,7 @@
               <div class="flex-1 min-w-0">
                 <div class="flex items-center gap-1.5 flex-wrap mb-0.5">${statusBadge}${flagBadge}</div>
                 <p class="text-xs font-medium text-gray-200 truncate">${t.question.slice(0, 60)}…</p>
-                <p class="text-[11px] text-gray-500 mt-0.5">YES ${(t.yesPrice*100).toFixed(1)}¢ + NO ${(t.noPrice*100).toFixed(1)}¢ = ${(t.total*100).toFixed(1)}¢ · Vol ${t.volumeStr} · ${deltaStr}</p>
+                <p class="text-[11px] text-gray-500 mt-0.5">YES ${(t.yesPrice*100).toFixed(1)}¢ + NO ${(t.noPrice*100).toFixed(1)}¢ = ${(t.total*100).toFixed(1)}¢ · Vol ${t.volumeStr} · ${deltaStr}${t.durationSec != null ? ` · <span class="text-gray-500">⏱ ${t.durationSec}s</span>` : ''}</p>
                 ${isFlagged ? `<p class="text-[10px] text-warn/70 mt-0.5">⚠ ${t.flagReason}</p>` : ''}
               </div>
               <div class="shrink-0 text-right">
@@ -1494,6 +1524,55 @@
               <span class="shrink-0 text-[10px] text-gray-600">${l.time}</span>
             </div>
           `).join('');
+      }
+
+      // Leaderboard
+      const lbEl   = document.getElementById('polyLeaderboard');
+      const topGaps = state.topGaps || [];
+      if (lbEl) {
+        if (topGaps.length === 0) {
+          lbEl.innerHTML = '<div class="px-4 py-8 text-center text-xs text-gray-600">No closed gaps yet — waiting for data</div>';
+        } else {
+          lbEl.innerHTML = topGaps.map((g, i) => `
+            <div class="flex items-center gap-3 px-4 py-3 hover:bg-white/[0.02] transition-colors">
+              <span class="text-sm shrink-0 w-5 text-center font-bold ${i === 0 ? 'text-yellow-400' : i === 1 ? 'text-gray-300' : i === 2 ? 'text-amber-600' : 'text-gray-600'}">${['\u2461','\u2462','\u2463','\u2464','\u2465'][i] || (i+1)}</span>
+              <div class="flex-1 min-w-0">
+                <p class="text-xs font-medium text-gray-200 truncate">${g.question.slice(0, 65)}…</p>
+                <p class="text-[11px] text-gray-500 mt-0.5">${g.hadTrade ? '<span class="text-profit">\u2714 trade taken</span>' : '<span class="text-gray-600">no trade</span>'} · seen ${new Date(g.seenAt).toLocaleDateString()}</p>
+              </div>
+              <div class="shrink-0 text-right">
+                <div class="text-sm font-bold text-profit">+${g.gapCents.toFixed(1)}¢</div>
+                <div class="text-[10px] text-gray-500">${g.durationSec != null ? `${g.durationSec}s` : '—'}</div>
+              </div>
+            </div>
+          `).join('');
+        }
+      }
+
+      // Category breakdown
+      const catEl = document.getElementById('polyCategoryStats');
+      const cats  = state.categoryStats || [];
+      if (catEl) {
+        if (!cats.length || cats.every(c => c.count === 0)) {
+          catEl.innerHTML = '<div class="px-4 py-8 text-center text-xs text-gray-600">Scanning…</div>';
+        } else {
+          const catIcons = { Crypto: '💰', Sports: '⚽', Politics: '🏙', Weather: '⚡', Finance: '📈', Other: '❓' };
+          const maxCount = Math.max(...cats.map(c => c.count), 1);
+          catEl.innerHTML = cats.filter(c => c.count > 0).map(c => `
+            <div class="flex items-center gap-3 px-4 py-3 hover:bg-white/[0.02] transition-colors">
+              <span class="text-sm shrink-0">${catIcons[c.name] || '❓'}</span>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between mb-1">
+                  <span class="text-xs font-medium text-gray-200">${c.name}</span>
+                  <span class="text-[10px] text-gray-500 ml-2">${c.count} gaps · avg ${c.avgGapCents.toFixed(1)}¢</span>
+                </div>
+                <div class="h-1 rounded-full bg-gray-700/50 overflow-hidden">
+                  <div class="h-full rounded-full bg-profit/60" style="width:${Math.round((c.count / maxCount) * 100)}%"></div>
+                </div>
+              </div>
+            </div>
+          `).join('');
+        }
       }
     }
   </script>

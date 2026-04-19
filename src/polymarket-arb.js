@@ -1,5 +1,5 @@
 // ══════════════════════════════════════════════════════════════════════════════
-// POLYMARKET ARB SCANNER  v2
+// POLYMARKET ARB SCANNER  v3
 // ══════════════════════════════════════════════════════════════════════════════
 // Scans ALL active binary (YES/NO) markets on Polymarket for price gaps.
 // In an efficient market, YES + NO = $1.00 exactly.
@@ -15,38 +15,89 @@
 //   • YES and NO prices come from the SAME API response (delta = 0 ms always)
 //   • Trades are flagged ⚠️ invalid if: gap > 15¢ OR volume < $1 K
 //   • Flagged trades are excluded from "verified P&L"
+//
+// v3 additions:
+//   • Gap duration tracking — records how long each gap stayed open
+//   • Top-5 "Best Gaps Ever Seen" leaderboard — persisted to disk
+//   • Market category breakdown — Crypto / Sports / Politics / Finance / Weather / Other
+//   • Telegram alerts for gaps ≥ 5¢ (once per gap event, not repeatedly)
 // ══════════════════════════════════════════════════════════════════════════════
 
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'fs';
+import path from 'path';
+
 const GAMMA_API             = 'https://gamma-api.polymarket.com';
-const MIN_GAP               = 0.02;      // 2¢ threshold to open a paper trade
-const BET_SIZE              = 10;        // $10 notional per trade
-const MAX_LOG               = 200;       // Activity log cap
-const MAX_TRADES            = 500;       // Closed-trade history cap
-const MAX_OPPS              = 50;        // Live opportunities shown in UI
-const FLAG_GAP_THRESHOLD    = 0.15;      // >15¢ gap → flag as suspect
-const FLAG_VOL_THRESHOLD    = 1_000;     // <$1 K volume → flag as thin
+const MIN_GAP               = 0.02;   // 2¢ threshold to open a paper trade
+const ALERT_GAP             = 0.05;   // 5¢ threshold to fire Telegram alert
+const BET_SIZE              = 10;     // $10 notional per trade
+const MAX_LOG               = 200;    // Activity log cap
+const MAX_TRADES            = 500;    // Closed-trade history cap
+const MAX_OPPS              = 50;     // Live opportunities shown in UI
+const TOP_GAPS_LIMIT        = 5;      // "Best Gaps" leaderboard size
+const FLAG_GAP_THRESHOLD    = 0.15;   // >15¢ gap → flag as suspect
+const FLAG_VOL_THRESHOLD    = 1_000;  // <$1 K volume → flag as thin
+
+// ── Category keyword matching ──────────────────────────────────────────────
+const CATEGORY_RULES = [
+  { name: 'Crypto',   words: ['bitcoin','btc','eth','ethereum','solana','sol','crypto','blockchain','doge','xrp','nft','defi','usdc','usdt','token','altcoin'] },
+  { name: 'Sports',   words: ['nba','nfl','nhl','mlb','soccer','tennis','golf','football','basketball','champion','league','match','super bowl','world cup','playoff','wimbledon','formula','mma','ufc','boxing','cricket','rugby','olympics'] },
+  { name: 'Politics', words: ['president','election','vote','congress','senate','democrat','republican','trump','biden','harris','tariff','policy','governor','minister','parliament','white house','nato','geopolit'] },
+  { name: 'Weather',  words: ['hurricane','earthquake','storm','flood','temperature','climate','tornado','typhoon','drought','wildfire','blizzard','cyclone'] },
+  { name: 'Finance',  words: ['fed','fomc','rate','gdp','inflation','sp500','nasdaq','dow','recession','treasury','interest','yield','cpi','pce','employment','jobs','market cap','earnings'] },
+];
+
+function classifyMarket(question) {
+  const q = question.toLowerCase();
+  for (const rule of CATEGORY_RULES) {
+    if (rule.words.some(w => q.includes(w))) return rule.name;
+  }
+  return 'Other';
+}
 
 export class PolymarketArbScanner {
-  constructor() {
-    this.opportunities = [];          // Current scan's mispriced markets
-    this.openTrades    = new Map();   // marketId → open trade object (one per market)
-    this.paperTrades   = [];          // CLOSED trades (history)
-    this.activityLog   = [];          // All gap events (tradeable or not)
-    this._interval     = null;
+  constructor(options = {}) {
+    this.opportunities  = [];
+    this.openTrades     = new Map();   // marketId → open trade
+    this.paperTrades    = [];          // CLOSED trades
+    this.activityLog    = [];
+    this._interval      = null;
+
+    // ── Feature 1: Gap duration — track when each gap first appeared ────────
+    this.gapStartTimes  = new Map();   // marketId → Date.now() when first seen
+    this._allDurations  = [];          // seconds, for average computation
+
+    // ── Feature 2: Leaderboard ──────────────────────────────────────────────
+    this.topGaps        = [];          // up to TOP_GAPS_LIMIT entries, sorted by gapCents desc
+    this._dataDir       = options.dataDir || process.cwd();
+    this._leaderboardPath = path.join(this._dataDir, 'data', 'poly-topgaps.json');
+    this._loadLeaderboard();
+
+    // ── Feature 3: Category stats ───────────────────────────────────────────
+    this.categoryStats  = {};
+    for (const rule of CATEGORY_RULES) {
+      this.categoryStats[rule.name] = { count: 0, totalGapCents: 0 };
+    }
+    this.categoryStats['Other'] = { count: 0, totalGapCents: 0 };
+
+    // ── Feature 4: Telegram alerts ──────────────────────────────────────────
+    this.telegramAlerted = new Set();  // marketIds already alerted in this gap event
+    this._tgToken = process.env.TELEGRAM_BOT_TOKEN || null;
+    this._tgChat  = process.env.TELEGRAM_CHAT_ID   || null;
 
     this.stats = {
       totalScans:          0,
       marketsChecked:      0,
       opportunitiesFound:  0,
-      tradesAutoTaken:     0,   // total positions ever opened
+      tradesAutoTaken:     0,
       totalClosedTrades:   0,
-      realizedPnl:         0,   // closed trades only (verified + unverified)
-      verifiedPnl:         0,   // closed trades that are NOT flagged
-      unverifiedPnl:       0,   // closed trades that ARE flagged
+      realizedPnl:         0,
+      verifiedPnl:         0,
+      unverifiedPnl:       0,
       todayPnl:            0,
       todayTrades:         0,
       todayWins:           0,
       _todayDate:          new Date().toDateString(),
+      avgGapDurationSec:   0,
       _allGaps:            [],
       avgGapCents:         0,
       lastScan:            null,
@@ -78,17 +129,16 @@ export class PolymarketArbScanner {
       const markets = await this._fetchMarkets();
       this.stats.marketsChecked += markets.length;
 
-      // O(1) lookup by id for the close-check loop
       const byId = new Map(
         markets.map(m => [m.conditionId || m.id || m.slug, m])
       );
 
-      // ── Step 1: Close open trades where the gap has disappeared ─────────────
+      // ── Step 1: Close open trades where the gap has disappeared ─────────
       for (const [marketId, trade] of this.openTrades) {
         const market = byId.get(marketId);
-        if (!market) continue;   // not in this page of results — leave open
+        if (!market) continue;
 
-        const prices = (typeof market.outcomePrices === 'string'
+        const prices     = (typeof market.outcomePrices === 'string'
           ? JSON.parse(market.outcomePrices)
           : market.outcomePrices).map(Number);
         const currentYes = prices[0];
@@ -96,7 +146,19 @@ export class PolymarketArbScanner {
         const total      = currentYes + currentNo;
 
         if (total >= 1.0) {
-          // Gap is gone — close the trade
+          // ── Compute duration ──────────────────────────────────────────
+          const durationSec = trade.gapOpenedAt
+            ? Math.round((Date.now() - trade.gapOpenedAt) / 1000)
+            : null;
+
+          if (durationSec !== null) {
+            this._allDurations.push(durationSec);
+            this.stats.avgGapDurationSec = Math.round(
+              this._allDurations.reduce((a, b) => a + b, 0) /
+              this._allDurations.length
+            );
+          }
+
           const closed = {
             ...trade,
             status:      'closed',
@@ -104,12 +166,13 @@ export class PolymarketArbScanner {
             closedYes:   +currentYes.toFixed(4),
             closedNo:    +currentNo.toFixed(4),
             closedTotal: +total.toFixed(4),
+            durationSec,
           };
 
           this.paperTrades.unshift(closed);
           if (this.paperTrades.length > MAX_TRADES) this.paperTrades.pop();
 
-          // Accumulate P&L
+          // P&L
           this.stats.totalClosedTrades++;
           this.stats.realizedPnl = +(this.stats.realizedPnl + trade.profit).toFixed(4);
           if (trade.invalid) {
@@ -118,7 +181,7 @@ export class PolymarketArbScanner {
             this.stats.verifiedPnl = +(this.stats.verifiedPnl + trade.profit).toFixed(4);
           }
 
-          // Today's stats — reset automatically if date rolls over
+          // Today's stats
           const todayStr = new Date().toDateString();
           if (this.stats._todayDate !== todayStr) {
             this.stats.todayPnl    = 0;
@@ -130,12 +193,25 @@ export class PolymarketArbScanner {
           this.stats.todayPnl = +(this.stats.todayPnl + trade.profit).toFixed(4);
           if (trade.profit > 0) this.stats.todayWins++;
 
-          console.log(`[PolyArb] CLOSE: "${trade.question.slice(0, 50)}" → total now ${(total * 100).toFixed(1)}¢ (profit: ${trade.profit >= 0 ? '+' : ''}$${trade.profit.toFixed(4)})`);
+          // ── Update leaderboard ────────────────────────────────────────
+          this._updateLeaderboard({
+            question:    trade.question,
+            gapCents:    trade.gapCents,
+            durationSec,
+            hadTrade:    true,
+            seenAt:      trade.takenAt,
+          });
+
+          // Clean up duration tracker + telegram alert set for this market
+          this.gapStartTimes.delete(marketId);
+          this.telegramAlerted.delete(marketId);
+
+          console.log(`[PolyArb] CLOSE: "${trade.question.slice(0, 50)}" → ${(total * 100).toFixed(1)}¢ total, duration ${durationSec ?? '?'}s`);
           this.openTrades.delete(marketId);
         }
       }
 
-      // ── Step 2: Scan all markets for new opportunities ─────────────────────
+      // ── Step 2: Scan all markets for new opportunities ─────────────────
       const found = [];
 
       for (const market of markets) {
@@ -148,9 +224,24 @@ export class PolymarketArbScanner {
           this.stats._allGaps.reduce((a, b) => a + b, 0) /
           this.stats._allGaps.length;
 
+        // ── Feature 1: Record gap start time if first sighting ────────
+        if (!this.gapStartTimes.has(opp.id)) {
+          this.gapStartTimes.set(opp.id, t0);
+        }
+        const gapOpenedAt = this.gapStartTimes.get(opp.id);
+
+        // ── Feature 3: Category stats ─────────────────────────────────
+        const cat = classifyMarket(opp.question);
+        if (this.categoryStats[cat]) {
+          this.categoryStats[cat].count++;
+          this.categoryStats[cat].totalGapCents = +(
+            this.categoryStats[cat].totalGapCents + opp.gapCents
+          ).toFixed(2);
+        }
+
         const hasOpenTrade = this.openTrades.has(opp.id);
 
-        // Activity log — all detected gaps
+        // Activity log
         this.activityLog.unshift({
           time:      new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
           question:  opp.question.slice(0, 72),
@@ -164,23 +255,42 @@ export class PolymarketArbScanner {
         });
         if (this.activityLog.length > MAX_LOG) this.activityLog.pop();
 
-        // Open a paper trade only if: gap meets threshold AND no open trade for this market
+        // Open paper trade if eligible
         if (opp.gap >= MIN_GAP && !hasOpenTrade) {
           const trade = {
             ...opp,
-            takenAt:     new Date().toISOString(),
-            tradeId:     `PT-${Date.now().toString(36).toUpperCase()}`,
-            status:      'open',
-            priceDeltaMs: 0,   // YES & NO prices are from the SAME API response object
-                               // (field: outcomePrices[0] and outcomePrices[1])
-                               // so the fetch delta is always 0 ms by construction.
+            gapOpenedAt,
+            takenAt:      new Date().toISOString(),
+            tradeId:      `PT-${Date.now().toString(36).toUpperCase()}`,
+            status:       'open',
+            priceDeltaMs: 0,
           };
           this.openTrades.set(opp.id, trade);
           this.stats.tradesAutoTaken++;
           console.log(`[PolyArb] OPEN: "${opp.question.slice(0, 50)}" gap=${(opp.gap * 100).toFixed(1)}¢${opp.invalid ? ' ⚠️ FLAGGED' : ''}`);
         }
 
-        found.push({ ...opp, hasOpenTrade: this.openTrades.has(opp.id) });
+        // ── Feature 4: Telegram alert for big gaps ─────────────────────
+        if (opp.gap >= ALERT_GAP && !this.telegramAlerted.has(opp.id)) {
+          this.telegramAlerted.add(opp.id);
+          this._sendTelegram(
+            `🚨 *Polymarket gap alert*\n` +
+            `*${opp.question.slice(0, 80)}*\n` +
+            `YES ${(opp.yesPrice * 100).toFixed(1)}¢ + NO ${(opp.noPrice * 100).toFixed(1)}¢ = ${(opp.total * 100).toFixed(1)}¢\n` +
+            `Gap: *+${opp.gapCents.toFixed(1)}¢* · Vol: ${opp.volumeStr}` +
+            (opp.invalid ? `\n⚠️ _${opp.flagReason}_` : '')
+          );
+        }
+
+        found.push({ ...opp, gapOpenedAt, hasOpenTrade: this.openTrades.has(opp.id) });
+      }
+
+      // Clean up gapStartTimes for markets no longer showing a gap
+      for (const [marketId] of this.gapStartTimes) {
+        if (!found.some(o => o.id === marketId)) {
+          this.gapStartTimes.delete(marketId);
+          this.telegramAlerted.delete(marketId);
+        }
       }
 
       this.opportunities = found
@@ -191,7 +301,7 @@ export class PolymarketArbScanner {
 
       const tradeable = found.filter(o => o.gap >= MIN_GAP);
       if (tradeable.length > 0 || this.openTrades.size > 0) {
-        console.log(`[PolyArb] ${markets.length} mkts → ${found.length} gaps, ${tradeable.length} tradeable | open positions: ${this.openTrades.size}`);
+        console.log(`[PolyArb] ${markets.length} mkts → ${found.length} gaps, ${tradeable.length} tradeable | open: ${this.openTrades.size}`);
       }
 
     } catch (err) {
@@ -206,8 +316,6 @@ export class PolymarketArbScanner {
       const raw = market.outcomePrices;
       if (!raw) return null;
 
-      // YES and NO come from the SAME array in the SAME API response.
-      // priceDeltaMs is always 0 — this is documented in the trade object.
       const prices = (typeof raw === 'string' ? JSON.parse(raw) : raw).map(Number);
       if (prices.length < 2) return null;
 
@@ -218,22 +326,19 @@ export class PolymarketArbScanner {
       if (yesPrice <= 0 || noPrice <= 0)     return null;
       if (yesPrice >= 1 || noPrice >= 1)     return null;
 
-      const total = yesPrice + noPrice;
+      const total  = yesPrice + noPrice;
       if (total >= 1.0) return null;
 
       const gap    = +((1.0 - total).toFixed(4));
-      const shares = BET_SIZE / total;
-      const profit = +(shares - BET_SIZE).toFixed(4);
+      const profit = +(BET_SIZE / total - BET_SIZE).toFixed(4);
       const volume = parseFloat(market.volume || market.volumeNum || 0);
 
-      // Validation — flag trades that are likely stale / illiquid
-      let invalid    = false;
-      let flagReason = null;
+      let invalid = false, flagReason = null;
       if (gap > FLAG_GAP_THRESHOLD) {
-        invalid    = true;
+        invalid = true;
         flagReason = `Gap ${(gap * 100).toFixed(0)}¢ > 15¢ — likely stale or illiquid data`;
       } else if (volume < FLAG_VOL_THRESHOLD) {
-        invalid    = true;
+        invalid = true;
         flagReason = `Volume $${volume.toFixed(0)} < $1K — market too thin`;
       }
 
@@ -252,12 +357,69 @@ export class PolymarketArbScanner {
         url:          `https://polymarket.com/event/${market.slug || ''}`,
         endDate:      market.endDate || market.end_date_iso || null,
         fetchedAt,
-        priceDeltaMs: 0,       // always 0 — same API response object
+        priceDeltaMs: 0,
         invalid,
         flagReason,
+        category:     classifyMarket(market.question || market.title || ''),
       };
     } catch {
       return null;
+    }
+  }
+
+  // ── Feature 2: Leaderboard helpers ────────────────────────────────────────
+
+  _updateLeaderboard(entry) {
+    // Add or replace if same question
+    const idx = this.topGaps.findIndex(g => g.question === entry.question);
+    if (idx === -1) {
+      this.topGaps.push(entry);
+    } else if (entry.gapCents > this.topGaps[idx].gapCents) {
+      this.topGaps[idx] = entry;   // update with bigger gap observation
+    }
+    this.topGaps.sort((a, b) => b.gapCents - a.gapCents);
+    if (this.topGaps.length > TOP_GAPS_LIMIT) this.topGaps.length = TOP_GAPS_LIMIT;
+    this._saveLeaderboard();
+  }
+
+  _saveLeaderboard() {
+    try {
+      const dir = path.join(this._dataDir, 'data');
+      if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+      writeFileSync(this._leaderboardPath, JSON.stringify(this.topGaps, null, 2));
+    } catch (e) {
+      console.warn('[PolyArb] Leaderboard save failed:', e.message);
+    }
+  }
+
+  _loadLeaderboard() {
+    try {
+      if (existsSync(this._leaderboardPath)) {
+        this.topGaps = JSON.parse(readFileSync(this._leaderboardPath, 'utf8'));
+        console.log(`[PolyArb] Loaded ${this.topGaps.length} leaderboard entries`);
+      }
+    } catch (e) {
+      console.warn('[PolyArb] Leaderboard load failed:', e.message);
+      this.topGaps = [];
+    }
+  }
+
+  // ── Feature 4: Telegram ────────────────────────────────────────────────────
+
+  async _sendTelegram(text) {
+    if (!this._tgToken || !this._tgChat) return;
+    try {
+      const url = `https://api.telegram.org/bot${this._tgToken}/sendMessage`;
+      const res = await fetch(url, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ chat_id: this._tgChat, text, parse_mode: 'Markdown' }),
+        signal:  AbortSignal.timeout(8_000),
+      });
+      if (!res.ok) console.warn('[PolyArb] Telegram error:', res.status);
+      else console.log('[PolyArb] Telegram alert sent');
+    } catch (e) {
+      console.warn('[PolyArb] Telegram send failed:', e.message);
     }
   }
 
@@ -284,15 +446,30 @@ export class PolymarketArbScanner {
   // ── Public state (for API endpoint) ───────────────────────────────────────
 
   getState() {
-    const s        = this.stats;
-    const openArr  = [...this.openTrades.values()];
-    const realPnl  = +s.realizedPnl.toFixed(2);
+    const s       = this.stats;
+    const openArr = [...this.openTrades.values()];
+    const realPnl = +s.realizedPnl.toFixed(2);
+
+    // Category breakdown with averages
+    const cats = Object.entries(this.categoryStats).map(([name, d]) => ({
+      name,
+      count:      d.count,
+      avgGapCents: d.count > 0 ? +(d.totalGapCents / d.count).toFixed(2) : 0,
+    })).sort((a, b) => b.count - a.count);
+
+    // Open trades with current duration (still ticking)
+    const now = Date.now();
+    const openWithDuration = openArr.map(t => ({
+      ...t,
+      durationSec: t.gapOpenedAt ? Math.round((now - t.gapOpenedAt) / 1000) : null,
+    }));
 
     return {
       opportunities: this.opportunities,
-      // Open trades first, then closed history
-      paperTrades:   [...openArr, ...this.paperTrades].slice(0, 100),
+      paperTrades:   [...openWithDuration, ...this.paperTrades].slice(0, 100),
       activityLog:   this.activityLog.slice(0, 100),
+      topGaps:       this.topGaps,
+      categoryStats: cats,
       stats: {
         totalScans:          s.totalScans,
         marketsChecked:      s.marketsChecked,
@@ -309,7 +486,8 @@ export class PolymarketArbScanner {
         winRate:             s.totalClosedTrades > 0
                                ? +((s.todayWins / s.totalClosedTrades) * 100).toFixed(1)
                                : null,
-        // Legacy fields — hero panel uses these
+        avgGapDurationSec:   s.avgGapDurationSec,
+        // Legacy
         totalTheoreticalProfit: realPnl,
         currentBalance:         +(100 + realPnl).toFixed(2),
         avgGapCents:            +(s.avgGapCents * 100).toFixed(2),
