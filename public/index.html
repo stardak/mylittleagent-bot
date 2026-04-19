@@ -166,7 +166,7 @@
           <div id="dailyLossWarning" class="mb-4 hidden rounded-lg border border-amber-400/20 bg-amber-400/5 px-4 py-3 text-sm text-amber-300">⚠️ Daily losses approaching halt limit (<span id="dailyLossPct">0</span>%).</div>
 
           <p class="text-[10px] uppercase tracking-[0.25em] text-brand-400/30 font-medium mb-6">A Systematic Algorithmic Trading System by Stef Michalak</p>
-          <p class="text-[11px] uppercase tracking-[0.2em] text-brand-400/40 font-semibold mb-2">Portfolio</p>
+          <p id="heroLabel" class="text-[11px] uppercase tracking-[0.2em] text-brand-400/40 font-semibold mb-2">Portfolio</p>
           <h1 id="portfolioValue" class="text-5xl sm:text-6xl font-extrabold tracking-tighter text-white">$99.00</h1>
           <p class="mt-2 text-sm text-brand-400/60">
             <span id="scalperPnl" class="font-semibold text-gray-400">P&L: $0.00</span>
@@ -618,6 +618,29 @@
     // ── v7: 24/7 Active — no session windows ──────────────
     let isInSession = true; // always active in v7
 
+    // ── Hero panel — tab-aware ─────────────────────────────
+    let activeTab = 'kronos';
+    let _kronosHero = { balance: null, balColor: 'text-white', pnlText: 'P&L: $0.00', pnlColor: 'text-gray-400', start: '' };
+    let _polyHero   = { balance: null, balColor: 'text-profit', pnlText: '+$0.00 (+0.00%)', pnlColor: 'text-gray-400' };
+
+    function updateHero() {
+      const heroLabel   = $('heroLabel');
+      const scalperPnlEl = $('scalperPnl');
+      if (activeTab === 'poly' && _polyHero.balance !== null) {
+        if (heroLabel) heroLabel.textContent = 'Arb Portfolio';
+        els.portfolioValue.textContent = fmtUsd(_polyHero.balance);
+        els.portfolioValue.className = 'text-5xl sm:text-6xl font-extrabold tracking-tighter ' + _polyHero.balColor;
+        if (scalperPnlEl) { scalperPnlEl.textContent = _polyHero.pnlText; scalperPnlEl.className = 'font-semibold ' + _polyHero.pnlColor; }
+        if (els.portfolioStart) els.portfolioStart.textContent = 'Started at $100.00';
+      } else if (_kronosHero.balance !== null) {
+        if (heroLabel) heroLabel.textContent = 'Portfolio';
+        els.portfolioValue.textContent = fmtUsd(_kronosHero.balance);
+        els.portfolioValue.className = 'text-5xl sm:text-6xl font-extrabold tracking-tighter ' + _kronosHero.balColor;
+        if (scalperPnlEl) { scalperPnlEl.textContent = _kronosHero.pnlText; scalperPnlEl.className = 'font-semibold ' + _kronosHero.pnlColor; }
+        if (els.portfolioStart) els.portfolioStart.textContent = _kronosHero.start;
+      }
+    }
+
     // ── PIN Toggle ────────────────────────────────────────
     let cachedPin = null;
     els.tradingToggle.addEventListener('change', (e) => {
@@ -651,10 +674,11 @@
       els.drawdownWarning.classList.toggle('hidden', !(showBanners && status.drawdownWarning && !status.isKilled));
       els.dailyLossWarning.classList.toggle('hidden', !(showBanners && status.dailyLossWarning && !status.isHalted));
 
-      const currentBalance = bp ? bp.balance : status.portfolio;
-      els.portfolioValue.textContent = fmtUsd(currentBalance);
-      els.portfolioValue.className = 'text-5xl sm:text-6xl font-extrabold tracking-tighter ' + (bp ? pnlColor(bp.totalPnl) : 'text-white');
-      els.portfolioStart.textContent = `Started at ${fmtUsd(status.startingPortfolio)}`;
+      const currentBalance  = bp ? bp.balance : status.portfolio;
+      _kronosHero.balance  = currentBalance;
+      _kronosHero.balColor = bp ? pnlColor(bp.totalPnl) : 'text-white';
+      _kronosHero.start    = `Started at ${fmtUsd(status.startingPortfolio)}`;
+      updateHero();
 
       // Prefer scalper (Binance) stats when available — RiskManager only tracks Polymarket
       const todayPnl      = bp ? bp.todayPnl        : status.todayPnl;
@@ -687,7 +711,12 @@
       if (binancePortfolio) {
         const b = $('scalperBalance'), p = $('scalperPnl'), w = $('scalperWinRate'), t = $('scalperTradeCount');
         if (b) { b.textContent = fmtUsd(binancePortfolio.balance); b.className = 'mt-2 text-2xl font-bold tracking-tight ' + pnlColor(binancePortfolio.totalPnl); }
-        if (p) { const s = binancePortfolio.totalPnl >= 0 ? '+' : ''; p.textContent = `P&L: ${s}${fmtUsd(binancePortfolio.totalPnl)} (${s}${binancePortfolio.totalPnlPct.toFixed(1)}%)`; p.className = 'font-semibold ' + pnlColor(binancePortfolio.totalPnl); }
+        if (p) {
+          const s = binancePortfolio.totalPnl >= 0 ? '+' : '';
+          _kronosHero.pnlText  = `P&L: ${s}${fmtUsd(binancePortfolio.totalPnl)} (${s}${binancePortfolio.totalPnlPct.toFixed(1)}%)`;
+          _kronosHero.pnlColor = pnlColor(binancePortfolio.totalPnl);
+          updateHero();
+        }
         if (w) { w.textContent = binancePortfolio.winRate.toFixed(1) + '%'; w.className = 'mt-2 text-2xl font-bold tracking-tight ' + (binancePortfolio.winRate >= 50 ? 'text-profit' : binancePortfolio.totalTrades > 0 ? 'text-loss' : 'text-white'); }
         if (t) t.textContent = `${binancePortfolio.totalTrades} (${binancePortfolio.wins}W / ${binancePortfolio.losses}L)`;
 
@@ -1244,16 +1273,20 @@
       }
 
       if (tab === 'poly') {
+        activeTab = 'poly';
         if (kronos) kronos.classList.add('hidden');
         if (poly)   poly.classList.remove('hidden');
         if (btnK) { btnK.style.background = 'transparent'; btnK.classList.remove('text-white'); btnK.classList.add('text-gray-400'); }
         if (btnP) { btnP.style.background = 'rgba(16,185,129,0.5)'; btnP.classList.add('text-white'); btnP.classList.remove('text-gray-400'); }
+        updateHero();
         startPolyScanner();
       } else {
+        activeTab = 'kronos';
         if (poly)   poly.classList.add('hidden');
         if (kronos) kronos.classList.remove('hidden');
         if (btnP) { btnP.style.background = 'transparent'; btnP.classList.remove('text-white'); btnP.classList.add('text-gray-400'); }
         if (btnK) { btnK.style.background = 'rgba(99,102,241,0.7)'; btnK.classList.add('text-white'); btnK.classList.remove('text-gray-400'); }
+        updateHero();
       }
     }
 
@@ -1304,6 +1337,13 @@
       set('polyBalancePnl',     `${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)} (${pnl >= 0 ? '+' : ''}${pnlPct}%)`);
       const balEl = document.getElementById('polyCurrentBalance');
       if (balEl) balEl.style.color = pnl >= 0 ? '#34d399' : '#f87171';
+
+      // Keep hero in sync when poly tab is active
+      _polyHero.balance  = bal;
+      _polyHero.balColor = pnl >= 0 ? 'text-profit' : 'text-loss';
+      _polyHero.pnlText  = `${pnl >= 0 ? '+' : ''}${fmtUsdP(pnl)} (${pnl >= 0 ? '+' : ''}${pnlPct}%)`;
+      _polyHero.pnlColor = pnl >= 0 ? 'text-profit' : 'text-loss';
+      updateHero();
 
       // Opportunities
       const opps   = state.opportunities || [];
