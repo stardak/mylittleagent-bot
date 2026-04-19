@@ -43,6 +43,10 @@ export class PolymarketArbScanner {
       realizedPnl:         0,   // closed trades only (verified + unverified)
       verifiedPnl:         0,   // closed trades that are NOT flagged
       unverifiedPnl:       0,   // closed trades that ARE flagged
+      todayPnl:            0,
+      todayTrades:         0,
+      todayWins:           0,
+      _todayDate:          new Date().toDateString(),
       _allGaps:            [],
       avgGapCents:         0,
       lastScan:            null,
@@ -113,6 +117,18 @@ export class PolymarketArbScanner {
           } else {
             this.stats.verifiedPnl = +(this.stats.verifiedPnl + trade.profit).toFixed(4);
           }
+
+          // Today's stats — reset automatically if date rolls over
+          const todayStr = new Date().toDateString();
+          if (this.stats._todayDate !== todayStr) {
+            this.stats.todayPnl    = 0;
+            this.stats.todayTrades = 0;
+            this.stats.todayWins   = 0;
+            this.stats._todayDate  = todayStr;
+          }
+          this.stats.todayTrades++;
+          this.stats.todayPnl = +(this.stats.todayPnl + trade.profit).toFixed(4);
+          if (trade.profit > 0) this.stats.todayWins++;
 
           console.log(`[PolyArb] CLOSE: "${trade.question.slice(0, 50)}" → total now ${(total * 100).toFixed(1)}¢ (profit: ${trade.profit >= 0 ? '+' : ''}$${trade.profit.toFixed(4)})`);
           this.openTrades.delete(marketId);
@@ -287,6 +303,12 @@ export class PolymarketArbScanner {
         realizedPnl:         realPnl,
         verifiedPnl:         +s.verifiedPnl.toFixed(2),
         unverifiedPnl:       +s.unverifiedPnl.toFixed(2),
+        todayPnl:            +s.todayPnl.toFixed(4),
+        todayTrades:         s.todayTrades,
+        todayWins:           s.todayWins,
+        winRate:             s.totalClosedTrades > 0
+                               ? +((s.todayWins / s.totalClosedTrades) * 100).toFixed(1)
+                               : null,
         // Legacy fields — hero panel uses these
         totalTheoreticalProfit: realPnl,
         currentBalance:         +(100 + realPnl).toFixed(2),

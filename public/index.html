@@ -506,7 +506,7 @@
         <div id="panePoly" class="hidden">
 
           <!-- ── Stats Grid (Kronos-style) ──────────────────── -->
-          <dl class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
+          <dl class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 mb-6">
             <div class="relative overflow-hidden rounded-xl px-5 pt-5 pb-4 shadow-lg ring-1" style="background:rgba(31,41,55,0.85);border-color:rgba(52,211,153,0.3);backdrop-filter:blur(12px)">
               <dt class="truncate text-xs font-medium" style="color:rgba(52,211,153,0.7)">Arb Portfolio</dt>
               <dd id="polyCurrentBalance" class="mt-2 text-2xl font-bold tracking-tight text-profit">$100.00</dd>
@@ -540,6 +540,16 @@
               <dt class="truncate text-xs font-medium text-gray-400">Trades Auto-taken</dt>
               <dd id="polyTradesTaken" class="mt-2 text-2xl font-bold tracking-tight text-warn">0</dd>
               <p class="mt-1 text-xs text-gray-500"><span id="polyOpenPositions" class="font-semibold text-profit">0</span> open · Gaps ≥ 2¢ · $10 each</p>
+            </div>
+            <div class="relative overflow-hidden rounded-xl bg-gray-800/80 backdrop-blur-lg px-5 pt-5 pb-4 shadow-lg ring-1 ring-white/5">
+              <dt class="truncate text-xs font-medium text-gray-400">Today's P&amp;L</dt>
+              <dd class="mt-2 text-2xl font-bold tracking-tight text-white" id="polyTodayPnl">+$0.00</dd>
+              <p class="mt-1 text-xs text-gray-500" id="polyTodayTrades">0 trades closed today</p>
+            </div>
+            <div class="relative overflow-hidden rounded-xl bg-gray-800/80 backdrop-blur-lg px-5 pt-5 pb-4 shadow-lg ring-1 ring-white/5">
+              <dt class="truncate text-xs font-medium text-gray-400">Win Rate</dt>
+              <dd class="mt-2 text-2xl font-bold tracking-tight text-white" id="polyWinRate">&mdash;</dd>
+              <p class="mt-1 text-xs text-gray-500" id="polyWinRateSub">no closed trades yet</p>
             </div>
           </dl>
 
@@ -1336,6 +1346,30 @@
       set('polyAvgGap',         s.opportunitiesFound ? `Avg: ${(s.avgGapCents || 0).toFixed(1)}¢` : 'Avg: —');
       set('polyTradesTaken',    s.tradesAutoTaken || 0);
       set('polyOpenPositions',  s.openPositions || 0);
+
+      // Today's P&L
+      const todayPnl = s.todayPnl || 0;
+      const todayPnlEl = document.getElementById('polyTodayPnl');
+      if (todayPnlEl) {
+        todayPnlEl.textContent = (todayPnl >= 0 ? '+' : '') + fmtUsdP(todayPnl);
+        todayPnlEl.className = 'mt-2 text-2xl font-bold tracking-tight ' + (todayPnl > 0 ? 'text-profit' : todayPnl < 0 ? 'text-loss' : 'text-white');
+      }
+      set('polyTodayTrades', `${s.todayTrades || 0} trade${s.todayTrades !== 1 ? 's' : ''} closed today`);
+
+      // Win Rate
+      const wrEl  = document.getElementById('polyWinRate');
+      const wrSub = document.getElementById('polyWinRateSub');
+      if (wrEl) {
+        if (s.winRate !== null && s.winRate !== undefined) {
+          wrEl.textContent = s.winRate + '%';
+          wrEl.className   = 'mt-2 text-2xl font-bold tracking-tight ' + (s.winRate >= 50 ? 'text-profit' : 'text-loss');
+          if (wrSub) wrSub.textContent = `${s.totalClosedTrades} closed (${s.todayWins || 0}W)`;
+        } else {
+          wrEl.textContent = '—';
+          wrEl.className   = 'mt-2 text-2xl font-bold tracking-tight text-white';
+          if (wrSub) wrSub.textContent = 'no closed trades yet';
+        }
+      }
 
       // Verified / unverified P&L
       const vPnl  = s.verifiedPnl   || 0;
