@@ -27,13 +27,15 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'fs';
 import path from 'path';
 
 const GAMMA_API             = 'https://gamma-api.polymarket.com';
+const DISPLAY_GAP_THRESHOLD = 0.005;  // 0.5¢ — show in activity feed but don’t trade
 const MIN_GAP               = 0.02;   // 2¢ threshold to open a paper trade
 const ALERT_GAP             = 0.05;   // 5¢ threshold to fire Telegram alert
 const BET_SIZE              = 10;     // $10 notional per trade
 const MAX_LOG               = 200;    // Activity log cap
 const MAX_TRADES            = 500;    // Closed-trade history cap
 const MAX_OPPS              = 50;     // Live opportunities shown in UI
-const TOP_GAPS_LIMIT        = 5;      // "Best Gaps" leaderboard size
+const MAX_FETCH_PAGES       = 3;      // Pages of 250 markets to fetch per scan
+const TOP_GAPS_LIMIT        = 5;      // “Best Gaps” leaderboard size
 const FLAG_GAP_THRESHOLD    = 0.15;   // >15¢ gap → flag as suspect
 const FLAG_VOL_THRESHOLD    = 1_000;  // <$1 K volume → flag as thin
 
@@ -216,7 +218,8 @@ export class PolymarketArbScanner {
 
       for (const market of markets) {
         const opp = this._analyze(market, t0);
-        if (!opp || opp.gap <= 0) continue;
+        // Display threshold: 0.5¢. Auto-trade threshold: 2¢.
+        if (!opp || opp.gap < DISPLAY_GAP_THRESHOLD) continue;
 
         this.stats.opportunitiesFound++;
         this.stats._allGaps.push(opp.gap);
@@ -241,7 +244,7 @@ export class PolymarketArbScanner {
 
         const hasOpenTrade = this.openTrades.has(opp.id);
 
-        // Activity log
+        // Activity log — all gaps ≥ 0.5¢
         this.activityLog.unshift({
           time:      new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
           question:  opp.question.slice(0, 72),
@@ -249,7 +252,8 @@ export class PolymarketArbScanner {
           no:        opp.noPrice,
           gap:       opp.gap,
           profit:    opp.profit,
-          tradeable: opp.gap >= MIN_GAP,
+          tradeable: opp.gap >= MIN_GAP,           // ≥2¢ → auto-trade eligible
+          watch:     opp.gap < MIN_GAP,             // 0.5¢–2¢ → monitor only
           skipped:   hasOpenTrade,
           invalid:   opp.invalid,
         });
@@ -300,9 +304,8 @@ export class PolymarketArbScanner {
       this.stats.lastScanDuration = Date.now() - t0;
 
       const tradeable = found.filter(o => o.gap >= MIN_GAP);
-      if (tradeable.length > 0 || this.openTrades.size > 0) {
-        console.log(`[PolyArb] ${markets.length} mkts → ${found.length} gaps, ${tradeable.length} tradeable | open: ${this.openTrades.size}`);
-      }
+      const watching  = found.filter(o => o.gap >= DISPLAY_GAP_THRESHOLD && o.gap < MIN_GAP);
+      console.log(`[PolyArb] ${markets.length} mkts scanned → ${tradeable.length} tradeable (≥2¢), ${watching.length} watch (0.5–2¢) | open positions: ${this.openTrades.size}`);
 
     } catch (err) {
       console.error('[PolyArb] Scan error:', err.message);
@@ -423,17 +426,52 @@ export class PolymarketArbScanner {
     }
   }
 
-  // ── Fetching ───────────────────────────────────────────────────────────────
+  // ── Fetching (paginated) ───────────────────────────────────────────────────
+  // Fetches up to MAX_FETCH_PAGES × 250 markets per scan.
+  // Pages 1–2: top-volume markets (already ordered desc)
+  // Page 3+: reversed order (lowest-volume first) to capture illiquid markets
+  // where pricing inefficiencies are more common.
 
   async _fetchMarkets() {
-    const url = `${GAMMA_API}/markets?active=true&closed=false&limit=250&order=volume&ascending=false`;
-    const res = await fetch(url, { signal: AbortSignal.timeout(15_000) });
-    if (!res.ok) throw new Error(`Gamma API ${res.status}`);
+    const pages  = [];
+    const perPage = 250;
 
-    const data = await res.json();
-    const all  = Array.isArray(data) ? data : (data.markets || []);
+    const fetchPage = async (offset, ascending = false) => {
+      const url = `${GAMMA_API}/markets?active=true&closed=false&limit=${perPage}&order=volume&ascending=${ascending}&offset=${offset}`;
+      const res = await fetch(url, { signal: AbortSignal.timeout(15_000) });
+      if (!res.ok) throw new Error(`Gamma API ${res.status}`);
+      const data = await res.json();
+      return Array.isArray(data) ? data : (data.markets || []);
+    };
 
-    return all.filter(m => {
+    // Page 1: top 250 by volume (most liquid, already fetched historically)
+    const page1 = await fetchPage(0, false);
+    pages.push(...page1);
+
+    // Page 2: next 250 by volume (offset 250)
+    if (MAX_FETCH_PAGES >= 2 && page1.length === perPage) {
+      try {
+        const page2 = await fetchPage(250, false);
+        pages.push(...page2);
+
+        // Page 3: lowest-volume active markets (ascending) — most likely to have gaps
+        if (MAX_FETCH_PAGES >= 3 && page2.length === perPage) {
+          try {
+            const page3 = await fetchPage(0, true);
+            // Deduplicate by conditionId/id/slug
+            const seen = new Set(pages.map(m => m.conditionId || m.id || m.slug));
+            pages.push(...page3.filter(m => !seen.has(m.conditionId || m.id || m.slug)));
+          } catch (e) {
+            console.warn('[PolyArb] Page 3 fetch failed (offset may not be supported):', e.message);
+          }
+        }
+      } catch (e) {
+        console.warn('[PolyArb] Page 2 fetch failed:', e.message);
+      }
+    }
+
+    // Filter to binary YES/NO markets with parseable prices
+    return pages.filter(m => {
       try {
         const p = typeof m.outcomePrices === 'string'
           ? JSON.parse(m.outcomePrices)
