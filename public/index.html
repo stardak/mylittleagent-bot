@@ -2292,11 +2292,20 @@
       if (tBalEl) tBalEl.textContent = '$' + totalBal.toFixed(2);
       if (tPnlEl) { tPnlEl.textContent = (totalPnl >= 0 ? '+' : '') + '$' + Math.abs(totalPnl).toFixed(2); tPnlEl.style.color = _pnlCl(totalPnl); }
 
-      // Sync hero panel with combined total when on home tab
-      if (typeof _homeHero !== 'undefined') {
-        _homeHero.balance = totalBal;
-        _homeHero.pnl     = totalPnl;
-        if (typeof updateHero === 'function' && activeTab === 'home') updateHero();
+      // Update hero directly — _homeHero lives in the first script's closure so we
+      // write straight to the DOM instead (works across the script-block boundary)
+      var heroVal   = _el('portfolioValue');
+      var heroLabel = _el('heroLabel');
+      var heroStart = _el('portfolioStart');
+      var heroSub   = _el('scalperPnl');
+      var isHome    = (typeof activeTab === 'undefined' || activeTab === 'home');
+      if (isHome) {
+        if (heroLabel) heroLabel.textContent = 'Combined Paper Portfolio';
+        if (heroVal)   { heroVal.textContent = '$' + totalBal.toFixed(2); heroVal.className = 'text-5xl sm:text-6xl font-extrabold tracking-tighter text-white'; }
+        if (heroStart) heroStart.textContent = 'Combined start: $700.00';
+        var pnlStr = (totalPnl >= 0 ? '+$' : '-$') + Math.abs(totalPnl).toFixed(2) +
+                     ' (' + (totalPnl >= 0 ? '+' : '') + ((totalPnl / 700) * 100).toFixed(2) + '%) \u00B7 7 strategies';
+        if (heroSub) { heroSub.textContent = pnlStr; heroSub.style.color = _pnlCl(totalPnl); }
       }
 
       const grid = _el('homeBotGrid');
