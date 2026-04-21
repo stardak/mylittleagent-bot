@@ -941,6 +941,9 @@
 
     // Combined hero state for the home/overview tab
     var _homeHero = { balance: 700, pnl: 0 };
+    // Lab tab hero state — updated by render functions via window._labHero
+    window._labHero = { name: 'Strategy Lab', balance: 100, pnl: 0 };
+    var _LAB_NAMES = { funding:'Funding Rate', feargreed:'Fear & Greed', depeg:'Depeg Watch', liq:'Liquidation', crossex:'Cross-Exchange' };
 
     function updateHero() {
       const heroLabel    = $('heroLabel');
@@ -960,6 +963,16 @@
         els.portfolioValue.className = 'text-5xl sm:text-6xl font-extrabold tracking-tighter ' + _polyHero.balColor;
         if (scalperPnlEl) { scalperPnlEl.textContent = _polyHero.pnlText; scalperPnlEl.className = 'font-semibold ' + _polyHero.pnlColor; }
         if (els.portfolioStart) els.portfolioStart.textContent = 'Started at $100.00';
+      } else if (_LAB_NAMES[activeTab]) {
+        // Lab tab — show that lab's own paper balance
+        var lh = window._labHero;
+        if (heroLabel) heroLabel.textContent = (_LAB_NAMES[activeTab] || 'Strategy') + ' · Paper Lab';
+        els.portfolioValue.textContent = '$' + (lh.balance || 100).toFixed(2);
+        els.portfolioValue.className = 'text-5xl sm:text-6xl font-extrabold tracking-tighter text-white';
+        var lpnl = lh.pnl || 0;
+        var lpnlStr = (lpnl >= 0 ? '+$' : '-$') + Math.abs(lpnl).toFixed(2) + ' (' + (lpnl >= 0 ? '+' : '') + ((lpnl / 100) * 100).toFixed(2) + '%) · $100 paper';
+        if (scalperPnlEl) { scalperPnlEl.textContent = lpnlStr; scalperPnlEl.className = 'font-semibold ' + (lpnl > 0 ? 'text-profit' : lpnl < 0 ? 'text-loss' : 'text-gray-400'); }
+        if (els.portfolioStart) els.portfolioStart.textContent = 'Paper lab · started at $100.00';
       } else if (_kronosHero.balance !== null) {
         if (heroLabel) heroLabel.textContent = 'Portfolio';
         els.portfolioValue.textContent = fmtUsd(_kronosHero.balance);
@@ -1609,6 +1622,9 @@
        else if(tab==='kronos') { updateHero(); }
        else if(tab==='home')   { updateHero(); if(typeof pollHomeDashboard==='function') pollHomeDashboard(); }
        else if(_LAB_API[tab])  {
+         // Set hero immediately to this lab's last known state
+         window._labHero.name = _LAB_NAMES && _LAB_NAMES[tab] ? _LAB_NAMES[tab] : tab;
+         updateHero();
          var api=_LAB_API[tab];
          var doFetch=function(){ fetch(api).then(function(r){return r.json();}).then(function(d){ if(typeof _labRender!=='undefined'&&_labRender[tab]) _labRender[tab](d); }).catch(function(){}); };
          doFetch();
@@ -1923,6 +1939,8 @@
     // ── Funding Rate Render ───────────────────────────────────────────────────
     function renderFunding(data) {
       const s = data.stats || {};
+      // Sync hero panel
+      if (typeof window !== 'undefined') { window._labHero = { name: window._LAB_NAMES && window._LAB_NAMES['funding'] ? window._LAB_NAMES['funding'] : 'funding', balance: s.balance || 100, pnl: s.totalPnl || 0 }; if (typeof updateHero === 'function' && activeTab === 'funding') updateHero(); }
       _set('frBalance', '$' + (s.balance || 100).toFixed(2));
       const pnlEl = _el('frPnl');
       if (pnlEl) { pnlEl.textContent = _fmtPnl(s.totalPnl); pnlEl.style.color = _pnlCl(s.totalPnl); }
@@ -1980,6 +1998,8 @@
     // ── Fear & Greed Render ───────────────────────────────────────────────────
     function renderFearGreed(data) {
       const s = data.stats || {};
+      // Sync hero panel
+      if (typeof window !== 'undefined') { window._labHero = { name: window._LAB_NAMES && window._LAB_NAMES['feargreed'] ? window._LAB_NAMES['feargreed'] : 'feargreed', balance: s.balance || 100, pnl: s.totalPnl || 0 }; if (typeof updateHero === 'function' && activeTab === 'feargreed') updateHero(); }
       const fg = data.currentFG;
 
       if (fg) {
@@ -2028,6 +2048,8 @@
     // ── Stablecoin Depeg Render ───────────────────────────────────────────────
     function renderDepeg(data) {
       const s = data.stats || {};
+      // Sync hero panel
+      if (typeof window !== 'undefined') { window._labHero = { name: window._LAB_NAMES && window._LAB_NAMES['depeg'] ? window._LAB_NAMES['depeg'] : 'depeg', balance: s.balance || 100, pnl: s.totalPnl || 0 }; if (typeof updateHero === 'function' && activeTab === 'depeg') updateHero(); }
       _set('depegBalance', '$' + (s.balance || 100).toFixed(2));
       const pnlEl = _el('depegPnl');
       if (pnlEl) { pnlEl.textContent = _fmtPnl(s.totalPnl); pnlEl.style.color = _pnlCl(s.totalPnl); }
@@ -2069,6 +2091,8 @@
     // ── Liquidation Scalper Render ───────────────────────────────────────────
     function renderLiq(data) {
       const s = data.stats || {};
+      // Sync hero panel
+      if (typeof window !== 'undefined') { window._labHero = { name: window._LAB_NAMES && window._LAB_NAMES['liq'] ? window._LAB_NAMES['liq'] : 'liq', balance: s.balance || 100, pnl: s.totalPnl || 0 }; if (typeof updateHero === 'function' && activeTab === 'liq') updateHero(); }
       _set('liqBalance', '$' + (s.balance || 100).toFixed(2));
       const pnlEl = _el('liqPnl');
       if (pnlEl) { pnlEl.textContent = _fmtPnl(s.totalPnl); pnlEl.style.color = _pnlCl(s.totalPnl); }
@@ -2110,6 +2134,8 @@
     // ── Cross-Exchange Render ────────────────────────────────────────────────
     function renderCrossEx(data) {
       const s = data.stats || {};
+      // Sync hero panel
+      if (typeof window !== 'undefined') { window._labHero = { name: window._LAB_NAMES && window._LAB_NAMES['crossex'] ? window._LAB_NAMES['crossex'] : 'crossex', balance: s.balance || 100, pnl: s.totalPnl || 0 }; if (typeof updateHero === 'function' && activeTab === 'crossex') updateHero(); }
       _set('crossBalance', '$' + (s.balance || 100).toFixed(2));
       const pnlEl = _el('crossPnl');
       if (pnlEl) { pnlEl.textContent = _fmtPnl(s.totalPnl); pnlEl.style.color = _pnlCl(s.totalPnl); }
