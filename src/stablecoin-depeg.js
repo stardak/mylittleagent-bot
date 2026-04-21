@@ -61,7 +61,10 @@ export class StablecoinDepegScanner {
         const res  = await fetch(`${USDT_ORACLE}?symbol=${pair}`, { signal: AbortSignal.timeout(8_000) });
         if (!res.ok) continue;
         const data = await res.json();
-        allPrices[pair] = parseFloat(data.price || 1);
+        const p = parseFloat(data.price);
+        // Sanity guard: stablecoins below $0.80 or zero = bad API feed, skip
+        if (!p || p < 0.80 || p > 1.10) continue;
+        allPrices[pair] = p;
       } catch { /* skip */ }
     }
     // USDT vs BUSD or TUSD — approximate via USDC/USDT ratio
