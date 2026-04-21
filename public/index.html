@@ -165,7 +165,7 @@
           <div id="drawdownWarning" class="mb-4 hidden rounded-lg border border-amber-400/20 bg-amber-400/5 px-4 py-3 text-sm text-amber-300">⚠️ Drawdown approaching kill switch (<span id="drawdownPct">0</span>%).</div>
           <div id="dailyLossWarning" class="mb-4 hidden rounded-lg border border-amber-400/20 bg-amber-400/5 px-4 py-3 text-sm text-amber-300">⚠️ Daily losses approaching halt limit (<span id="dailyLossPct">0</span>%).</div>
 
-          <p class="text-[10px] uppercase tracking-[0.25em] text-brand-400/30 font-medium mb-6">A Systematic Algorithmic Trading System by Stef Michalak</p>
+          <p class="text-[10px] uppercase tracking-[0.25em] text-brand-400/30 font-medium mb-6">7 live market scanners. Paper trading experiments. No advice, just data. — Stef</p>
           <p id="heroLabel" class="text-[11px] uppercase tracking-[0.2em] text-brand-400/40 font-semibold mb-2">Portfolio</p>
           <h1 id="portfolioValue" class="text-5xl sm:text-6xl font-extrabold tracking-tighter text-white">$99.00</h1>
           <p class="mt-2 text-sm text-brand-400/60">
@@ -219,7 +219,10 @@
 
         <!-- ── Tab: Kronos ──────────────────────────────────────── -->
         <div id="paneKronos" class="hidden">
-          <div class="pt-5 mt-0 mb-8 rounded-2xl ring-1 ring-white/[0.08] px-8 py-7 space-y-4" style="background:linear-gradient(135deg,rgba(255,255,255,0.04) 0%,rgba(255,255,255,0.02) 100%)"><p class="text-sm text-gray-400 leading-relaxed">This is the one I&#8217;ve been running the longest. It uses an AI model called Kronos to decide whether BTC, ETH, or SOL is likely to move up or down over the next 15 minutes. I set it to only fire a trade when the model is at least 65% confident — anything below that and it sits on its hands. Position sizing compounds at 10% of the current balance, so the stakes grow (slowly) with the portfolio.</p><p class="text-sm text-gray-400 leading-relaxed">The honest truth is it&#8217;s been cautious lately. The model has been mostly bearish, so it&#8217;s largely been holding rather than trading. I&#8217;d rather it pass on trades than force bad ones. The paper balance here shows exactly what a real &#163;100 would look like if I ran this live on Binance — no fantasy numbers.</p></div>
+          <div class="mb-5 pt-5">
+            <h2 class="text-lg font-bold text-white">&#x26A1; Kronos Scalper</h2>
+          </div>
+          <div class="mb-8 rounded-2xl ring-1 ring-white/[0.08] px-8 py-7 space-y-4" style="background:linear-gradient(135deg,rgba(255,255,255,0.04) 0%,rgba(255,255,255,0.02) 100%)"><p class="text-sm text-gray-400 leading-relaxed">This is the one I&#8217;ve been running the longest. It uses an AI model called Kronos to decide whether BTC, ETH, or SOL is likely to move up or down over the next 15 minutes. I set it to only fire a trade when the model is at least 65% confident — anything below that and it sits on its hands. Position sizing compounds at 10% of the current balance, so the stakes grow (slowly) with the portfolio.</p><p class="text-sm text-gray-400 leading-relaxed">The honest truth is it&#8217;s been cautious lately. The model has been mostly bearish, so it&#8217;s largely been holding rather than trading. I&#8217;d rather it pass on trades than force bad ones. The paper balance here shows exactly what a real &#163;100 would look like if I ran this live on Binance — no fantasy numbers.</p></div>
         <!-- ── Stats Grid ────────────────────────────────────── -->
         <dl class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
           <div class="relative overflow-hidden rounded-xl bg-gray-800/80 backdrop-blur-lg px-5 pt-5 pb-4 shadow-lg ring-1 ring-white/5">
@@ -533,7 +536,10 @@
 
         <!-- ── Tab: Polymarket Arb ────────────────────────────────── -->
         <div id="panePoly" class="hidden">
-          <div class="pt-5 mt-0 mb-8 rounded-2xl ring-1 ring-white/[0.08] px-8 py-7 space-y-4" style="background:linear-gradient(135deg,rgba(255,255,255,0.04) 0%,rgba(255,255,255,0.02) 100%)"><p class="text-sm text-gray-400 leading-relaxed">Prediction markets are strange. You can buy YES and NO on the same question, and if the two prices don&#8217;t add up to exactly &#36;1, there&#8217;s free money on the table &#8212; in theory. This scanner checks over 600 markets on Polymarket every 30 seconds looking for exactly that. I call it a gap.</p><p class="text-sm text-gray-400 leading-relaxed">I filter it down to markets with at least &#36;5,000 in volume, because thin markets can show prices that look wrong but can&#8217;t actually be filled. Any gap above 2 cents on a liquid market gets paper-traded automatically. So far the gaps exist but they&#8217;re small &#8212; the market is surprisingly efficient. I&#8217;m mainly running this to see if anything meaningful ever shows up.</p></div>
+          <div class="mb-5 pt-5">
+            <h2 class="text-lg font-bold text-white">&#x1F3AF; Polymarket Arb</h2>
+          </div>
+          <div class="mb-8 rounded-2xl ring-1 ring-white/[0.08] px-8 py-7 space-y-4" style="background:linear-gradient(135deg,rgba(255,255,255,0.04) 0%,rgba(255,255,255,0.02) 100%)"><p class="text-sm text-gray-400 leading-relaxed">Prediction markets are strange. You can buy YES and NO on the same question, and if the two prices don&#8217;t add up to exactly &#36;1, there&#8217;s free money on the table &#8212; in theory. This scanner checks over 600 markets on Polymarket every 30 seconds looking for exactly that. I call it a gap.</p><p class="text-sm text-gray-400 leading-relaxed">I filter it down to markets with at least &#36;5,000 in volume, because thin markets can show prices that look wrong but can&#8217;t actually be filled. Any gap above 2 cents on a liquid market gets paper-traded automatically. So far the gaps exist but they&#8217;re small &#8212; the market is surprisingly efficient. I&#8217;m mainly running this to see if anything meaningful ever shows up.</p></div>
           <!-- ── Stats Grid (Kronos-style) ──────────────────── -->
           <dl class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 mb-6">
             <div class="relative overflow-hidden rounded-xl px-5 pt-5 pb-4 shadow-lg ring-1" style="background:rgba(31,41,55,0.85);border-color:rgba(52,211,153,0.3);backdrop-filter:blur(12px)">
@@ -721,8 +727,8 @@
           <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-6">
             <!-- Big gauge -->
             <div class="rounded-xl bg-gray-800/80 ring-1 ring-white/5 px-6 py-6 flex flex-col items-center justify-center">
-              <div id="fgGaugeValue" class="text-7xl font-black text-white mb-2">&mdash;</div>
-              <div id="fgGaugeLabel" class="text-sm font-semibold text-gray-400 mb-1">&mdash;</div>
+              <div id="fgGaugeValue" class="text-6xl font-black text-white mb-1" style="min-height:1em;line-height:1.1">—</div>
+              <div id="fgGaugeLabel" class="text-sm font-semibold text-gray-400 mb-2 tracking-wide">Fetching…</div>
               <div class="w-full bg-gray-700 rounded-full h-2 mt-3">
                 <div id="fgGaugeBar" class="h-2 rounded-full transition-all duration-700" style="width:50%;background:linear-gradient(90deg,#ef4444,#f59e0b,#22c55e)"></div>
               </div>
