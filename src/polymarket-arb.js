@@ -31,7 +31,7 @@ const DISPLAY_GAP_THRESHOLD = 0.005;  // 0.5¢ — minimum gap to count at all
 const MIN_GAP               = 0.02;   // 2¢ threshold to open a paper trade
 const LIQUIDITY_THRESHOLD   = 5_000;  // $5 K minimum volume to show or trade
 const ALERT_GAP             = 0.05;   // 5¢ threshold to fire Telegram alert
-const BET_SIZE              = 10;     // $10 notional per trade
+const BET_SIZE_PCT          = 0.25;  // 25% of current portfolio balance per trade
 const MAX_LOG               = 200;    // Activity log cap
 const MAX_TRADES            = 500;    // Closed-trade history cap
 const MAX_OPPS              = 50;     // Live opportunities shown in UI
@@ -279,17 +279,17 @@ export class PolymarketArbScanner {
 
         // Activity log — liquid gaps ≥ 0.5¢ only
         this.activityLog.unshift({
-          time:      new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-          question:  opp.question.slice(0, 72),
-          yes:       opp.yesPrice,
-          no:        opp.noPrice,
-          gap:       opp.gap,
-          profit:    opp.profit,
-          tradeable: opp.gap >= MIN_GAP,           // ≥2¢ + liquid → auto-trade eligible
-          watch:     opp.gap < MIN_GAP,             // 0.5¢–2¢ + liquid → monitor only
-          skipped:   hasOpenTrade,
-          invalid:   opp.invalid,
-          volumeStr: opp.volumeStr,
+          time:        new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+          question:    opp.question.slice(0, 72),
+          yes:         opp.yesPrice,
+          no:          opp.noPrice,
+          gap:         opp.gap,
+          profitRatio: opp.profitRatio,   // profit per $1 bet
+          tradeable:   opp.gap >= MIN_GAP,
+          watch:       opp.gap < MIN_GAP,
+          skipped:     hasOpenTrade,
+          invalid:     opp.invalid,
+          volumeStr:   opp.volumeStr,
         });
         if (this.activityLog.length > MAX_LOG) this.activityLog.pop();
 
@@ -298,6 +298,10 @@ export class PolymarketArbScanner {
         if (isQualified) this.stats.qualifiedGaps++;
 
         if (isQualified && !hasOpenTrade) {
+          // Dynamic bet size: 25% of current portfolio balance at time of entry
+          const currentBal = +(this.stats.startingBalance + this.stats.realizedPnl).toFixed(2);
+          const betSize    = +(currentBal * BET_SIZE_PCT).toFixed(2);
+          const profit     = +(betSize * opp.profitRatio).toFixed(4);
           const trade = {
             ...opp,
             gapOpenedAt,
@@ -305,10 +309,12 @@ export class PolymarketArbScanner {
             tradeId:      `PT-${Date.now().toString(36).toUpperCase()}`,
             status:       'open',
             priceDeltaMs: 0,
+            betSize,
+            profit,       // override _analyze()'s profitRatio with actual sized dollar profit
           };
           this.openTrades.set(opp.id, trade);
           this.stats.tradesAutoTaken++;
-          console.log(`[PolyArb] OPEN: "${opp.question.slice(0, 50)}" gap=${(opp.gap * 100).toFixed(1)}¢${opp.invalid ? ' ⚠️ FLAGGED' : ''}`);
+          console.log(`[PolyArb] OPEN: "${opp.question.slice(0, 50)}" gap=${(opp.gap * 100).toFixed(1)}¢ bet=$${betSize.toFixed(2)} (25% of $${currentBal})${opp.invalid ? ' ⚠️ FLAGGED' : ''}`);
         }
 
         // ── Feature 4: Telegram alert for big gaps ─────────────────────
@@ -370,7 +376,7 @@ export class PolymarketArbScanner {
       if (total >= 1.0) return null;
 
       const gap    = +((1.0 - total).toFixed(4));
-      const profit = +(BET_SIZE / total - BET_SIZE).toFixed(4);
+      const profitRatio = +((1 / total) - 1).toFixed(6);   // profit per $1 bet (gap ÷ total)
       const volume = parseFloat(market.volume || market.volumeNum || 0);
 
       let invalid = false, flagReason = null;
@@ -391,7 +397,7 @@ export class PolymarketArbScanner {
         total:        +total.toFixed(4),
         gap,
         gapCents:     +(gap * 100).toFixed(2),
-        profit,
+        profitRatio,
         volume,
         volumeStr:    this._fmtVol(volume),
         url:          `https://polymarket.com/event/${market.slug || ''}`,

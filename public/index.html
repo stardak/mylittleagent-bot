@@ -543,7 +543,7 @@
             <div class="relative overflow-hidden rounded-xl bg-gray-800/80 backdrop-blur-lg px-5 pt-5 pb-4 shadow-lg ring-1 ring-white/5">
               <dt class="truncate text-xs font-medium text-gray-400">Trades Auto-taken</dt>
               <dd id="polyTradesTaken" class="mt-2 text-2xl font-bold tracking-tight text-warn">0</dd>
-              <p class="mt-1 text-xs text-gray-500"><span id="polyOpenPositions" class="font-semibold text-profit">0</span> open · Gaps ≥ 2¢ · $10 each</p>
+              <p class="mt-1 text-xs text-gray-500"><span id="polyOpenPositions" class="font-semibold text-profit">0</span> open &middot; Gaps &ge; 2&cent; &middot; 25% of balance per trade</p>
             </div>
             <div class="relative overflow-hidden rounded-xl bg-gray-800/80 backdrop-blur-lg px-5 pt-5 pb-4 shadow-lg ring-1 ring-white/5">
               <dt class="truncate text-xs font-medium text-gray-400">Today's P&amp;L</dt>
@@ -1529,7 +1529,7 @@
               <div class="flex-1 min-w-0">
                 <div class="flex items-center gap-1.5 flex-wrap mb-0.5">${statusBadge}${flagBadge}</div>
                 <p class="text-xs font-medium text-gray-200 truncate">${t.question.slice(0, 60)}…</p>
-                <p class="text-[11px] text-gray-500 mt-0.5">YES ${(t.yesPrice*100).toFixed(1)}¢ + NO ${(t.noPrice*100).toFixed(1)}¢ = ${(t.total*100).toFixed(1)}¢ · Vol ${t.volumeStr} · ${deltaStr}${t.durationSec != null ? ` · <span class="text-gray-500">⏱ ${t.durationSec}s</span>` : ''}</p>
+                <p class="text-[11px] text-gray-500 mt-0.5">YES ${(t.yesPrice*100).toFixed(1)}¢ + NO ${(t.noPrice*100).toFixed(1)}¢ = ${(t.total*100).toFixed(1)}¢ · Bet $${t.betSize ? t.betSize.toFixed(2) : '?'} (25%) · ${deltaStr}${t.durationSec != null ? ` · <span class="text-gray-500">⏱ ${t.durationSec}s</span>` : ''}</p>
                 ${isFlagged ? `<p class="text-[10px] text-warn/70 mt-0.5">⚠ ${t.flagReason}</p>` : ''}
               </div>
               <div class="shrink-0 text-right">
