@@ -950,8 +950,9 @@
     let _kronosHero = { balance: null, balColor: 'text-white', pnlText: 'P&L: $0.00', pnlColor: 'text-gray-400', start: '' };
     let _polyHero   = { balance: null, balColor: 'text-profit', pnlText: '+$0.00 (+0.00%)', pnlColor: 'text-gray-400' };
 
-    // Combined hero state for the home/overview tab
-    var _homeHero = { balance: 700, pnl: 0 };
+    // Combined hero state for the home/overview tab — on window so labs script can update it
+    window._homeHero = { balance: 700, pnl: 0 };
+    var _homeHero = window._homeHero;
     // Lab tab hero state — updated by render functions via window._labHero
     window._labHero = { name: 'Strategy Lab', balance: 100, pnl: 0 };
     var _LAB_NAMES = { funding:'Funding Rate', feargreed:'Fear & Greed', depeg:'Depeg Watch', liq:'Liquidation', crossex:'Cross-Exchange' };
@@ -2292,8 +2293,12 @@
       if (tBalEl) tBalEl.textContent = '$' + totalBal.toFixed(2);
       if (tPnlEl) { tPnlEl.textContent = (totalPnl >= 0 ? '+' : '') + '$' + Math.abs(totalPnl).toFixed(2); tPnlEl.style.color = _pnlCl(totalPnl); }
 
-      // Update hero directly — _homeHero lives in the first script's closure so we
-      // write straight to the DOM instead (works across the script-block boundary)
+      // Update shared _homeHero so updateHero() (first script) reads correct value
+      if (typeof window._homeHero !== 'undefined') {
+        window._homeHero.balance = totalBal;
+        window._homeHero.pnl     = totalPnl;
+      }
+      // Also write directly to DOM so hero is immediately correct
       var heroVal   = _el('portfolioValue');
       var heroLabel = _el('heroLabel');
       var heroStart = _el('portfolioStart');
