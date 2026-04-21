@@ -184,9 +184,16 @@
       <div id="mainTabContent" class="mx-auto max-w-7xl px-4 pb-16 sm:px-6 lg:px-8">
 
         <!-- ── Tab Switcher ─────────────────────────────────────── -->
-        <div class="flex gap-1 mb-6 p-1 rounded-xl bg-gray-800/60 ring-1 ring-white/5 w-fit backdrop-blur-sm">
-          <button id="tabBtnKronos" onclick="switchTab('kronos')" class="px-5 py-2 rounded-lg text-xs font-semibold text-white transition-all" style="background:rgba(99,102,241,0.7)">&#x26A1; Kronos Scalper</button>
-          <button id="tabBtnPoly"   onclick="switchTab('poly')"   class="px-5 py-2 rounded-lg text-xs font-semibold text-gray-400 hover:text-white transition-all">🎯 Polymarket Arb</button>
+        <div class="flex flex-wrap gap-1 mb-6 p-1 rounded-xl bg-gray-800/60 ring-1 ring-white/5 backdrop-blur-sm">
+          <button id="tabBtnKronos"  onclick="switchTab('kronos')"   class="px-4 py-2 rounded-lg text-xs font-semibold text-white transition-all" style="background:rgba(99,102,241,0.7)">&#x26A1; Kronos</button>
+          <button id="tabBtnPoly"    onclick="switchTab('poly')"     class="px-4 py-2 rounded-lg text-xs font-semibold text-gray-400 hover:text-white transition-all">&#x1F3AF; Polymarket</button>
+          <span class="w-px bg-white/10 self-stretch my-1"></span>
+          <span class="px-2 py-2 text-[10px] font-bold text-gray-600 uppercase tracking-widest self-center">Strategy Labs</span>
+          <button id="tabBtnFunding" onclick="switchTab('funding')"  class="px-4 py-2 rounded-lg text-xs font-semibold text-gray-400 hover:text-white transition-all">&#x1F4B0; Funding Rate</button>
+          <button id="tabBtnFG"      onclick="switchTab('feargreed')" class="px-4 py-2 rounded-lg text-xs font-semibold text-gray-400 hover:text-white transition-all">&#x1F4C8; Fear &amp; Greed</button>
+          <button id="tabBtnDepeg"   onclick="switchTab('depeg')"    class="px-4 py-2 rounded-lg text-xs font-semibold text-gray-400 hover:text-white transition-all">&#x1F7E1; Depeg Watch</button>
+          <button id="tabBtnLiq"     onclick="switchTab('liq')"      class="px-4 py-2 rounded-lg text-xs font-semibold text-gray-400 hover:text-white transition-all">&#x26A1; Liquidations</button>
+          <button id="tabBtnCross"   onclick="switchTab('crossex')"  class="px-4 py-2 rounded-lg text-xs font-semibold text-gray-400 hover:text-white transition-all">&#x1F504; Cross-Ex</button>
         </div>
 
         <!-- ── Tab: Kronos ──────────────────────────────────────── -->
@@ -630,6 +637,247 @@
           </div>
 
         </div><!-- /panePoly -->
+
+        <!-- ══ STRATEGY LABS: FUNDING RATE ARB ══════════════════════════════ -->
+        <div id="paneFunding" class="hidden">
+          <div class="mb-6">
+            <h2 class="text-lg font-bold text-white">&#x1F4B0; Funding Rate Arbitrage</h2>
+            <p class="text-xs text-gray-500 mt-1">Delta-neutral: short perp + long spot when funding is extreme (&ge;0.03%). Paid every 8h. <span class="text-profit font-semibold">$100 paper balance &middot; 25% sizing.</span></p>
+          </div>
+          <!-- Stats -->
+          <dl class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+            <div class="rounded-xl bg-gray-800/80 px-5 pt-5 pb-4 ring-1 ring-white/5">
+              <dt class="text-xs font-medium text-gray-400">Balance</dt>
+              <dd id="frBalance" class="mt-2 text-2xl font-bold text-white">$100.00</dd>
+              <p class="mt-1 text-xs text-gray-500">Started $100</p>
+            </div>
+            <div class="rounded-xl bg-gray-800/80 px-5 pt-5 pb-4 ring-1 ring-white/5">
+              <dt class="text-xs font-medium text-gray-400">Total P&amp;L</dt>
+              <dd id="frPnl" class="mt-2 text-2xl font-bold text-white">$0.00</dd>
+              <p id="frSettlements" class="mt-1 text-xs text-gray-500">0 settlements</p>
+            </div>
+            <div class="rounded-xl bg-gray-800/80 px-5 pt-5 pb-4 ring-1 ring-white/5">
+              <dt class="text-xs font-medium text-gray-400">Open Positions</dt>
+              <dd id="frOpenPos" class="mt-2 text-2xl font-bold text-warn">0</dd>
+              <p class="mt-1 text-xs text-gray-500">collecting funding</p>
+            </div>
+            <div class="rounded-xl bg-gray-800/80 px-5 pt-5 pb-4 ring-1 ring-white/5">
+              <dt class="text-xs font-medium text-gray-400">Best Rate Seen</dt>
+              <dd id="frBestRate" class="mt-2 text-2xl font-bold text-profit">&mdash;</dd>
+              <p id="frBestRateSub" class="mt-1 text-xs text-gray-500">&mdash;</p>
+            </div>
+          </dl>
+          <!-- Live Rates -->
+          <div class="mb-5">
+            <h3 class="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-3">Live Funding Rates</h3>
+            <div id="frRates" class="grid grid-cols-1 sm:grid-cols-3 gap-4"></div>
+          </div>
+          <!-- Positions + Log -->
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            <div>
+              <h3 class="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-3">Open Positions</h3>
+              <div id="frPositions" class="rounded-xl bg-gray-800/60 ring-1 ring-white/5 divide-y divide-white/[0.04]">
+                <div class="px-4 py-8 text-center text-xs text-gray-600">No extreme rates detected yet</div>
+              </div>
+            </div>
+            <div>
+              <h3 class="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-3">Activity</h3>
+              <div id="frLog" class="rounded-xl bg-gray-800/60 ring-1 ring-white/5 divide-y divide-white/[0.04] overflow-y-auto" style="max-height:300px">
+                <div class="px-4 py-8 text-center text-xs text-gray-600">Waiting for scan&hellip;</div>
+              </div>
+            </div>
+          </div>
+        </div><!-- /paneFunding -->
+
+        <!-- ══ STRATEGY LABS: FEAR & GREED ══════════════════════════════════ -->
+        <div id="paneFG" class="hidden">
+          <div class="mb-6">
+            <h2 class="text-lg font-bold text-white">&#x1F4C8; Fear &amp; Greed Contrarian</h2>
+            <p class="text-xs text-gray-500 mt-1">Buy BTC on Extreme Fear (&lt;20). Sell on Extreme Greed (&gt;80). Trades ~4&ndash;6x per year. <span class="text-profit font-semibold">$100 paper balance &middot; 25% sizing.</span></p>
+          </div>
+          <!-- Gauge + Stats -->
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-6">
+            <!-- Big gauge -->
+            <div class="rounded-xl bg-gray-800/80 ring-1 ring-white/5 px-6 py-6 flex flex-col items-center justify-center">
+              <div id="fgGaugeValue" class="text-7xl font-black text-white mb-2">&mdash;</div>
+              <div id="fgGaugeLabel" class="text-sm font-semibold text-gray-400 mb-1">&mdash;</div>
+              <div class="w-full bg-gray-700 rounded-full h-2 mt-3">
+                <div id="fgGaugeBar" class="h-2 rounded-full transition-all duration-700" style="width:50%;background:linear-gradient(90deg,#ef4444,#f59e0b,#22c55e)"></div>
+              </div>
+              <div class="flex justify-between w-full mt-1">
+                <span class="text-[10px] text-red-400">Fear 0</span>
+                <span class="text-[10px] text-green-400">Greed 100</span>
+              </div>
+            </div>
+            <!-- Stats -->
+            <dl class="lg:col-span-2 grid grid-cols-2 sm:grid-cols-3 gap-4">
+              <div class="rounded-xl bg-gray-800/80 px-5 pt-5 pb-4 ring-1 ring-white/5">
+                <dt class="text-xs font-medium text-gray-400">Balance</dt>
+                <dd id="fgBalance" class="mt-2 text-2xl font-bold text-white">$100.00</dd>
+                <p class="mt-1 text-xs text-gray-500">Started $100</p>
+              </div>
+              <div class="rounded-xl bg-gray-800/80 px-5 pt-5 pb-4 ring-1 ring-white/5">
+                <dt class="text-xs font-medium text-gray-400">Total P&amp;L</dt>
+                <dd id="fgPnl" class="mt-2 text-2xl font-bold text-white">$0.00</dd>
+                <p id="fgPnlSub" class="mt-1 text-xs text-gray-500">0 trades closed</p>
+              </div>
+              <div class="rounded-xl bg-gray-800/80 px-5 pt-5 pb-4 ring-1 ring-white/5">
+                <dt class="text-xs font-medium text-gray-400">Times in Fear Zone</dt>
+                <dd id="fgBuyZone" class="mt-2 text-2xl font-bold text-red-400">0</dd>
+                <p class="mt-1 text-xs text-gray-500">buy signals</p>
+              </div>
+              <div class="rounded-xl bg-gray-800/80 px-5 pt-5 pb-4 ring-1 ring-white/5">
+                <dt class="text-xs font-medium text-gray-400">Times in Greed Zone</dt>
+                <dd id="fgSellZone" class="mt-2 text-2xl font-bold text-green-400">0</dd>
+                <p class="mt-1 text-xs text-gray-500">sell signals</p>
+              </div>
+              <div class="rounded-xl bg-gray-800/80 px-5 pt-5 pb-4 ring-1 ring-white/5 col-span-2">
+                <dt class="text-xs font-medium text-gray-400">Current Position</dt>
+                <dd id="fgPosition" class="mt-2 text-sm font-bold text-gray-300">None</dd>
+                <p id="fgPositionSub" class="mt-1 text-xs text-gray-500">&mdash;</p>
+              </div>
+            </dl>
+          </div>
+          <!-- Activity + Trades -->
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            <div>
+              <h3 class="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-3">Activity</h3>
+              <div id="fgLog" class="rounded-xl bg-gray-800/60 ring-1 ring-white/5 divide-y divide-white/[0.04] overflow-y-auto" style="max-height:320px">
+                <div class="px-4 py-8 text-center text-xs text-gray-600">Waiting for scan&hellip;</div>
+              </div>
+            </div>
+            <div>
+              <h3 class="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-3">Closed Trades</h3>
+              <div id="fgTrades" class="rounded-xl bg-gray-800/60 ring-1 ring-white/5 divide-y divide-white/[0.04] overflow-y-auto" style="max-height:320px">
+                <div class="px-4 py-8 text-center text-xs text-gray-600">No closed trades yet</div>
+              </div>
+            </div>
+          </div>
+        </div><!-- /paneFG -->
+
+        <!-- ══ STRATEGY LABS: STABLECOIN DEPEG ══════════════════════════════ -->
+        <div id="paneDepeg" class="hidden">
+          <div class="mb-6">
+            <h2 class="text-lg font-bold text-white">&#x1F7E1; Stablecoin Depeg Monitor</h2>
+            <p class="text-xs text-gray-500 mt-1">Buy when USDC/USDT/DAI drops below $0.9950. Exit on repeg to $0.9990. Rare signal, high conviction. <span class="text-profit font-semibold">$100 paper balance &middot; 25% sizing.</span></p>
+          </div>
+          <!-- Price cards -->
+          <div id="depegPrices" class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6"></div>
+          <!-- Stats -->
+          <dl class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+            <div class="rounded-xl bg-gray-800/80 px-5 pt-5 pb-4 ring-1 ring-white/5">
+              <dt class="text-xs font-medium text-gray-400">Balance</dt>
+              <dd id="depegBalance" class="mt-2 text-2xl font-bold text-white">$100.00</dd>
+              <p class="mt-1 text-xs text-gray-500">Started $100</p>
+            </div>
+            <div class="rounded-xl bg-gray-800/80 px-5 pt-5 pb-4 ring-1 ring-white/5">
+              <dt class="text-xs font-medium text-gray-400">Total P&amp;L</dt>
+              <dd id="depegPnl" class="mt-2 text-2xl font-bold text-white">$0.00</dd>
+              <p id="depegTrades" class="mt-1 text-xs text-gray-500">0 trades</p>
+            </div>
+            <div class="rounded-xl bg-gray-800/80 px-5 pt-5 pb-4 ring-1 ring-white/5">
+              <dt class="text-xs font-medium text-gray-400">Active Positions</dt>
+              <dd id="depegOpenPos" class="mt-2 text-2xl font-bold text-warn">0</dd>
+              <p class="mt-1 text-xs text-gray-500">waiting to repeg</p>
+            </div>
+            <div class="rounded-xl bg-gray-800/80 px-5 pt-5 pb-4 ring-1 ring-white/5">
+              <dt class="text-xs font-medium text-gray-400">Deepest Depeg Seen</dt>
+              <dd id="depegDeepest" class="mt-2 text-lg font-bold text-warn">&mdash;</dd>
+              <p id="depegDeepestSub" class="mt-1 text-xs text-gray-500">&mdash;</p>
+            </div>
+          </dl>
+          <!-- Log -->
+          <div>
+            <h3 class="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-3">Activity</h3>
+            <div id="depegLog" class="rounded-xl bg-gray-800/60 ring-1 ring-white/5 divide-y divide-white/[0.04] overflow-y-auto" style="max-height:320px">
+              <div class="px-4 py-8 text-center text-xs text-gray-600">Monitoring USDC, USDT, DAI&hellip;</div>
+            </div>
+          </div>
+        </div><!-- /paneDepeg -->
+
+        <!-- ══ STRATEGY LABS: LIQUIDATION SCALPER ═══════════════════════════ -->
+        <div id="paneLiq" class="hidden">
+          <div class="mb-6">
+            <h2 class="text-lg font-bold text-white">&#x26A1; Liquidation Cascade Scalper</h2>
+            <p class="text-xs text-gray-500 mt-1">Detects $5M+ liquidation cascades; counter-trades the mean reversion. 1.5% target, 1hr max hold. <span class="text-profit font-semibold">$100 paper balance &middot; 25% sizing.</span></p>
+          </div>
+          <!-- Stats -->
+          <dl class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+            <div class="rounded-xl bg-gray-800/80 px-5 pt-5 pb-4 ring-1 ring-white/5">
+              <dt class="text-xs font-medium text-gray-400">Balance</dt>
+              <dd id="liqBalance" class="mt-2 text-2xl font-bold text-white">$100.00</dd>
+              <p class="mt-1 text-xs text-gray-500">Started $100</p>
+            </div>
+            <div class="rounded-xl bg-gray-800/80 px-5 pt-5 pb-4 ring-1 ring-white/5">
+              <dt class="text-xs font-medium text-gray-400">Total P&amp;L</dt>
+              <dd id="liqPnl" class="mt-2 text-2xl font-bold text-white">$0.00</dd>
+              <p id="liqPnlSub" class="mt-1 text-xs text-gray-500">0 trades</p>
+            </div>
+            <div class="rounded-xl bg-gray-800/80 px-5 pt-5 pb-4 ring-1 ring-white/5">
+              <dt class="text-xs font-medium text-gray-400">Open Positions</dt>
+              <dd id="liqOpenPos" class="mt-2 text-2xl font-bold text-warn">0</dd>
+              <p class="mt-1 text-xs text-gray-500">in mean-reversion</p>
+            </div>
+            <div class="rounded-xl bg-gray-800/80 px-5 pt-5 pb-4 ring-1 ring-white/5">
+              <dt class="text-xs font-medium text-gray-400">Biggest Cascade</dt>
+              <dd id="liqBiggest" class="mt-2 text-lg font-bold text-warn">&mdash;</dd>
+              <p id="liqBiggestSub" class="mt-1 text-xs text-gray-500">&mdash;</p>
+            </div>
+          </dl>
+          <!-- Liq feed + Log -->
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            <div>
+              <h3 class="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-3">Liquidation Feed</h3>
+              <div id="liqFeed" class="rounded-xl bg-gray-800/60 ring-1 ring-white/5 divide-y divide-white/[0.04]"></div>
+            </div>
+            <div>
+              <h3 class="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-3">Activity</h3>
+              <div id="liqLog" class="rounded-xl bg-gray-800/60 ring-1 ring-white/5 divide-y divide-white/[0.04] overflow-y-auto" style="max-height:300px">
+                <div class="px-4 py-8 text-center text-xs text-gray-600">Detecting cascades&hellip;</div>
+              </div>
+            </div>
+          </div>
+        </div><!-- /paneLiq -->
+
+        <!-- ══ STRATEGY LABS: CROSS-EXCHANGE SPREAD ══════════════════════════ -->
+        <div id="paneCrossEx" class="hidden">
+          <div class="mb-6">
+            <h2 class="text-lg font-bold text-white">&#x1F504; Cross-Exchange Spread</h2>
+            <p class="text-xs text-gray-500 mt-1">Compares BTC/ETH/SOL between Binance and Bybit every 10s. Paper-trades spreads &ge;0.5%. Shows you if real-money execution is feasible. <span class="text-profit font-semibold">$100 paper balance &middot; 25% sizing.</span></p>
+          </div>
+          <!-- Spread cards -->
+          <div id="crossExSpreads" class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6"></div>
+          <!-- Stats -->
+          <dl class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+            <div class="rounded-xl bg-gray-800/80 px-5 pt-5 pb-4 ring-1 ring-white/5">
+              <dt class="text-xs font-medium text-gray-400">Balance</dt>
+              <dd id="crossBalance" class="mt-2 text-2xl font-bold text-white">$100.00</dd>
+              <p class="mt-1 text-xs text-gray-500">Started $100</p>
+            </div>
+            <div class="rounded-xl bg-gray-800/80 px-5 pt-5 pb-4 ring-1 ring-white/5">
+              <dt class="text-xs font-medium text-gray-400">Total P&amp;L</dt>
+              <dd id="crossPnl" class="mt-2 text-2xl font-bold text-white">$0.00</dd>
+              <p id="crossPnlSub" class="mt-1 text-xs text-gray-500">0 trades</p>
+            </div>
+            <div class="rounded-xl bg-gray-800/80 px-5 pt-5 pb-4 ring-1 ring-white/5">
+              <dt class="text-xs font-medium text-gray-400">Open Positions</dt>
+              <dd id="crossOpenPos" class="mt-2 text-2xl font-bold text-warn">0</dd>
+              <p class="mt-1 text-xs text-gray-500">spread trades</p>
+            </div>
+            <div class="rounded-xl bg-gray-800/80 px-5 pt-5 pb-4 ring-1 ring-white/5">
+              <dt class="text-xs font-medium text-gray-400">Biggest Spread</dt>
+              <dd id="crossMaxSpread" class="mt-2 text-lg font-bold text-profit">&mdash;</dd>
+              <p id="crossMaxSpreadSub" class="mt-1 text-xs text-gray-500">&mdash;</p>
+            </div>
+          </dl>
+          <!-- Activity -->
+          <div>
+            <h3 class="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-3">Activity &mdash; spreads &ge; 0.1%</h3>
+            <div id="crossLog" class="rounded-xl bg-gray-800/60 ring-1 ring-white/5 divide-y divide-white/[0.04] overflow-y-auto" style="max-height:360px">
+              <div class="px-4 py-8 text-center text-xs text-gray-600">Comparing prices&hellip;</div>
+            </div>
+          </div>
+        </div><!-- /paneCrossEx -->
 
       </div>
     </main>
@@ -1613,5 +1861,117 @@
       }
     }
   </script>
+
+  <script>
+    // Strategy Labs: tab switching + polling
+    const LAB_TABS = {
+      funding:  { btn:'tabBtnFunding', pane:'paneFunding',  api:'/api/funding-rate/state',   render:null, color:'rgba(245,158,11,0.6)',  interval:null },
+      feargreed:{ btn:'tabBtnFG',      pane:'paneFG',       api:'/api/fear-greed/state',     render:null, color:'rgba(239,68,68,0.5)',   interval:null },
+      depeg:    { btn:'tabBtnDepeg',   pane:'paneDepeg',    api:'/api/depeg/state',          render:null, color:'rgba(234,179,8,0.5)',   interval:null },
+      liq:      { btn:'tabBtnLiq',     pane:'paneLiq',      api:'/api/liquidation/state',    render:null, color:'rgba(249,115,22,0.6)',  interval:null },
+      crossex:  { btn:'tabBtnCross',   pane:'paneCrossEx',  api:'/api/cross-exchange/state', render:null, color:'rgba(139,92,246,0.5)',  interval:null },
+    };
+    const ALL_PANE_IDS = ['paneKronos','panePoly','paneFunding','paneFG','paneDepeg','paneLiq','paneCrossEx'];
+    const ALL_BTN_IDS  = ['tabBtnKronos','tabBtnPoly','tabBtnFunding','tabBtnFG','tabBtnDepeg','tabBtnLiq','tabBtnCross'];
+    const _origSwitchTab = switchTab;
+    switchTab = function(tab) {
+      ALL_PANE_IDS.forEach(id => { const el=document.getElementById(id); if(el) el.classList.add('hidden'); });
+      ALL_BTN_IDS.forEach(id => { const el=document.getElementById(id); if(el){el.style.background='transparent';el.classList.remove('text-white');el.classList.add('text-gray-400');} });
+      if (tab==='kronos'||tab==='poly'){_origSwitchTab(tab);return;}
+      const cfg=LAB_TABS[tab]; if(!cfg) return;
+      activeTab=tab;
+      const pane=document.getElementById(cfg.pane); if(pane) pane.classList.remove('hidden');
+      const btn=document.getElementById(cfg.btn);   if(btn){btn.style.background=cfg.color;btn.classList.add('text-white');btn.classList.remove('text-gray-400');}
+      if(!cfg.interval){
+        (async()=>{try{cfg.render(await(await fetch(cfg.api)).json());}catch{}})();
+        cfg.interval=setInterval(async()=>{try{cfg.render(await(await fetch(cfg.api)).json());}catch{}},15000);
+      }
+    };
+    const _$=id=>document.getElementById(id);
+    const _set=(id,v)=>{const el=_$(id);if(el)el.textContent=v;};
+    const _fmtPnl=v=>(v>=0?'+':'')+'$'+Math.abs(Number(v||0)).toFixed(2);
+    const _pnlCl=v=>v>0?'text-profit':v<0?'text-loss':'text-white';
+    const _logRow=(l,icon,cl='text-gray-400')=>
+      '<div class="flex items-start gap-2.5 px-4 py-2.5 hover:bg-white/[0.02]">'+
+      '<span class="text-sm shrink-0 mt-0.5">'+icon+'</span>'+
+      '<p class="flex-1 text-xs '+cl+' leading-snug">'+l.message+'</p>'+
+      '<span class="shrink-0 text-[10px] text-gray-600 ml-2">'+l.time+'</span></div>';
+
+    function renderFunding(data){
+      const s=data.stats||{};
+      _set('frBalance','$'+(s.balance||100).toFixed(2));
+      const pe=_('frPnl');if(pe){pe.textContent=_fmtPnl(s.totalPnl);pe.className='mt-2 text-2xl font-bold '+_pnlCl(s.totalPnl);}
+      _set('frSettlements',(s.totalSettlements||0)+' settlements');
+      _set('frOpenPos',s.openPositions||0);
+      if(s.bestRate){_set('frBestRate',s.bestRate.ratePct);_set('frBestRateSub',s.bestRate.symbol);}
+      const re=_('frRates');
+      if(re&&data.rates){re.innerHTML=Object.entries(data.rates).map(([sym,r])=>
+        '<div class="rounded-xl px-5 py-4 ring-1 '+(r.extreme?'ring-profit/40 bg-profit/5':'bg-gray-800/80 ring-white/5')+'">'+
+        '<div class="flex items-center justify-between mb-2"><span class="text-sm font-bold text-white">'+sym.replace('USDT','')+'</span>'+(r.extreme?'<span class="text-[10px] font-bold text-profit bg-profit/10 rounded-full px-2 py-0.5">🔥 EXTREME</span>':'')+'</div>'+
+        '<div class="text-2xl font-black '+(r.rate>0.0003?'text-profit':r.rate<-0.0003?'text-loss':'text-gray-300')+'">'+( r.ratePct||'—')+'</div>'+
+        '<div class="text-[11px] text-gray-500 mt-1">per 8h · next '+(r.nextTimeStr||'—')+'</div></div>'
+      ).join('');}
+      const posEl=_('frPositions');if(posEl){const pos=data.positions||[];posEl.innerHTML=pos.length===0?'<div class="px-4 py-8 text-center text-xs text-gray-600">No extreme rates yet</div>':pos.map(p=>'<div class="px-4 py-3"><div class="flex justify-between"><span class="font-bold text-white">'+p.symbol+'</span><span class="text-xs text-profit">'+p.ratePct+'</span></div><div class="text-xs text-gray-400">'+p.side+'</div><div class="text-[11px] text-gray-600">$'+(p.betSize||0).toFixed(2)+'</div></div>').join('');}
+      const le=_('frLog');if(le){const logs=data.activityLog||[];le.innerHTML=logs.length?logs.map(l=>_logRow(l,{settlement:'💰',trade:'📊',extreme:'🔥',info:'ℹ️'}[l.type]||'ℹ️')).join(''):'<div class="px-4 py-8 text-center text-xs text-gray-600">Waiting…</div>';}
+    }
+    LAB_TABS.funding.render=renderFunding;
+
+    function renderFearGreed(data){
+      const s=data.stats||{},fg=data.currentFG;
+      if(fg){
+        const gv=_('fgGaugeValue'),gl=_('fgGaugeLabel'),gb=_('fgGaugeBar');
+        if(gv){gv.textContent=fg.value;gv.style.color=fg.value<=20?'#ef4444':fg.value>=80?'#22c55e':'#f59e0b';}
+        if(gl)gl.textContent=fg.classification;
+        if(gb)gb.style.width=fg.value+'%';
+      }
+      _set('fgBalance','$'+(s.balance||100).toFixed(2));
+      const pe=_('fgPnl');if(pe){pe.textContent=_fmtPnl(s.totalPnl);pe.className='mt-2 text-2xl font-bold '+_pnlCl(s.totalPnl);}
+      _set('fgPnlSub',(s.totalTrades||0)+' trades closed');
+      _set('fgBuyZone',s.buyZoneCount||0);_set('fgSellZone',s.sellZoneCount||0);
+      const pos=data.position;
+      _set('fgPosition',pos?'LONG BTC @ $'+(pos.entryPrice||0).toLocaleString():'None');
+      _set('fgPositionSub',pos?'$'+(pos.betSize||0).toFixed(2)+' · F&G '+pos.entryFG+' at entry':'Waiting for Extreme Fear…');
+      const le=_('fgLog');if(le){const logs=data.activityLog||[];le.innerHTML=logs.length?logs.map(l=>_logRow(l,{buy:'🟢',sell:'🔴',signal:'⚡',error:'❌',info:'ℹ️'}[l.type]||'ℹ️',l.type==='buy'?'text-profit':l.type==='sell'?'text-loss':'text-gray-400')).join(''):'<div class="px-4 py-8 text-center text-xs text-gray-600">Checking hourly…</div>';}
+      const te=_('fgTrades');if(te){const ts=data.trades||[];te.innerHTML=ts.length===0?'<div class="px-4 py-8 text-center text-xs text-gray-600">No closed trades yet</div>':ts.map(t=>'<div class="px-4 py-3 flex items-start justify-between gap-2"><div><div class="text-xs font-medium text-gray-200">BUY $'+(t.entryPrice||0).toLocaleString()+' → SELL $'+(t.exitPrice||0).toLocaleString()+'</div><div class="text-[11px] text-gray-500">F&G '+t.entryFG+'→'+t.exitFG+' · '+t.durationDays+'d</div></div><div class="text-xs font-bold '+(t.pnl>=0?'text-profit':'text-loss')+'">'+_fmtPnl(t.pnl)+'</div></div>').join('');}
+    }
+    LAB_TABS.feargreed.render=renderFearGreed;
+
+    function renderDepeg(data){
+      const s=data.stats||{};
+      _set('depegBalance','$'+(s.balance||100).toFixed(2));
+      const pe=_('depegPnl');if(pe){pe.textContent=_fmtPnl(s.totalPnl);pe.className='mt-2 text-2xl font-bold '+_pnlCl(s.totalPnl);}
+      _set('depegTrades',(s.totalTrades||0)+' trades');_set('depegOpenPos',s.openPositions||0);
+      if(s.deepestDepeg){_set('depegDeepest','-'+(s.deepestDepeg.depegPct||0).toFixed(3)+'%');_set('depegDeepestSub',s.deepestDepeg.symbol);}
+      const pr=_('depegPrices');if(pr&&data.prices){pr.innerHTML=Object.entries(data.prices).map(([sym,p])=>'<div class="rounded-xl px-5 py-4 ring-1 '+(p.pegged?'ring-white/5 bg-gray-800/80':'ring-warn/50 bg-warn/5')+'">'+'<div class="flex items-center justify-between mb-2"><span class="text-sm font-bold text-white">'+sym+'</span>'+(p.pegged?'<span class="text-[10px] text-gray-600">✓ pegged</span>':'<span class="text-[10px] font-bold text-warn">⚠ DEPEG</span>')+'</div><div class="text-2xl font-black '+(p.price<0.998?'text-warn':'text-white')+'">'+( p.priceStr||'$1.0000')+'</div><div class="text-[11px] text-gray-500 mt-1">'+(p.depegStr||'0%')+' from peg</div></div>').join('');}
+      const le=_('depegLog');if(le){const logs=data.activityLog||[];le.innerHTML=logs.length?logs.map(l=>_logRow(l,{depeg:'🚨',repeg:'💰',warn:'⚠️',info:'ℹ️'}[l.type]||'ℹ️',l.type==='depeg'?'text-warn':l.type==='repeg'?'text-profit':'text-gray-400')).join(''):'<div class="px-4 py-8 text-center text-xs text-gray-600">Monitoring stablecoins…</div>';}
+    }
+    LAB_TABS.depeg.render=renderDepeg;
+
+    function renderLiq(data){
+      const s=data.stats||{};
+      _set('liqBalance','$'+(s.balance||100).toFixed(2));
+      const pe=_('liqPnl');if(pe){pe.textContent=_fmtPnl(s.totalPnl);pe.className='mt-2 text-2xl font-bold '+_pnlCl(s.totalPnl);}
+      _set('liqPnlSub',(s.totalTrades||0)+' trades');_set('liqOpenPos',s.openPositions||0);
+      if(s.biggestCascade){_set('liqBiggest','$'+(s.biggestCascade.totalLiq/1e6).toFixed(1)+'M');_set('liqBiggestSub',(s.biggestCascade.symbol||'—').replace('USDT',''));}
+      const fe=_('liqFeed');if(fe&&data.liqFeed){const ens=Object.entries(data.liqFeed);fe.innerHTML=ens.length?ens.map(([sym,f])=>'<div class="px-4 py-3"><div class="flex justify-between"><span class="text-sm font-bold text-white">'+(sym.replace('USDT',''))+'</span>'+(f.proxy?'<span class="text-[10px] text-gray-600">proxy</span>':'')+'</div>'+(f.totalLiq?'<div class="text-xs text-warn">$'+(f.totalLiq/1e6).toFixed(1)+'M</div>':'')+'</div>').join(''):'<div class="px-4 py-6 text-center text-xs text-gray-600">Monitoring…</div>';}
+      const le=_('liqLog');if(le){const logs=data.activityLog||[];le.innerHTML=logs.length?logs.map(l=>_logRow(l,{cascade:'⚡',win:'💰',loss:'📉',info:'ℹ️'}[l.type]||'ℹ️',l.type==='cascade'?'text-warn':l.type==='win'?'text-profit':'text-gray-400')).join(''):'<div class="px-4 py-8 text-center text-xs text-gray-600">Detecting cascades…</div>';}
+    }
+    LAB_TABS.liq.render=renderLiq;
+
+    function renderCrossEx(data){
+      const s=data.stats||{};
+      _set('crossBalance','$'+(s.balance||100).toFixed(2));
+      const pe=_('crossPnl');if(pe){pe.textContent=_fmtPnl(s.totalPnl);pe.className='mt-2 text-2xl font-bold '+_pnlCl(s.totalPnl);}
+      _set('crossPnlSub',(s.totalTrades||0)+' trades');_set('crossOpenPos',s.openPositions||0);
+      if(s.maxSpread){_set('crossMaxSpread',(s.maxSpread.spreadPct*100).toFixed(4)+'%');_set('crossMaxSpreadSub',(s.maxSpread.symbol||'—').replace('USDT','')+' $'+(s.maxSpread.spread||0).toFixed(2));}
+      const se=_('crossExSpreads');if(se&&data.spreads){se.innerHTML=Object.entries(data.spreads).map(([sym,sp])=>'<div class="rounded-xl px-5 py-4 ring-1 '+(sp.tradeable?'ring-profit/40 bg-profit/5':sp.aboveThreshold?'ring-warn/30 bg-warn/5':'ring-white/5 bg-gray-800/80')+'"><div class="flex items-center justify-between mb-2"><span class="text-sm font-bold text-white">'+(sym.replace('USDT',''))+'</span>'+(sp.tradeable?'<span class="text-[10px] font-bold text-profit bg-profit/10 rounded-full px-2">TRADE</span>':sp.aboveThreshold?'<span class="text-[10px] text-warn">notable</span>':'')+'</div><div class="text-2xl font-black '+(sp.aboveThreshold?'text-profit':'text-gray-400')+'">'+(sp.spreadPctStr||'0%')+'</div><div class="text-[11px] text-gray-500">'+(sp.spreadUsdStr||'$0')+' · buy '+(sp.cheaperEx||'—')+'</div><div class="text-[10px] text-gray-600">B:$'+(sp.binance||0).toLocaleString()+' BB:$'+(sp.bybit||0).toLocaleString()+'</div></div>').join('');}
+      const le=_('crossLog');if(le){const logs=data.activityLog||[];le.innerHTML=logs.length?logs.map(l=>_logRow(l,{trade:'📊',signal:'🔍',win:'💰',loss:'📉',info:'ℹ️'}[l.type]||'🔍',l.type==='trade'?'text-profit':l.type==='signal'?'text-warn':'text-gray-400')).join(''):'<div class="px-4 py-8 text-center text-xs text-gray-600">Comparing prices…</div>';}
+    }
+    LAB_TABS.crossex.render=renderCrossEx;
+
+    // Fix _$ collision with existing $ helper
+    function _(id){return document.getElementById(id);}
+  </script>
+
 </body>
 </html>

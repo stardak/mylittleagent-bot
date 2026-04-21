@@ -20,7 +20,12 @@ import { Server } from 'socket.io';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { runBacktest, runKronosBacktest } from './backtester.js';
-import { PolymarketArbScanner } from './polymarket-arb.js';
+import { PolymarketArbScanner }  from './polymarket-arb.js';
+import { FundingRateScanner }    from './funding-rate.js';
+import { FearGreedScanner }      from './fear-greed.js';
+import { StablecoinDepegScanner } from './stablecoin-depeg.js';
+import { LiquidationScanner }    from './liquidation-scalper.js';
+import { CrossExchangeScanner }  from './cross-exchange.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -49,9 +54,25 @@ export class Dashboard {
     this._kronosBtCache = {};
     this._kronosBtRunning = false;
 
-    // Polymarket Arb Scanner — runs independently, 30s scan interval
-    this._arbScanner = new PolymarketArbScanner();
+    // Polymarket Arb Scanner
+    this._arbScanner    = new PolymarketArbScanner();
     this._arbScanner.start(30_000);
+
+    // Strategy Labs — 5 independent paper-trading strategies
+    this._fundingScanner = new FundingRateScanner();
+    this._fundingScanner.start();
+
+    this._fearGreedScanner = new FearGreedScanner();
+    this._fearGreedScanner.start();
+
+    this._depegScanner = new StablecoinDepegScanner();
+    this._depegScanner.start();
+
+    this._liqScanner = new LiquidationScanner();
+    this._liqScanner.start();
+
+    this._crossExScanner = new CrossExchangeScanner();
+    this._crossExScanner.start();
 
     // Serve index.html with no-cache headers so Cloudflare never caches it
     const publicDir = path.join(__dirname, '..', 'public');
@@ -229,6 +250,13 @@ export class Dashboard {
     this.app.get('/api/polymarket-arb/state', (req, res) => {
       res.json(this._arbScanner.getState());
     });
+
+    // Strategy Labs — individual state endpoints
+    this.app.get('/api/funding-rate/state',    (req, res) => res.json(this._fundingScanner.getState()));
+    this.app.get('/api/fear-greed/state',      (req, res) => res.json(this._fearGreedScanner.getState()));
+    this.app.get('/api/depeg/state',           (req, res) => res.json(this._depegScanner.getState()));
+    this.app.get('/api/liquidation/state',     (req, res) => res.json(this._liqScanner.getState()));
+    this.app.get('/api/cross-exchange/state',  (req, res) => res.json(this._crossExScanner.getState()));
   }
 
   _setupWebSocket() {
