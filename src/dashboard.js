@@ -26,6 +26,7 @@ import { FearGreedScanner }      from './fear-greed.js';
 import { StablecoinDepegScanner } from './stablecoin-depeg.js';
 import { LiquidationScanner }    from './liquidation-scalper.js';
 import { CrossExchangeScanner }  from './cross-exchange.js';
+import { ClaudeAgent }           from './claude-agent.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -73,6 +74,9 @@ export class Dashboard {
 
     this._crossExScanner = new CrossExchangeScanner();
     this._crossExScanner.start();
+
+    // Claude AI Agent
+    this._agent = new ClaudeAgent(process.env.ANTHROPIC_API_KEY || '');
 
     // Serve index.html with no-cache headers so Cloudflare never caches it
     const publicDir = path.join(__dirname, '..', 'public');
@@ -257,6 +261,48 @@ export class Dashboard {
     this.app.get('/api/depeg/state',           (req, res) => res.json(this._depegScanner.getState()));
     this.app.get('/api/liquidation/state',     (req, res) => res.json(this._liqScanner.getState()));
     this.app.get('/api/cross-exchange/state',  (req, res) => res.json(this._crossExScanner.getState()));
+
+    // ── Claude Agent endpoints ────────────────────────────────────────────────
+    // GET /api/agent/review — full portfolio review (cached 10 min)
+    this.app.get('/api/agent/review', async (req, res) => {
+      if (!this._agent.apiKey) return res.status(500).json({ error: 'No ANTHROPIC_API_KEY set' });
+      if (req.query.refresh === 'true') this._agent.clearCache();
+      try {
+        const status  = this._buildPayload();
+        const poly    = this._arbScanner.getState();
+        const funding = this._fundingScanner.getState();
+        const fg      = this._fearGreedScanner.getState();
+        const depeg   = this._depegScanner.getState();
+        const liq     = this._liqScanner.getState();
+        const cross   = this._crossExScanner.getState();
+        const result  = await this._agent.review(status, poly, funding, fg, depeg, liq, cross);
+        res.json(result);
+      } catch (err) {
+        console.error('[Agent] review error:', err.message);
+        res.status(500).json({ error: err.message });
+      }
+    });
+
+    // POST /api/agent/ask — free-form question about the portfolio
+    this.app.post('/api/agent/ask', async (req, res) => {
+      if (!this._agent.apiKey) return res.status(500).json({ error: 'No ANTHROPIC_API_KEY set' });
+      const { question } = req.body || {};
+      if (!question) return res.status(400).json({ error: 'question required' });
+      try {
+        const status  = this._buildPayload();
+        const poly    = this._arbScanner.getState();
+        const funding = this._fundingScanner.getState();
+        const fg      = this._fearGreedScanner.getState();
+        const depeg   = this._depegScanner.getState();
+        const liq     = this._liqScanner.getState();
+        const cross   = this._crossExScanner.getState();
+        const result  = await this._agent.ask(question, status, poly, funding, fg, depeg, liq, cross);
+        res.json(result);
+      } catch (err) {
+        console.error('[Agent] ask error:', err.message);
+        res.status(500).json({ error: err.message });
+      }
+    });
   }
 
   _setupWebSocket() {

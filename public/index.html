@@ -215,6 +215,36 @@
           <div id="homeBotGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             <div class="col-span-full px-4 py-12 text-center text-xs text-gray-600">Loading strategy data&hellip;</div>
           </div>
+
+          <!-- ── Claude Agent Panel ─────────────────────────────────────── -->
+          <div class="mt-8 rounded-2xl ring-1 ring-white/[0.08] overflow-hidden" style="background:linear-gradient(135deg,rgba(139,92,246,0.08) 0%,rgba(99,102,241,0.06) 100%)">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-white/[0.06]">
+              <div class="flex items-center gap-3">
+                <span class="text-lg">🤖</span>
+                <div>
+                  <p class="text-sm font-bold text-white">Claude Agent</p>
+                  <p class="text-[11px] text-gray-500">Portfolio analyst · claude-haiku-4-5 · cached 10 min</p>
+                </div>
+              </div>
+              <button id="agentRefreshBtn" onclick="agentReview(true)"
+                class="px-4 py-1.5 rounded-lg text-xs font-semibold text-violet-300 hover:text-white bg-violet-500/10 hover:bg-violet-500/20 ring-1 ring-violet-400/20 transition-all">
+                ↺ Refresh Analysis
+              </button>
+            </div>
+            <div id="agentReviewOutput" class="px-6 py-5 text-sm text-gray-300 leading-relaxed min-h-[80px]">
+              <span class="text-gray-600 italic">Click "Refresh Analysis" to get Claude's take on the portfolio…</span>
+            </div>
+            <div class="border-t border-white/[0.06] px-6 py-4">
+              <div class="flex gap-3">
+                <input id="agentQuestion" type="text" placeholder="Ask Claude something about the portfolio…"
+                  class="flex-1 bg-white/[0.04] border border-white/10 rounded-lg px-4 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-violet-400/40 transition-all"
+                  onkeydown="if(event.key==='Enter') agentAsk()" />
+                <button onclick="agentAsk()"
+                  class="px-5 py-2 rounded-lg text-xs font-semibold text-white bg-violet-600/60 hover:bg-violet-600/80 ring-1 ring-violet-400/30 transition-all">Ask</button>
+              </div>
+              <div id="agentAskOutput" class="mt-3 text-sm text-gray-300 leading-relaxed hidden"></div>
+            </div>
+          </div>
         </div><!-- /paneHome -->
 
         <!-- ── Tab: Kronos ──────────────────────────────────────── -->
@@ -2190,6 +2220,56 @@
 
     // ── Home Dashboard ────────────────────────────────────────────────────────
     let _homeInterval = null;
+
+
+    // ── Claude Agent UI functions ─────────────────────────────────────────────
+    function _mdToHtml(md) {
+      return md
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+        .replace(/\*\*(.+?)\*\*/g,'<strong class="text-white">$1</strong>')
+        .replace(/^### (.+)$/gm,'<p class="text-white font-bold mt-4 mb-1">$1</p>')
+        .replace(/^## (.+)$/gm,'<p class="text-white font-bold text-base mt-4 mb-1">$1</p>')
+        .replace(/^# (.+)$/gm,'<p class="text-white font-extrabold text-lg mt-4 mb-1">$1</p>')
+        .replace(/\n/g,'<br>');
+    }
+    function agentReview(force) {
+      var btn = _el('agentRefreshBtn');
+      var out = _el('agentReviewOutput');
+      if (!out) return;
+      out.innerHTML = '<span class="text-gray-500 italic">Asking Claude to review…</span>';
+      if (btn) btn.disabled = true;
+      fetch('/api/agent/review' + (force ? '?refresh=true' : ''))
+        .then(function(r){ return r.json(); })
+        .then(function(d) {
+          if (d.error) { out.innerHTML = '<span class="text-red-400">Error: ' + d.error + '</span>'; }
+          else {
+            var age = d.cached ? ' <span class="text-[10px] text-gray-600">(cached ' + d.age + 's ago)</span>' : '';
+            out.innerHTML = _mdToHtml(d.text) + age;
+          }
+          if (btn) btn.disabled = false;
+        })
+        .catch(function(e) {
+          out.innerHTML = '<span class="text-red-400">Request failed</span>';
+          if (btn) btn.disabled = false;
+        });
+    }
+    function agentAsk() {
+      var q = _el('agentQuestion'); var out = _el('agentAskOutput');
+      if (!q || !q.value.trim() || !out) return;
+      out.classList.remove('hidden');
+      out.innerHTML = '<span class="text-gray-500 italic">Claude is thinking…</span>';
+      fetch('/api/agent/ask', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ question: q.value.trim() })
+      }).then(function(r){ return r.json(); })
+        .then(function(d) {
+          if (d.error) out.innerHTML = '<span class="text-red-400">Error: ' + d.error + '</span>';
+          else out.innerHTML = _mdToHtml(d.text);
+          q.value = '';
+        })
+        .catch(function() { out.innerHTML = '<span class="text-red-400">Request failed</span>'; });
+    }
 
     function pollHomeDashboard() {
       var upEl = _el('homeLastUpdate');
