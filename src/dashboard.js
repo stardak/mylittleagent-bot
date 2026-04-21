@@ -302,6 +302,7 @@ export class Dashboard {
         console.error('[Agent] ask error:', err.message);
         res.status(500).json({ error: err.message });
       }
+    });
 
     // POST /api/agent/explain — dumb down or tech-up a bot description
     this.app.post('/api/agent/explain', async (req, res) => {
