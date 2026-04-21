@@ -2225,8 +2225,13 @@
     }
 
     function renderHomeDashboard(status, poly, funding, fg, depeg, liq, cross) {
-      const kronosBal = (status && status.status && status.status.portfolio) ? status.status.portfolio : 100;
-      const kronosPnl = kronosBal - 100;
+      // Use binancePortfolio.balance for live Kronos paper balance (status.portfolio is just the start config)
+      const kronosBal = (status && status.binancePortfolio && status.binancePortfolio.balance != null)
+        ? status.binancePortfolio.balance
+        : (status && status.status && status.status.portfolio) ? status.status.portfolio : 100;
+      const kronosPnl = (status && status.binancePortfolio && status.binancePortfolio.totalPnl != null)
+        ? status.binancePortfolio.totalPnl
+        : kronosBal - 100;
 
       const bots = [
         {
