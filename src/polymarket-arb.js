@@ -27,8 +27,9 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'fs';
 import path from 'path';
 
 const GAMMA_API             = 'https://gamma-api.polymarket.com';
-const DISPLAY_GAP_THRESHOLD = 0.005;  // 0.5¢ — show in activity feed but don’t trade
+const DISPLAY_GAP_THRESHOLD = 0.005;  // 0.5¢ — minimum gap to count at all
 const MIN_GAP               = 0.02;   // 2¢ threshold to open a paper trade
+const LIQUIDITY_THRESHOLD   = 5_000;  // $5 K minimum volume to show or trade
 const ALERT_GAP             = 0.05;   // 5¢ threshold to fire Telegram alert
 const BET_SIZE              = 10;     // $10 notional per trade
 const MAX_LOG               = 200;    // Activity log cap
@@ -38,6 +39,7 @@ const MAX_FETCH_PAGES       = 3;      // Pages of 250 markets to fetch per scan
 const TOP_GAPS_LIMIT        = 5;      // “Best Gaps” leaderboard size
 const FLAG_GAP_THRESHOLD    = 0.15;   // >15¢ gap → flag as suspect
 const FLAG_VOL_THRESHOLD    = 1_000;  // <$1 K volume → flag as thin
+const HIGH_VOL_WINDOW_MS    = 86_400_000; // 24 h — window for highest-vol gap tracker
 
 // ── Category keyword matching ──────────────────────────────────────────────
 const CATEGORY_RULES = [
@@ -82,14 +84,19 @@ export class PolymarketArbScanner {
     this.categoryStats['Other'] = { count: 0, totalGapCents: 0 };
 
     // ── Feature 4: Telegram alerts ──────────────────────────────────────────
-    this.telegramAlerted = new Set();  // marketIds already alerted in this gap event
+    this.telegramAlerted = new Set();
     this._tgToken = process.env.TELEGRAM_BOT_TOKEN || null;
     this._tgChat  = process.env.TELEGRAM_CHAT_ID   || null;
+
+    // ── Liquidity tracking: highest-volume market with any gap (24 h) ────────
+    this.highVolumeGap = null;   // { question, volume, volumeStr, gapCents, seenAt, url }
 
     this.stats = {
       totalScans:          0,
       marketsChecked:      0,
-      opportunitiesFound:  0,
+      totalGapsRaw:        0,   // any gap ≥ 0.5¢ regardless of volume
+      qualifiedGaps:       0,   // gap ≥ 2¢ AND volume ≥ $5 K
+      opportunitiesFound:  0,   // alias kept for legacy UI fields
       tradesAutoTaken:     0,
       totalClosedTrades:   0,
       realizedPnl:         0,
@@ -221,7 +228,33 @@ export class PolymarketArbScanner {
         // Display threshold: 0.5¢. Auto-trade threshold: 2¢.
         if (!opp || opp.gap < DISPLAY_GAP_THRESHOLD) continue;
 
-        this.stats.opportunitiesFound++;
+        this.stats.totalGapsRaw++;        // count every gap ≥ 0.5¢ seen
+        const isLiquid = opp.volume >= LIQUIDITY_THRESHOLD;
+
+        // ── Highest-volume gap tracker (24 h window) ──────────────────
+        const now24 = Date.now();
+        if (
+          !this.highVolumeGap ||
+          opp.volume > this.highVolumeGap.volume ||
+          (this.highVolumeGap.seenAt && now24 - this.highVolumeGap.seenAt > HIGH_VOL_WINDOW_MS)
+        ) {
+          if (!this.highVolumeGap || opp.volume > this.highVolumeGap.volume) {
+            this.highVolumeGap = {
+              question:  opp.question,
+              volume:    opp.volume,
+              volumeStr: opp.volumeStr,
+              gapCents:  opp.gapCents,
+              category:  opp.category,
+              url:       opp.url,
+              seenAt:    now24,
+            };
+          }
+        }
+
+        // Skip illiquid markets from activity feed entirely
+        if (!isLiquid) continue;
+
+        this.stats.opportunitiesFound++;   // legacy — now means liquid gaps found
         this.stats._allGaps.push(opp.gap);
         this.stats.avgGapCents =
           this.stats._allGaps.reduce((a, b) => a + b, 0) /
@@ -244,7 +277,7 @@ export class PolymarketArbScanner {
 
         const hasOpenTrade = this.openTrades.has(opp.id);
 
-        // Activity log — all gaps ≥ 0.5¢
+        // Activity log — liquid gaps ≥ 0.5¢ only
         this.activityLog.unshift({
           time:      new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
           question:  opp.question.slice(0, 72),
@@ -252,15 +285,19 @@ export class PolymarketArbScanner {
           no:        opp.noPrice,
           gap:       opp.gap,
           profit:    opp.profit,
-          tradeable: opp.gap >= MIN_GAP,           // ≥2¢ → auto-trade eligible
-          watch:     opp.gap < MIN_GAP,             // 0.5¢–2¢ → monitor only
+          tradeable: opp.gap >= MIN_GAP,           // ≥2¢ + liquid → auto-trade eligible
+          watch:     opp.gap < MIN_GAP,             // 0.5¢–2¢ + liquid → monitor only
           skipped:   hasOpenTrade,
           invalid:   opp.invalid,
+          volumeStr: opp.volumeStr,
         });
         if (this.activityLog.length > MAX_LOG) this.activityLog.pop();
 
-        // Open paper trade if eligible
-        if (opp.gap >= MIN_GAP && !hasOpenTrade) {
+        // Open paper trade only for qualified gaps: ≥2¢ AND liquid AND no open trade
+        const isQualified = opp.gap >= MIN_GAP;
+        if (isQualified) this.stats.qualifiedGaps++;
+
+        if (isQualified && !hasOpenTrade) {
           const trade = {
             ...opp,
             gapOpenedAt,
@@ -305,7 +342,7 @@ export class PolymarketArbScanner {
 
       const tradeable = found.filter(o => o.gap >= MIN_GAP);
       const watching  = found.filter(o => o.gap >= DISPLAY_GAP_THRESHOLD && o.gap < MIN_GAP);
-      console.log(`[PolyArb] ${markets.length} mkts scanned → ${tradeable.length} tradeable (≥2¢), ${watching.length} watch (0.5–2¢) | open positions: ${this.openTrades.size}`);
+      console.log(`[PolyArb] ${markets.length} mkts | raw gaps: ${this.stats.totalGapsRaw} | liquid ≥0.5¢: ${found.length} (${tradeable.length} qualified, ${watching.length} watch) | open: ${this.openTrades.size}`);
 
     } catch (err) {
       console.error('[PolyArb] Scan error:', err.message);
@@ -511,6 +548,8 @@ export class PolymarketArbScanner {
       stats: {
         totalScans:          s.totalScans,
         marketsChecked:      s.marketsChecked,
+        totalGapsRaw:        s.totalGapsRaw,
+        qualifiedGaps:       s.qualifiedGaps,
         opportunitiesFound:  s.opportunitiesFound,
         tradesAutoTaken:     s.tradesAutoTaken,
         openPositions:       openArr.length,
@@ -525,6 +564,7 @@ export class PolymarketArbScanner {
                                ? +((s.todayWins / s.totalClosedTrades) * 100).toFixed(1)
                                : null,
         avgGapDurationSec:   s.avgGapDurationSec,
+        highVolumeGap:       this.highVolumeGap,
         // Legacy
         totalTheoreticalProfit: realPnl,
         currentBalance:         +(100 + realPnl).toFixed(2),

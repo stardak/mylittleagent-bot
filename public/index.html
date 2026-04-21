@@ -534,7 +534,11 @@
             <div class="relative overflow-hidden rounded-xl bg-gray-800/80 backdrop-blur-lg px-5 pt-5 pb-4 shadow-lg ring-1 ring-white/5">
               <dt class="truncate text-xs font-medium text-gray-400">Gaps Detected</dt>
               <dd id="polyOppsFound" class="mt-2 text-2xl font-bold tracking-tight text-profit">0</dd>
-              <p id="polyAvgGap" class="mt-1 text-xs text-gray-500">Avg size: &mdash; &middot; avg duration: <span id="polyAvgDuration">&mdash;</span></p>
+              <p class="mt-1 text-xs text-gray-500">
+                <span id="polyQualifiedGaps" class="font-semibold text-profit">0</span> qualified
+                &middot; <span id="polyTotalGapsRaw" class="text-gray-500">0</span> total raw
+              </p>
+              <p id="polyAvgGap" class="mt-0.5 text-[11px] text-gray-600">Avg: &mdash; &middot; dur: <span id="polyAvgDuration">&mdash;</span></p>
             </div>
             <div class="relative overflow-hidden rounded-xl bg-gray-800/80 backdrop-blur-lg px-5 pt-5 pb-4 shadow-lg ring-1 ring-white/5">
               <dt class="truncate text-xs font-medium text-gray-400">Trades Auto-taken</dt>
@@ -550,6 +554,10 @@
               <dt class="truncate text-xs font-medium text-gray-400">Win Rate</dt>
               <dd class="mt-2 text-2xl font-bold tracking-tight text-white" id="polyWinRate">&mdash;</dd>
               <p class="mt-1 text-xs text-gray-500" id="polyWinRateSub">no closed trades yet</p>
+            </div>
+            <div class="relative overflow-hidden rounded-xl bg-gray-800/80 backdrop-blur-lg px-5 pt-5 pb-4 shadow-lg ring-1 ring-white/5 lg:col-span-3">
+              <dt class="truncate text-xs font-medium text-gray-400">📊 Highest-Vol Market with Any Gap (24 h)</dt>
+              <div id="polyHighVolGap" class="mt-2 text-xs text-gray-500">Waiting for scan data…</div>
             </div>
           </dl>
 
@@ -1368,7 +1376,9 @@
       const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
       set('polyMarketsChecked', s.totalScans > 0 ? Math.round(s.marketsChecked / s.totalScans).toLocaleString() : '—');
       set('polyTotalScans',     `${s.totalScans || 0} scans run`);
-      set('polyOppsFound',      (s.opportunitiesFound || 0).toLocaleString());
+      set('polyOppsFound',      (s.qualifiedGaps || 0).toLocaleString());
+      set('polyQualifiedGaps',   (s.qualifiedGaps || 0).toLocaleString());
+      set('polyTotalGapsRaw',    (s.totalGapsRaw  || 0).toLocaleString());
       set('polyAvgGap', s.opportunitiesFound
         ? `Avg: ${(s.avgGapCents || 0).toFixed(1)}¢`
         : 'Avg: —');
@@ -1376,6 +1386,29 @@
       if (durEl) durEl.textContent = s.avgGapDurationSec ? `${s.avgGapDurationSec}s` : '—';
       set('polyTradesTaken',    s.tradesAutoTaken || 0);
       set('polyOpenPositions',  s.openPositions || 0);
+
+      // High-Volume Gap card
+      const hvEl = document.getElementById('polyHighVolGap');
+      if (hvEl) {
+        const hv = s.highVolumeGap;
+        if (!hv) {
+          hvEl.innerHTML = '<span class="text-gray-600">Waiting for scan data… Will populate when the first gap ≥ 0.5¢ is found anywhere.</span>';
+        } else {
+          const ageMin = Math.round((Date.now() - hv.seenAt) / 60000);
+          hvEl.innerHTML = `
+            <div class="flex items-start gap-4">
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-medium text-gray-200 truncate">${hv.question.slice(0, 100)}</p>
+                <p class="text-[11px] text-gray-500 mt-0.5">${hv.category} · <a href="${hv.url}" target="_blank" class="text-blue-400 hover:underline">view on Polymarket ↗</a></p>
+              </div>
+              <div class="shrink-0 text-right">
+                <div class="text-lg font-bold text-white">${hv.volumeStr}</div>
+                <div class="text-[11px] text-profit">+${hv.gapCents.toFixed(2)}¢ gap</div>
+                <div class="text-[10px] text-gray-600">${ageMin < 2 ? 'just now' : ageMin + 'm ago'}</div>
+              </div>
+            </div>`;
+        }
+      }
 
       // Today's P&L
       const todayPnl = s.todayPnl || 0;
@@ -1523,6 +1556,7 @@
                 <div class="flex-1 min-w-0">
                   <p class="text-xs text-gray-400 truncate">${l.question}${label}</p>
                 </div>
+                <span class="shrink-0 text-[10px] text-gray-600">${l.volumeStr || ''}</span>
                 <span class="shrink-0 text-xs ${gapCl}">${(l.gap * 100).toFixed(2)}¢</span>
                 <span class="shrink-0 text-[10px] text-gray-600">${l.time}</span>
               </div>`;
