@@ -1574,38 +1574,36 @@
     // ── Tab switching ─────────────────────────────────────────────────────────
     let _polyInterval = null;
 
-    function switchTab(tab) {
-      // Ensure panePoly is a direct child of mainTabContent (not inside paneKronos)
-      const container = document.getElementById('mainTabContent');
-      const kronos    = document.getElementById('paneKronos');
-      const poly      = document.getElementById('panePoly');
-      const btnK      = document.getElementById('tabBtnKronos');
-      const btnP      = document.getElementById('tabBtnPoly');
+    // ── Master tab switcher — handles all 8 tabs ────────────────────────────────
+     var _ALL_PANES = ['paneHome','paneKronos','panePoly','paneFunding','paneFG','paneDepeg','paneLiq','paneCrossEx'];
+     var _ALL_BTNS  = ['tabBtnHome','tabBtnKronos','tabBtnPoly','tabBtnFunding','tabBtnFG','tabBtnDepeg','tabBtnLiq','tabBtnCross'];
+     var _BTN_COLORS = { home:'rgba(99,102,241,0.7)', kronos:'rgba(99,102,241,0.7)', poly:'rgba(16,185,129,0.5)', funding:'rgba(245,158,11,0.6)', feargreed:'rgba(239,68,68,0.5)', depeg:'rgba(234,179,8,0.5)', liq:'rgba(249,115,22,0.6)', crossex:'rgba(139,92,246,0.5)' };
+     var _PANE_FOR  = { home:'paneHome', kronos:'paneKronos', poly:'panePoly', funding:'paneFunding', feargreed:'paneFG', depeg:'paneDepeg', liq:'paneLiq', crossex:'paneCrossEx' };
+     var _BTN_FOR   = { home:'tabBtnHome', kronos:'tabBtnKronos', poly:'tabBtnPoly', funding:'tabBtnFunding', feargreed:'tabBtnFG', depeg:'tabBtnDepeg', liq:'tabBtnLiq', crossex:'tabBtnCross' };
+     var _LAB_API   = { funding:'/api/funding-rate/state', feargreed:'/api/fear-greed/state', depeg:'/api/depeg/state', liq:'/api/liquidation/state', crossex:'/api/cross-exchange/state' };
+     var _tabIntervals = {};
 
-      // Ensure panePoly is a direct child of container (not inside paneKronos)
-      if (poly && container && poly.parentElement !== container) {
-        container.appendChild(poly);
-      }
+     function switchTab(tab) {
+       activeTab = tab;
+       _ALL_PANES.forEach(function(id) { var el=document.getElementById(id); if(el) el.classList.add('hidden'); });
+       _ALL_BTNS.forEach(function(id)  { var el=document.getElementById(id); if(el){el.style.background='transparent';el.classList.remove('text-white');el.classList.add('text-gray-400');} });
 
-      if (tab === 'poly') {
-        activeTab = 'poly';
-        if (kronos) kronos.classList.add('hidden');
-        if (poly)   poly.classList.remove('hidden');
-        if (btnK) { btnK.style.background = 'transparent'; btnK.classList.remove('text-white'); btnK.classList.add('text-gray-400'); }
-        if (btnP) { btnP.style.background = 'rgba(16,185,129,0.5)'; btnP.classList.add('text-white'); btnP.classList.remove('text-gray-400'); }
-        updateHero();
-        startPolyScanner();
-      } else {
-        activeTab = 'kronos';
-        if (poly)   poly.classList.add('hidden');
-        if (kronos) kronos.classList.remove('hidden');
-        if (btnP) { btnP.style.background = 'transparent'; btnP.classList.remove('text-white'); btnP.classList.add('text-gray-400'); }
-        if (btnK) { btnK.style.background = 'rgba(99,102,241,0.7)'; btnK.classList.add('text-white'); btnK.classList.remove('text-gray-400'); }
-        updateHero();
-      }
-    }
+       var pane = document.getElementById(_PANE_FOR[tab]); if(pane) pane.classList.remove('hidden');
+       var btn  = document.getElementById(_BTN_FOR[tab]);
+       if(btn){ btn.style.background=_BTN_COLORS[tab]||'rgba(99,102,241,0.7)'; btn.classList.add('text-white'); btn.classList.remove('text-gray-400'); }
 
-    // ── Polling ───────────────────────────────────────────────────────────────
+       if(tab==='poly')   { updateHero(); startPolyScanner(); }
+       else if(tab==='kronos') { updateHero(); }
+       else if(tab==='home')   { if(typeof pollHomeDashboard==='function') pollHomeDashboard(); }
+       else if(_LAB_API[tab])  {
+         var api=_LAB_API[tab];
+         var doFetch=function(){ fetch(api).then(function(r){return r.json();}).then(function(d){ if(typeof _labRender!=='undefined'&&_labRender[tab]) _labRender[tab](d); }).catch(function(){}); };
+         doFetch();
+         if(!_tabIntervals[tab]) _tabIntervals[tab]=setInterval(doFetch,15000);
+       }
+     }
+
+// ── Polling ───────────────────────────────────────────────────────────────
     function startPolyScanner() {
       if (_polyInterval) return;
       pollPolyState();
@@ -1894,53 +1892,7 @@
     const _labRender = {};
 
     // Extended switchTab — replaces the original
-    const _origSwitchTab = switchTab;
-    switchTab = function(tab) {
-      // 1. Hide all panes & deactivate all btns
-      ALL_PANE_IDS.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.classList.add('hidden');
-      });
-      ALL_BTN_IDS.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) { el.style.background = 'transparent'; el.classList.remove('text-white'); el.classList.add('text-gray-400'); }
-      });
-
-      // 2. Home tab
-      if (tab === 'home') {
-        activeTab = 'home';
-        const p = document.getElementById('paneHome'); if (p) p.classList.remove('hidden');
-        const b = document.getElementById('tabBtnHome'); if (b) { b.style.background = 'rgba(99,102,241,0.7)'; b.classList.add('text-white'); b.classList.remove('text-gray-400'); }
-        pollHomeDashboard();
-        return;
-      }
-
-      // 3. Kronos / Poly — delegate to original (it re-shows those panes)
-      if (tab === 'kronos' || tab === 'poly') {
-        _origSwitchTab(tab);
-        return;
-      }
-
-      // 4. Strategy Lab tabs
-      const cfg = LAB_TABS[tab];
-      if (!cfg) return;
-      activeTab = tab;
-
-      const pane = document.getElementById(cfg.pane); if (pane) pane.classList.remove('hidden');
-      const btn  = document.getElementById(cfg.btn);
-      if (btn) { btn.style.background = cfg.color; btn.classList.add('text-white'); btn.classList.remove('text-gray-400'); }
-
-      const renderFn = _labRender[tab];
-      if (!renderFn) return;
-
-      // First-time poll
-      if (!cfg.interval) {
-        fetch(cfg.api).then(r => r.json()).then(renderFn).catch(() => {});
-        cfg.interval = setInterval(() => {
-          fetch(cfg.api).then(r => r.json()).then(renderFn).catch(() => {});
-        }, 15000);
-      }
-    };
+    // switchTab is now fully defined in the main script block above
 
     // ── DOM helpers ──────────────────────────────────────────────────────────
     function _el(id) { return document.getElementById(id); }
