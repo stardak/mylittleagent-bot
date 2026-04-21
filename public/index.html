@@ -185,7 +185,9 @@
 
         <!-- ── Tab Switcher ─────────────────────────────────────── -->
         <div class="flex flex-wrap gap-1 mb-6 p-1 rounded-xl bg-gray-800/60 ring-1 ring-white/5 backdrop-blur-sm">
-          <button id="tabBtnKronos"  onclick="switchTab('kronos')"   class="px-4 py-2 rounded-lg text-xs font-semibold text-white transition-all" style="background:rgba(99,102,241,0.7)">&#x26A1; Kronos</button>
+          <button id="tabBtnHome"    onclick="switchTab('home')"    class="px-4 py-2 rounded-lg text-xs font-semibold text-white transition-all" style="background:rgba(99,102,241,0.7)">&#x1F3E0; Overview</button>
+          <span class="w-px bg-white/10 self-stretch my-1"></span>
+          <button id="tabBtnKronos"  onclick="switchTab('kronos')"   class="px-4 py-2 rounded-lg text-xs font-semibold text-gray-400 hover:text-white transition-all">&#x26A1; Kronos</button>
           <button id="tabBtnPoly"    onclick="switchTab('poly')"     class="px-4 py-2 rounded-lg text-xs font-semibold text-gray-400 hover:text-white transition-all">&#x1F3AF; Polymarket</button>
           <span class="w-px bg-white/10 self-stretch my-1"></span>
           <span class="px-2 py-2 text-[10px] font-bold text-gray-600 uppercase tracking-widest self-center">Strategy Labs</span>
@@ -196,8 +198,27 @@
           <button id="tabBtnCross"   onclick="switchTab('crossex')"  class="px-4 py-2 rounded-lg text-xs font-semibold text-gray-400 hover:text-white transition-all">&#x1F504; Cross-Ex</button>
         </div>
 
+        <!-- ── Tab: Home Overview ──────────────────────────────── -->
+        <div id="paneHome">
+          <div class="mb-5">
+            <h2 class="text-lg font-bold text-white">&#x1F4CA; Strategy Overview</h2>
+            <p class="text-xs text-gray-500 mt-1">All bots running live &middot; paper trading &middot; $100 each &middot; <span id="homeLastUpdate" class="text-gray-600">&mdash;</span></p>
+          </div>
+          <div class="rounded-xl bg-gray-800/80 ring-1 ring-white/5 px-6 py-4 mb-6 flex flex-wrap items-center gap-6">
+            <div><div class="text-xs text-gray-500 mb-1">Combined Paper Portfolio</div><div id="homeTotalBalance" class="text-3xl font-black text-white">$700.00</div></div>
+            <div class="h-10 w-px bg-white/10 hidden sm:block"></div>
+            <div><div class="text-xs text-gray-500 mb-1">Combined P&amp;L</div><div id="homeTotalPnl" class="text-xl font-bold text-white">+$0.00</div></div>
+            <div class="h-10 w-px bg-white/10 hidden sm:block"></div>
+            <div><div class="text-xs text-gray-500 mb-1">Strategies Running</div><div class="text-xl font-bold text-profit">7 live</div></div>
+            <div class="ml-auto hidden sm:block"><button onclick="pollHomeDashboard()" class="px-4 py-2 rounded-lg text-xs font-semibold text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 transition-all ring-1 ring-white/10">&#x21BB; Refresh</button></div>
+          </div>
+          <div id="homeBotGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <div class="col-span-full px-4 py-12 text-center text-xs text-gray-600">Loading strategy data&hellip;</div>
+          </div>
+        </div><!-- /paneHome -->
+
         <!-- ── Tab: Kronos ──────────────────────────────────────── -->
-        <div id="paneKronos">
+        <div id="paneKronos" class="hidden">
 
         <!-- ── Stats Grid ────────────────────────────────────── -->
         <dl class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
@@ -918,7 +939,7 @@
     let isInSession = true; // always active in v7
 
     // ── Hero panel — tab-aware ─────────────────────────────
-    let activeTab = 'kronos';
+    let activeTab = 'home';
     let _kronosHero = { balance: null, balColor: 'text-white', pnlText: 'P&L: $0.00', pnlColor: 'text-gray-400', start: '' };
     let _polyHero   = { balance: null, balColor: 'text-profit', pnlText: '+$0.00 (+0.00%)', pnlColor: 'text-gray-400' };
 
@@ -1871,8 +1892,8 @@
       liq:      { btn:'tabBtnLiq',     pane:'paneLiq',      api:'/api/liquidation/state',    render:null, color:'rgba(249,115,22,0.6)',  interval:null },
       crossex:  { btn:'tabBtnCross',   pane:'paneCrossEx',  api:'/api/cross-exchange/state', render:null, color:'rgba(139,92,246,0.5)',  interval:null },
     };
-    const ALL_PANE_IDS = ['paneKronos','panePoly','paneFunding','paneFG','paneDepeg','paneLiq','paneCrossEx'];
-    const ALL_BTN_IDS  = ['tabBtnKronos','tabBtnPoly','tabBtnFunding','tabBtnFG','tabBtnDepeg','tabBtnLiq','tabBtnCross'];
+    const ALL_PANE_IDS = ['paneHome','paneKronos','panePoly','paneFunding','paneFG','paneDepeg','paneLiq','paneCrossEx'];
+    const ALL_BTN_IDS  = ['tabBtnHome','tabBtnKronos','tabBtnPoly','tabBtnFunding','tabBtnFG','tabBtnDepeg','tabBtnLiq','tabBtnCross'];
     const _origSwitchTab = switchTab;
     switchTab = function(tab) {
       ALL_PANE_IDS.forEach(id => { const el=document.getElementById(id); if(el) el.classList.add('hidden'); });
@@ -1971,6 +1992,150 @@
 
     // Fix _$ collision with existing $ helper
     function _(id){return document.getElementById(id);}
+
+    // ── Home Overview Dashboard ───────────────────────────────────────────────
+    let _homeInterval = null;
+
+    const BOT_CONFIGS = [
+      { key:'kronos',    tab:'kronos',    icon:'⚡', name:'Kronos Scalper',     desc:'AI model · 15m candles · BTC/ETH/SOL',      color:'rgba(99,102,241,0.15)',  border:'rgba(99,102,241,0.4)' },
+      { key:'poly',      tab:'poly',      icon:'🎯', name:'Polymarket Arb',     desc:'YES+NO mispricing · $5K vol filter',         color:'rgba(16,185,129,0.10)', border:'rgba(16,185,129,0.35)' },
+      { key:'funding',   tab:'funding',   icon:'💰', name:'Funding Rate Arb',   desc:'Delta-neutral · perp vs spot',               color:'rgba(245,158,11,0.10)', border:'rgba(245,158,11,0.35)' },
+      { key:'feargreed', tab:'feargreed', icon:'📈', name:'Fear & Greed',       desc:'Contrarian BTC · extreme sentiment',         color:'rgba(239,68,68,0.10)',  border:'rgba(239,68,68,0.30)' },
+      { key:'depeg',     tab:'depeg',     icon:'🟡', name:'Depeg Watch',        desc:'USDC/DAI repeg · rare high-conviction',      color:'rgba(234,179,8,0.10)',  border:'rgba(234,179,8,0.30)' },
+      { key:'liq',       tab:'liq',       icon:'⚡', name:'Liquidation Scalper','desc':'Cascade mean-reversion · 1.5% target',    color:'rgba(249,115,22,0.10)', border:'rgba(249,115,22,0.30)' },
+      { key:'crossex',   tab:'crossex',   icon:'🔄', name:'Cross-Ex Spread',    desc:'Binance vs Bybit · every 10s',               color:'rgba(139,92,246,0.10)', border:'rgba(139,92,246,0.30)' },
+    ];
+
+    async function pollHomeDashboard() {
+      const upEl = document.getElementById('homeLastUpdate');
+      if (upEl) upEl.textContent = 'Refreshing…';
+      try {
+        const [status, poly, funding, fg, depeg, liq, cross] = await Promise.allSettled([
+          fetch('/api/status').then(r=>r.json()),
+          fetch('/api/polymarket-arb/state').then(r=>r.json()),
+          fetch('/api/funding-rate/state').then(r=>r.json()),
+          fetch('/api/fear-greed/state').then(r=>r.json()),
+          fetch('/api/depeg/state').then(r=>r.json()),
+          fetch('/api/liquidation/state').then(r=>r.json()),
+          fetch('/api/cross-exchange/state').then(r=>r.json()),
+        ]);
+
+        const get = (settled) => settled.status === 'fulfilled' ? settled.value : null;
+        renderHomeDashboard(get(status), get(poly), get(funding), get(fg), get(depeg), get(liq), get(cross));
+        if (upEl) upEl.textContent = 'Updated ' + new Date().toLocaleTimeString();
+      } catch(e) {
+        if (upEl) upEl.textContent = 'Error refreshing';
+      }
+    }
+
+    function renderHomeDashboard(status, poly, funding, fg, depeg, liq, cross) {
+      // Extract balances
+      const kronosBalance = status?.status?.portfolioValue ?? 100;
+      const kronosPnl     = kronosBalance - 100;
+      const kronosWR      = null; // win rate from status
+      const kronosOpen    = 0;
+
+      const bots = [
+        {
+          key:'kronos', tab:'kronos', icon:'⚡', name:'Kronos Scalper', desc:'AI·15m·BTC/ETH/SOL',
+          balance: kronosBalance, pnl: kronosPnl,
+          metric: status?.scalper ? Object.values(status.scalper.positions||{}).filter(p=>p).length + ' open' : '—',
+          status2: status?.status?.isPaused ? 'Paused' : 'Live',
+          color:'rgba(99,102,241,0.15)', border:'rgba(99,102,241,0.4)',
+        },
+        {
+          key:'poly', tab:'poly', icon:'🎯', name:'Polymarket Arb', desc:'Mispricing·$5K vol',
+          balance: poly?.stats?.currentBalance ?? 100,
+          pnl:     poly?.stats?.realizedPnl    ?? 0,
+          metric:  (poly?.stats?.qualifiedGaps ?? 0) + ' qual. gaps',
+          status2: poly?.stats?.running ? 'Live' : 'Idle',
+          color:'rgba(16,185,129,0.10)', border:'rgba(16,185,129,0.35)',
+        },
+        {
+          key:'funding', tab:'funding', icon:'💰', name:'Funding Rate', desc:'Delta-neutral perp',
+          balance: funding?.stats?.balance ?? 100,
+          pnl:     funding?.stats?.totalPnl ?? 0,
+          metric:  (funding?.stats?.openPositions ?? 0) + ' open',
+          status2: funding?.stats?.running ? 'Live' : 'Idle',
+          color:'rgba(245,158,11,0.10)', border:'rgba(245,158,11,0.35)',
+        },
+        {
+          key:'feargreed', tab:'feargreed', icon:'📈', name:'Fear & Greed', desc:'Contrarian BTC',
+          balance: fg?.stats?.balance ?? 100,
+          pnl:     fg?.stats?.totalPnl ?? 0,
+          metric:  fg?.currentFG ? 'F&G: ' + fg.currentFG.value : '—',
+          status2: fg?.stats?.running ? 'Live' : 'Idle',
+          color:'rgba(239,68,68,0.10)', border:'rgba(239,68,68,0.30)',
+        },
+        {
+          key:'depeg', tab:'depeg', icon:'🟡', name:'Depeg Watch', desc:'USDC/DAI repeg',
+          balance: depeg?.stats?.balance ?? 100,
+          pnl:     depeg?.stats?.totalPnl ?? 0,
+          metric:  (depeg?.stats?.openPositions ?? 0) === 0 ? 'All pegged ✓' : (depeg.stats.openPositions) + ' depegged!',
+          status2: depeg?.stats?.running ? 'Live' : 'Idle',
+          color:'rgba(234,179,8,0.10)', border:'rgba(234,179,8,0.30)',
+        },
+        {
+          key:'liq', tab:'liq', icon:'⚡', name:'Liquidations', desc:'Cascade scalper',
+          balance: liq?.stats?.balance ?? 100,
+          pnl:     liq?.stats?.totalPnl ?? 0,
+          metric:  (liq?.stats?.openPositions ?? 0) + ' open · ' + (liq?.stats?.totalTrades ?? 0) + ' trades',
+          status2: liq?.stats?.running ? 'Live' : 'Idle',
+          color:'rgba(249,115,22,0.10)', border:'rgba(249,115,22,0.30)',
+        },
+        {
+          key:'crossex', tab:'crossex', icon:'🔄', name:'Cross-Ex', desc:'Binance vs Bybit',
+          balance: cross?.stats?.balance ?? 100,
+          pnl:     cross?.stats?.totalPnl ?? 0,
+          metric:  cross?.stats?.maxSpread ? 'Max: ' + (cross.stats.maxSpread.spreadPct*100).toFixed(3)+'%' : 'Watching…',
+          status2: cross?.stats?.running ? 'Live' : 'Idle',
+          color:'rgba(139,92,246,0.10)', border:'rgba(139,92,246,0.30)',
+        },
+      ];
+
+      // Total portfolio
+      const totalBal = bots.reduce((a,b) => a + (b.balance||100), 0);
+      const totalPnl = bots.reduce((a,b) => a + (b.pnl||0), 0);
+      const tBalEl = document.getElementById('homeTotalBalance');
+      const tPnlEl = document.getElementById('homeTotalPnl');
+      if (tBalEl) tBalEl.textContent = '$' + totalBal.toFixed(2);
+      if (tPnlEl) { tPnlEl.textContent = (totalPnl>=0?'+':'') + '$' + Math.abs(totalPnl).toFixed(2); tPnlEl.style.color = totalPnl>0?'#34d399':totalPnl<0?'#f87171':''; }
+
+      // Render bot cards
+      const grid = document.getElementById('homeBotGrid');
+      if (!grid) return;
+      grid.innerHTML = bots.map(b => {
+        const pnlPositive = b.pnl > 0;
+        const pnlStr   = (b.pnl >= 0 ? '+' : '') + '$' + Math.abs(b.pnl).toFixed(2);
+        const pnlColor = pnlPositive ? '#34d399' : b.pnl < 0 ? '#f87171' : '#9ca3af';
+        const balStr   = '$' + (b.balance||100).toFixed(2);
+        return `<div class="relative rounded-2xl p-5 ring-1 hover:ring-2 transition-all cursor-pointer group" style="background:${b.color};border-color:${b.border};border-width:1px;border-style:solid;" onclick="switchTab('${b.tab}')">
+          <div class="flex items-start justify-between mb-4">
+            <div class="flex items-center gap-2.5">
+              <span class="text-2xl">${b.icon}</span>
+              <div>
+                <div class="text-sm font-bold text-white leading-tight">${b.name}</div>
+                <div class="text-[10px] text-gray-500 mt-0.5">${b.desc}</div>
+              </div>
+            </div>
+            <span class="text-[9px] font-bold px-2 py-0.5 rounded-full bg-profit/10 text-profit">${b.status2}</span>
+          </div>
+          <div class="mb-3">
+            <div class="text-2xl font-black text-white">${balStr}</div>
+            <div class="text-xs font-semibold mt-0.5" style="color:${pnlColor}">${pnlStr} P&L</div>
+          </div>
+          <div class="flex items-center justify-between">
+            <span class="text-[11px] text-gray-500">${b.metric}</span>
+            <span class="text-[11px] text-gray-600 group-hover:text-gray-400 transition-colors">Details →</span>
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    // Auto-start home dashboard on load
+    pollHomeDashboard();
+    _homeInterval = setInterval(pollHomeDashboard, 30000);
+
   </script>
 
 </body>
