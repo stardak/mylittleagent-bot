@@ -939,10 +939,22 @@
     let _kronosHero = { balance: null, balColor: 'text-white', pnlText: 'P&L: $0.00', pnlColor: 'text-gray-400', start: '' };
     let _polyHero   = { balance: null, balColor: 'text-profit', pnlText: '+$0.00 (+0.00%)', pnlColor: 'text-gray-400' };
 
+    // Combined hero state for the home/overview tab
+    var _homeHero = { balance: 700, pnl: 0 };
+
     function updateHero() {
-      const heroLabel   = $('heroLabel');
+      const heroLabel    = $('heroLabel');
       const scalperPnlEl = $('scalperPnl');
-      if (activeTab === 'poly' && _polyHero.balance !== null) {
+
+      if (activeTab === 'home') {
+        if (heroLabel) heroLabel.textContent = 'Combined Paper Portfolio';
+        els.portfolioValue.textContent = '$' + _homeHero.balance.toFixed(2);
+        els.portfolioValue.className = 'text-5xl sm:text-6xl font-extrabold tracking-tighter text-white';
+        const pnl = _homeHero.pnl;
+        const pnlStr = (pnl >= 0 ? '+$' : '-$') + Math.abs(pnl).toFixed(2) + ' (' + (pnl >= 0 ? '+' : '') + ((pnl / 700) * 100).toFixed(2) + '%) · 7 strategies';
+        if (scalperPnlEl) { scalperPnlEl.textContent = pnlStr; scalperPnlEl.className = 'font-semibold ' + (pnl > 0 ? 'text-profit' : pnl < 0 ? 'text-loss' : 'text-gray-400'); }
+        if (els.portfolioStart) els.portfolioStart.textContent = 'Combined start: $700.00';
+      } else if (activeTab === 'poly' && _polyHero.balance !== null) {
         if (heroLabel) heroLabel.textContent = 'Arb Portfolio';
         els.portfolioValue.textContent = fmtUsd(_polyHero.balance);
         els.portfolioValue.className = 'text-5xl sm:text-6xl font-extrabold tracking-tighter ' + _polyHero.balColor;
@@ -1595,7 +1607,7 @@
 
        if(tab==='poly')   { updateHero(); startPolyScanner(); }
        else if(tab==='kronos') { updateHero(); }
-       else if(tab==='home')   { if(typeof pollHomeDashboard==='function') pollHomeDashboard(); }
+       else if(tab==='home')   { updateHero(); if(typeof pollHomeDashboard==='function') pollHomeDashboard(); }
        else if(_LAB_API[tab])  {
          var api=_LAB_API[tab];
          var doFetch=function(){ fetch(api).then(function(r){return r.json();}).then(function(d){ if(typeof _labRender!=='undefined'&&_labRender[tab]) _labRender[tab](d); }).catch(function(){}); };
@@ -2229,6 +2241,13 @@
       const tPnlEl = _el('homeTotalPnl');
       if (tBalEl) tBalEl.textContent = '$' + totalBal.toFixed(2);
       if (tPnlEl) { tPnlEl.textContent = (totalPnl >= 0 ? '+' : '') + '$' + Math.abs(totalPnl).toFixed(2); tPnlEl.style.color = _pnlCl(totalPnl); }
+
+      // Sync hero panel with combined total when on home tab
+      if (typeof _homeHero !== 'undefined') {
+        _homeHero.balance = totalBal;
+        _homeHero.pnl     = totalPnl;
+        if (typeof updateHero === 'function' && activeTab === 'home') updateHero();
+      }
 
       const grid = _el('homeBotGrid');
       if (!grid) return;
