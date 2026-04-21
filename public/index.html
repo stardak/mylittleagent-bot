@@ -1884,144 +1884,329 @@
   </script>
 
   <script>
-    // Strategy Labs: tab switching + polling
+    // ── Strategy Labs: all tab logic, polling, and rendering ─────────────────
     const LAB_TABS = {
-      funding:  { btn:'tabBtnFunding', pane:'paneFunding',  api:'/api/funding-rate/state',   render:null, color:'rgba(245,158,11,0.6)',  interval:null },
-      feargreed:{ btn:'tabBtnFG',      pane:'paneFG',       api:'/api/fear-greed/state',     render:null, color:'rgba(239,68,68,0.5)',   interval:null },
-      depeg:    { btn:'tabBtnDepeg',   pane:'paneDepeg',    api:'/api/depeg/state',          render:null, color:'rgba(234,179,8,0.5)',   interval:null },
-      liq:      { btn:'tabBtnLiq',     pane:'paneLiq',      api:'/api/liquidation/state',    render:null, color:'rgba(249,115,22,0.6)',  interval:null },
-      crossex:  { btn:'tabBtnCross',   pane:'paneCrossEx',  api:'/api/cross-exchange/state', render:null, color:'rgba(139,92,246,0.5)',  interval:null },
+      funding:  { btn:'tabBtnFunding', pane:'paneFunding',  api:'/api/funding-rate/state',   color:'rgba(245,158,11,0.6)',  interval:null },
+      feargreed:{ btn:'tabBtnFG',      pane:'paneFG',       api:'/api/fear-greed/state',     color:'rgba(239,68,68,0.5)',   interval:null },
+      depeg:    { btn:'tabBtnDepeg',   pane:'paneDepeg',    api:'/api/depeg/state',          color:'rgba(234,179,8,0.5)',   interval:null },
+      liq:      { btn:'tabBtnLiq',     pane:'paneLiq',      api:'/api/liquidation/state',    color:'rgba(249,115,22,0.6)',  interval:null },
+      crossex:  { btn:'tabBtnCross',   pane:'paneCrossEx',  api:'/api/cross-exchange/state', color:'rgba(139,92,246,0.5)',  interval:null },
     };
     const ALL_PANE_IDS = ['paneHome','paneKronos','panePoly','paneFunding','paneFG','paneDepeg','paneLiq','paneCrossEx'];
     const ALL_BTN_IDS  = ['tabBtnHome','tabBtnKronos','tabBtnPoly','tabBtnFunding','tabBtnFG','tabBtnDepeg','tabBtnLiq','tabBtnCross'];
+
+    // Render fn registry — populated after functions are defined
+    const _labRender = {};
+
+    // Extended switchTab — replaces the original
     const _origSwitchTab = switchTab;
     switchTab = function(tab) {
-      ALL_PANE_IDS.forEach(id => { const el=document.getElementById(id); if(el) el.classList.add('hidden'); });
-      ALL_BTN_IDS.forEach(id => { const el=document.getElementById(id); if(el){el.style.background='transparent';el.classList.remove('text-white');el.classList.add('text-gray-400');} });
-      if (tab==='kronos'||tab==='poly'){_origSwitchTab(tab);return;}
-      const cfg=LAB_TABS[tab]; if(!cfg) return;
-      activeTab=tab;
-      const pane=document.getElementById(cfg.pane); if(pane) pane.classList.remove('hidden');
-      const btn=document.getElementById(cfg.btn);   if(btn){btn.style.background=cfg.color;btn.classList.add('text-white');btn.classList.remove('text-gray-400');}
-      if(!cfg.interval){
-        (async()=>{try{cfg.render(await(await fetch(cfg.api)).json());}catch{}})();
-        cfg.interval=setInterval(async()=>{try{cfg.render(await(await fetch(cfg.api)).json());}catch{}},15000);
+      // 1. Hide all panes & deactivate all btns
+      ALL_PANE_IDS.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('hidden');
+      });
+      ALL_BTN_IDS.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) { el.style.background = 'transparent'; el.classList.remove('text-white'); el.classList.add('text-gray-400'); }
+      });
+
+      // 2. Home tab
+      if (tab === 'home') {
+        activeTab = 'home';
+        const p = document.getElementById('paneHome'); if (p) p.classList.remove('hidden');
+        const b = document.getElementById('tabBtnHome'); if (b) { b.style.background = 'rgba(99,102,241,0.7)'; b.classList.add('text-white'); b.classList.remove('text-gray-400'); }
+        pollHomeDashboard();
+        return;
+      }
+
+      // 3. Kronos / Poly — delegate to original (it re-shows those panes)
+      if (tab === 'kronos' || tab === 'poly') {
+        _origSwitchTab(tab);
+        return;
+      }
+
+      // 4. Strategy Lab tabs
+      const cfg = LAB_TABS[tab];
+      if (!cfg) return;
+      activeTab = tab;
+
+      const pane = document.getElementById(cfg.pane); if (pane) pane.classList.remove('hidden');
+      const btn  = document.getElementById(cfg.btn);
+      if (btn) { btn.style.background = cfg.color; btn.classList.add('text-white'); btn.classList.remove('text-gray-400'); }
+
+      const renderFn = _labRender[tab];
+      if (!renderFn) return;
+
+      // First-time poll
+      if (!cfg.interval) {
+        fetch(cfg.api).then(r => r.json()).then(renderFn).catch(() => {});
+        cfg.interval = setInterval(() => {
+          fetch(cfg.api).then(r => r.json()).then(renderFn).catch(() => {});
+        }, 15000);
       }
     };
-    const _$=id=>document.getElementById(id);
-    const _set=(id,v)=>{const el=_$(id);if(el)el.textContent=v;};
-    const _fmtPnl=v=>(v>=0?'+':'')+'$'+Math.abs(Number(v||0)).toFixed(2);
-    const _pnlCl=v=>v>0?'text-profit':v<0?'text-loss':'text-white';
-    const _logRow=(l,icon,cl='text-gray-400')=>
-      '<div class="flex items-start gap-2.5 px-4 py-2.5 hover:bg-white/[0.02]">'+
-      '<span class="text-sm shrink-0 mt-0.5">'+icon+'</span>'+
-      '<p class="flex-1 text-xs '+cl+' leading-snug">'+l.message+'</p>'+
-      '<span class="shrink-0 text-[10px] text-gray-600 ml-2">'+l.time+'</span></div>';
 
-    function renderFunding(data){
-      const s=data.stats||{};
-      _set('frBalance','$'+(s.balance||100).toFixed(2));
-      const pe=_('frPnl');if(pe){pe.textContent=_fmtPnl(s.totalPnl);pe.className='mt-2 text-2xl font-bold '+_pnlCl(s.totalPnl);}
-      _set('frSettlements',(s.totalSettlements||0)+' settlements');
-      _set('frOpenPos',s.openPositions||0);
-      if(s.bestRate){_set('frBestRate',s.bestRate.ratePct);_set('frBestRateSub',s.bestRate.symbol);}
-      const re=_('frRates');
-      if(re&&data.rates){re.innerHTML=Object.entries(data.rates).map(([sym,r])=>
-        '<div class="rounded-xl px-5 py-4 ring-1 '+(r.extreme?'ring-profit/40 bg-profit/5':'bg-gray-800/80 ring-white/5')+'">'+
-        '<div class="flex items-center justify-between mb-2"><span class="text-sm font-bold text-white">'+sym.replace('USDT','')+'</span>'+(r.extreme?'<span class="text-[10px] font-bold text-profit bg-profit/10 rounded-full px-2 py-0.5">🔥 EXTREME</span>':'')+'</div>'+
-        '<div class="text-2xl font-black '+(r.rate>0.0003?'text-profit':r.rate<-0.0003?'text-loss':'text-gray-300')+'">'+( r.ratePct||'—')+'</div>'+
-        '<div class="text-[11px] text-gray-500 mt-1">per 8h · next '+(r.nextTimeStr||'—')+'</div></div>'
-      ).join('');}
-      const posEl=_('frPositions');if(posEl){const pos=data.positions||[];posEl.innerHTML=pos.length===0?'<div class="px-4 py-8 text-center text-xs text-gray-600">No extreme rates yet</div>':pos.map(p=>'<div class="px-4 py-3"><div class="flex justify-between"><span class="font-bold text-white">'+p.symbol+'</span><span class="text-xs text-profit">'+p.ratePct+'</span></div><div class="text-xs text-gray-400">'+p.side+'</div><div class="text-[11px] text-gray-600">$'+(p.betSize||0).toFixed(2)+'</div></div>').join('');}
-      const le=_('frLog');if(le){const logs=data.activityLog||[];le.innerHTML=logs.length?logs.map(l=>_logRow(l,{settlement:'💰',trade:'📊',extreme:'🔥',info:'ℹ️'}[l.type]||'ℹ️')).join(''):'<div class="px-4 py-8 text-center text-xs text-gray-600">Waiting…</div>';}
+    // ── DOM helpers ──────────────────────────────────────────────────────────
+    function _el(id) { return document.getElementById(id); }
+    function _set(id, v) { const el = _el(id); if (el) el.textContent = v; }
+    function _fmtPnl(v) { return (v >= 0 ? '+' : '') + '$' + Math.abs(Number(v || 0)).toFixed(2); }
+    function _pnlCl(v) { return v > 0 ? '#34d399' : v < 0 ? '#f87171' : '#9ca3af'; }
+    function _logRow(l, icon, cl) {
+      cl = cl || 'text-gray-400';
+      return '<div class="flex items-start gap-2.5 px-4 py-2.5 hover:bg-white/[0.02]">' +
+             '<span class="text-sm shrink-0 mt-0.5">' + icon + '</span>' +
+             '<p class="flex-1 text-xs ' + cl + ' leading-snug">' + l.message + '</p>' +
+             '<span class="shrink-0 text-[10px] text-gray-600 ml-2">' + l.time + '</span></div>';
     }
-    LAB_TABS.funding.render=renderFunding;
 
-    function renderFearGreed(data){
-      const s=data.stats||{},fg=data.currentFG;
-      if(fg){
-        const gv=_('fgGaugeValue'),gl=_('fgGaugeLabel'),gb=_('fgGaugeBar');
-        if(gv){gv.textContent=fg.value;gv.style.color=fg.value<=20?'#ef4444':fg.value>=80?'#22c55e':'#f59e0b';}
-        if(gl)gl.textContent=fg.classification;
-        if(gb)gb.style.width=fg.value+'%';
+    // ── Funding Rate Render ───────────────────────────────────────────────────
+    function renderFunding(data) {
+      const s = data.stats || {};
+      _set('frBalance', '$' + (s.balance || 100).toFixed(2));
+      const pnlEl = _el('frPnl');
+      if (pnlEl) { pnlEl.textContent = _fmtPnl(s.totalPnl); pnlEl.style.color = _pnlCl(s.totalPnl); }
+      _set('frSettlements', (s.totalSettlements || 0) + ' settlements');
+      _set('frOpenPos', s.openPositions || 0);
+      if (s.bestRate) { _set('frBestRate', s.bestRate.ratePct); _set('frBestRateSub', s.bestRate.symbol); }
+
+      // Rate cards
+      const re = _el('frRates');
+      if (re && data.rates) {
+        const entries = Object.entries(data.rates);
+        if (entries.length === 0) {
+          re.innerHTML = '<div class="col-span-3 px-4 py-6 text-center text-xs text-gray-600">Fetching rates…</div>';
+        } else {
+          re.innerHTML = entries.map(function(entry) {
+            const sym = entry[0], r = entry[1];
+            const ex = r.extreme;
+            const cl = r.rate > 0.0003 ? '#34d399' : r.rate < -0.0003 ? '#f87171' : '#d1d5db';
+            return '<div class="rounded-xl px-5 py-4 ring-1 ' + (ex ? 'bg-emerald-950/20 ring-emerald-500/30' : 'bg-gray-800/80 ring-white/5') + '">' +
+              '<div class="flex items-center justify-between mb-2"><span class="text-sm font-bold text-white">' + sym.replace('USDT', '') + '</span>' +
+              (ex ? '<span class="text-[10px] font-bold text-emerald-400 bg-emerald-400/10 rounded-full px-2 py-0.5">🔥 EXTREME</span>' : '') + '</div>' +
+              '<div class="text-2xl font-black" style="color:' + cl + '">' + (r.ratePct || '—') + '</div>' +
+              '<div class="text-[11px] text-gray-500 mt-1">per 8h · next ' + (r.nextTimeStr || '—') + '</div></div>';
+          }).join('');
+        }
       }
-      _set('fgBalance','$'+(s.balance||100).toFixed(2));
-      const pe=_('fgPnl');if(pe){pe.textContent=_fmtPnl(s.totalPnl);pe.className='mt-2 text-2xl font-bold '+_pnlCl(s.totalPnl);}
-      _set('fgPnlSub',(s.totalTrades||0)+' trades closed');
-      _set('fgBuyZone',s.buyZoneCount||0);_set('fgSellZone',s.sellZoneCount||0);
-      const pos=data.position;
-      _set('fgPosition',pos?'LONG BTC @ $'+(pos.entryPrice||0).toLocaleString():'None');
-      _set('fgPositionSub',pos?'$'+(pos.betSize||0).toFixed(2)+' · F&G '+pos.entryFG+' at entry':'Waiting for Extreme Fear…');
-      const le=_('fgLog');if(le){const logs=data.activityLog||[];le.innerHTML=logs.length?logs.map(l=>_logRow(l,{buy:'🟢',sell:'🔴',signal:'⚡',error:'❌',info:'ℹ️'}[l.type]||'ℹ️',l.type==='buy'?'text-profit':l.type==='sell'?'text-loss':'text-gray-400')).join(''):'<div class="px-4 py-8 text-center text-xs text-gray-600">Checking hourly…</div>';}
-      const te=_('fgTrades');if(te){const ts=data.trades||[];te.innerHTML=ts.length===0?'<div class="px-4 py-8 text-center text-xs text-gray-600">No closed trades yet</div>':ts.map(t=>'<div class="px-4 py-3 flex items-start justify-between gap-2"><div><div class="text-xs font-medium text-gray-200">BUY $'+(t.entryPrice||0).toLocaleString()+' → SELL $'+(t.exitPrice||0).toLocaleString()+'</div><div class="text-[11px] text-gray-500">F&G '+t.entryFG+'→'+t.exitFG+' · '+t.durationDays+'d</div></div><div class="text-xs font-bold '+(t.pnl>=0?'text-profit':'text-loss')+'">'+_fmtPnl(t.pnl)+'</div></div>').join('');}
+
+      // Open positions
+      const posEl = _el('frPositions');
+      if (posEl) {
+        const pos = data.positions || [];
+        posEl.innerHTML = pos.length === 0
+          ? '<div class="px-4 py-8 text-center text-xs text-gray-600">No extreme rates yet — rates updating every 5min</div>'
+          : pos.map(function(p) {
+              return '<div class="px-4 py-3 flex items-start justify-between gap-2">' +
+                '<div><div class="text-sm font-bold text-white">' + (p.symbol || '').replace('USDT', '') + '</div>' +
+                '<div class="text-xs text-gray-400 mt-0.5">' + (p.side || '') + '</div>' +
+                '<div class="text-[11px] text-gray-600">$' + (p.betSize || 0).toFixed(2) + '</div></div>' +
+                '<span class="text-xs font-bold text-emerald-400">' + (p.ratePct || '') + '</span></div>';
+            }).join('');
+      }
+
+      // Log
+      const le = _el('frLog');
+      if (le) {
+        const logs = data.activityLog || [];
+        const icons = { settlement: '💰', trade: '📊', extreme: '🔥', info: 'ℹ️' };
+        le.innerHTML = logs.length
+          ? logs.slice(0, 40).map(function(l) { return _logRow(l, icons[l.type] || 'ℹ️'); }).join('')
+          : '<div class="px-4 py-8 text-center text-xs text-gray-600">Scanning (every 5 min)…</div>';
+      }
     }
-    LAB_TABS.feargreed.render=renderFearGreed;
+    _labRender['funding'] = renderFunding;
 
-    function renderDepeg(data){
-      const s=data.stats||{};
-      _set('depegBalance','$'+(s.balance||100).toFixed(2));
-      const pe=_('depegPnl');if(pe){pe.textContent=_fmtPnl(s.totalPnl);pe.className='mt-2 text-2xl font-bold '+_pnlCl(s.totalPnl);}
-      _set('depegTrades',(s.totalTrades||0)+' trades');_set('depegOpenPos',s.openPositions||0);
-      if(s.deepestDepeg){_set('depegDeepest','-'+(s.deepestDepeg.depegPct||0).toFixed(3)+'%');_set('depegDeepestSub',s.deepestDepeg.symbol);}
-      const pr=_('depegPrices');if(pr&&data.prices){pr.innerHTML=Object.entries(data.prices).map(([sym,p])=>'<div class="rounded-xl px-5 py-4 ring-1 '+(p.pegged?'ring-white/5 bg-gray-800/80':'ring-warn/50 bg-warn/5')+'">'+'<div class="flex items-center justify-between mb-2"><span class="text-sm font-bold text-white">'+sym+'</span>'+(p.pegged?'<span class="text-[10px] text-gray-600">✓ pegged</span>':'<span class="text-[10px] font-bold text-warn">⚠ DEPEG</span>')+'</div><div class="text-2xl font-black '+(p.price<0.998?'text-warn':'text-white')+'">'+( p.priceStr||'$1.0000')+'</div><div class="text-[11px] text-gray-500 mt-1">'+(p.depegStr||'0%')+' from peg</div></div>').join('');}
-      const le=_('depegLog');if(le){const logs=data.activityLog||[];le.innerHTML=logs.length?logs.map(l=>_logRow(l,{depeg:'🚨',repeg:'💰',warn:'⚠️',info:'ℹ️'}[l.type]||'ℹ️',l.type==='depeg'?'text-warn':l.type==='repeg'?'text-profit':'text-gray-400')).join(''):'<div class="px-4 py-8 text-center text-xs text-gray-600">Monitoring stablecoins…</div>';}
+    // ── Fear & Greed Render ───────────────────────────────────────────────────
+    function renderFearGreed(data) {
+      const s = data.stats || {};
+      const fg = data.currentFG;
+
+      if (fg) {
+        const gv = _el('fgGaugeValue'), gl = _el('fgGaugeLabel'), gb = _el('fgGaugeBar');
+        if (gv) { gv.textContent = fg.value; gv.style.color = fg.value <= 20 ? '#ef4444' : fg.value >= 80 ? '#22c55e' : '#f59e0b'; }
+        if (gl) gl.textContent = fg.classification;
+        if (gb) gb.style.width = fg.value + '%';
+      }
+
+      _set('fgBalance', '$' + (s.balance || 100).toFixed(2));
+      const pnlEl = _el('fgPnl');
+      if (pnlEl) { pnlEl.textContent = _fmtPnl(s.totalPnl); pnlEl.style.color = _pnlCl(s.totalPnl); }
+      _set('fgPnlSub', (s.totalTrades || 0) + ' trades closed');
+      _set('fgBuyZone', s.buyZoneCount || 0);
+      _set('fgSellZone', s.sellZoneCount || 0);
+
+      const pos = data.position;
+      _set('fgPosition', pos ? 'LONG BTC @ $' + (pos.entryPrice || 0).toLocaleString() : 'None (waiting)');
+      _set('fgPositionSub', pos ? '$' + (pos.betSize || 0).toFixed(2) + ' · F&G was ' + pos.entryFG + ' at entry' : 'Will buy when F&G drops below 20');
+
+      const le = _el('fgLog');
+      if (le) {
+        const logs = data.activityLog || [];
+        const icons = { buy: '🟢', sell: '🔴', signal: '⚡', error: '❌', info: 'ℹ️' };
+        const colors = { buy: 'text-emerald-400', sell: 'text-red-400' };
+        le.innerHTML = logs.length
+          ? logs.slice(0, 40).map(function(l) { return _logRow(l, icons[l.type] || 'ℹ️', colors[l.type]); }).join('')
+          : '<div class="px-4 py-8 text-center text-xs text-gray-600">Polling hourly. Current F&G: ' + (fg ? fg.value + ' (' + fg.classification + ')' : '—') + '</div>';
+      }
+
+      const te = _el('fgTrades');
+      if (te) {
+        const ts = data.trades || [];
+        te.innerHTML = ts.length === 0
+          ? '<div class="px-4 py-8 text-center text-xs text-gray-600">No closed trades yet — this strategy trades a few times per year</div>'
+          : ts.map(function(t) {
+              return '<div class="px-4 py-3 flex items-start justify-between gap-2">' +
+                '<div><div class="text-xs font-medium text-gray-200">BUY $' + (t.entryPrice || 0).toLocaleString() + ' → SELL $' + (t.exitPrice || 0).toLocaleString() + '</div>' +
+                '<div class="text-[11px] text-gray-500 mt-0.5">F&G ' + t.entryFG + '→' + t.exitFG + ' · ' + t.durationDays + 'd</div></div>' +
+                '<div class="text-xs font-bold" style="color:' + _pnlCl(t.pnl) + '">' + _fmtPnl(t.pnl) + ' (' + t.pnlPct + '%)</div></div>';
+            }).join('');
+      }
     }
-    LAB_TABS.depeg.render=renderDepeg;
+    _labRender['feargreed'] = renderFearGreed;
 
-    function renderLiq(data){
-      const s=data.stats||{};
-      _set('liqBalance','$'+(s.balance||100).toFixed(2));
-      const pe=_('liqPnl');if(pe){pe.textContent=_fmtPnl(s.totalPnl);pe.className='mt-2 text-2xl font-bold '+_pnlCl(s.totalPnl);}
-      _set('liqPnlSub',(s.totalTrades||0)+' trades');_set('liqOpenPos',s.openPositions||0);
-      if(s.biggestCascade){_set('liqBiggest','$'+(s.biggestCascade.totalLiq/1e6).toFixed(1)+'M');_set('liqBiggestSub',(s.biggestCascade.symbol||'—').replace('USDT',''));}
-      const fe=_('liqFeed');if(fe&&data.liqFeed){const ens=Object.entries(data.liqFeed);fe.innerHTML=ens.length?ens.map(([sym,f])=>'<div class="px-4 py-3"><div class="flex justify-between"><span class="text-sm font-bold text-white">'+(sym.replace('USDT',''))+'</span>'+(f.proxy?'<span class="text-[10px] text-gray-600">proxy</span>':'')+'</div>'+(f.totalLiq?'<div class="text-xs text-warn">$'+(f.totalLiq/1e6).toFixed(1)+'M</div>':'')+'</div>').join(''):'<div class="px-4 py-6 text-center text-xs text-gray-600">Monitoring…</div>';}
-      const le=_('liqLog');if(le){const logs=data.activityLog||[];le.innerHTML=logs.length?logs.map(l=>_logRow(l,{cascade:'⚡',win:'💰',loss:'📉',info:'ℹ️'}[l.type]||'ℹ️',l.type==='cascade'?'text-warn':l.type==='win'?'text-profit':'text-gray-400')).join(''):'<div class="px-4 py-8 text-center text-xs text-gray-600">Detecting cascades…</div>';}
+    // ── Stablecoin Depeg Render ───────────────────────────────────────────────
+    function renderDepeg(data) {
+      const s = data.stats || {};
+      _set('depegBalance', '$' + (s.balance || 100).toFixed(2));
+      const pnlEl = _el('depegPnl');
+      if (pnlEl) { pnlEl.textContent = _fmtPnl(s.totalPnl); pnlEl.style.color = _pnlCl(s.totalPnl); }
+      _set('depegTrades', (s.totalTrades || 0) + ' trades');
+      _set('depegOpenPos', s.openPositions || 0);
+      if (s.deepestDepeg) {
+        _set('depegDeepest', '-' + (s.deepestDepeg.depegPct || 0).toFixed(3) + '%');
+        _set('depegDeepestSub', s.deepestDepeg.symbol);
+      }
+
+      const pr = _el('depegPrices');
+      if (pr && data.prices) {
+        const entries = Object.entries(data.prices);
+        pr.innerHTML = entries.length === 0
+          ? '<div class="col-span-3 text-center text-xs text-gray-600 py-6">Fetching stable prices…</div>'
+          : entries.map(function(entry) {
+              const sym = entry[0], p = entry[1];
+              const alert = !p.pegged;
+              return '<div class="rounded-xl px-5 py-4 ring-1 ' + (alert ? 'ring-yellow-500/40 bg-yellow-950/20' : 'bg-gray-800/80 ring-white/5') + '">' +
+                '<div class="flex items-center justify-between mb-2"><span class="text-sm font-bold text-white">' + sym + '</span>' +
+                (alert ? '<span class="text-[10px] font-bold text-yellow-400">⚠ DEPEG</span>' : '<span class="text-[10px] text-gray-600">✓ pegged</span>') + '</div>' +
+                '<div class="text-2xl font-black ' + (p.price < 0.998 ? 'text-yellow-400' : 'text-white') + '">' + (p.priceStr || '$1.0000') + '</div>' +
+                '<div class="text-[11px] text-gray-500 mt-1">' + (p.depegStr || '0.000%') + ' from peg</div></div>';
+            }).join('');
+      }
+
+      const le = _el('depegLog');
+      if (le) {
+        const logs = data.activityLog || [];
+        const icons = { depeg: '🚨', repeg: '💰', warn: '⚠️', info: 'ℹ️' };
+        const cls = { depeg: 'text-yellow-400', repeg: 'text-emerald-400' };
+        le.innerHTML = logs.length
+          ? logs.slice(0, 40).map(function(l) { return _logRow(l, icons[l.type] || 'ℹ️', cls[l.type]); }).join('')
+          : '<div class="px-4 py-8 text-center text-xs text-gray-600">Monitoring USDC, USDT, DAI every 2 minutes</div>';
+      }
     }
-    LAB_TABS.liq.render=renderLiq;
+    _labRender['depeg'] = renderDepeg;
 
-    function renderCrossEx(data){
-      const s=data.stats||{};
-      _set('crossBalance','$'+(s.balance||100).toFixed(2));
-      const pe=_('crossPnl');if(pe){pe.textContent=_fmtPnl(s.totalPnl);pe.className='mt-2 text-2xl font-bold '+_pnlCl(s.totalPnl);}
-      _set('crossPnlSub',(s.totalTrades||0)+' trades');_set('crossOpenPos',s.openPositions||0);
-      if(s.maxSpread){_set('crossMaxSpread',(s.maxSpread.spreadPct*100).toFixed(4)+'%');_set('crossMaxSpreadSub',(s.maxSpread.symbol||'—').replace('USDT','')+' $'+(s.maxSpread.spread||0).toFixed(2));}
-      const se=_('crossExSpreads');if(se&&data.spreads){se.innerHTML=Object.entries(data.spreads).map(([sym,sp])=>'<div class="rounded-xl px-5 py-4 ring-1 '+(sp.tradeable?'ring-profit/40 bg-profit/5':sp.aboveThreshold?'ring-warn/30 bg-warn/5':'ring-white/5 bg-gray-800/80')+'"><div class="flex items-center justify-between mb-2"><span class="text-sm font-bold text-white">'+(sym.replace('USDT',''))+'</span>'+(sp.tradeable?'<span class="text-[10px] font-bold text-profit bg-profit/10 rounded-full px-2">TRADE</span>':sp.aboveThreshold?'<span class="text-[10px] text-warn">notable</span>':'')+'</div><div class="text-2xl font-black '+(sp.aboveThreshold?'text-profit':'text-gray-400')+'">'+(sp.spreadPctStr||'0%')+'</div><div class="text-[11px] text-gray-500">'+(sp.spreadUsdStr||'$0')+' · buy '+(sp.cheaperEx||'—')+'</div><div class="text-[10px] text-gray-600">B:$'+(sp.binance||0).toLocaleString()+' BB:$'+(sp.bybit||0).toLocaleString()+'</div></div>').join('');}
-      const le=_('crossLog');if(le){const logs=data.activityLog||[];le.innerHTML=logs.length?logs.map(l=>_logRow(l,{trade:'📊',signal:'🔍',win:'💰',loss:'📉',info:'ℹ️'}[l.type]||'🔍',l.type==='trade'?'text-profit':l.type==='signal'?'text-warn':'text-gray-400')).join(''):'<div class="px-4 py-8 text-center text-xs text-gray-600">Comparing prices…</div>';}
+    // ── Liquidation Scalper Render ───────────────────────────────────────────
+    function renderLiq(data) {
+      const s = data.stats || {};
+      _set('liqBalance', '$' + (s.balance || 100).toFixed(2));
+      const pnlEl = _el('liqPnl');
+      if (pnlEl) { pnlEl.textContent = _fmtPnl(s.totalPnl); pnlEl.style.color = _pnlCl(s.totalPnl); }
+      _set('liqPnlSub', (s.totalTrades || 0) + ' trades');
+      _set('liqOpenPos', s.openPositions || 0);
+      if (s.biggestCascade) {
+        _set('liqBiggest', '$' + (s.biggestCascade.totalLiq / 1e6).toFixed(1) + 'M');
+        _set('liqBiggestSub', (s.biggestCascade.symbol || '').replace('USDT', ''));
+      }
+
+      const fe = _el('liqFeed');
+      if (fe && data.liqFeed) {
+        const entries = Object.entries(data.liqFeed);
+        fe.innerHTML = entries.length === 0
+          ? '<div class="px-4 py-6 text-center text-xs text-gray-600">Monitoring BTC/ETH/SOL every 60s</div>'
+          : entries.map(function(entry) {
+              const sym = entry[0], f = entry[1];
+              return '<div class="px-4 py-3 flex items-start justify-between gap-2">' +
+                '<div><div class="text-sm font-bold text-white">' + sym.replace('USDT', '') + '</div>' +
+                (f.proxy ? '<div class="text-[10px] text-gray-600">move proxy (no auth)</div>' : '') +
+                (f.totalLiq ? '<div class="text-xs text-orange-400">$' + (f.totalLiq / 1e6).toFixed(1) + 'M liq in 5min</div>' : '') +
+                (f.estimatedMove ? '<div class="text-xs text-gray-400">' + f.estimatedMove + ' 5min move</div>' : '') + '</div>' +
+                (f.lastUpdate ? '<span class="text-[10px] text-gray-600">' + new Date(f.lastUpdate).toLocaleTimeString() + '</span>' : '') + '</div>';
+            }).join('');
+      }
+
+      const le = _el('liqLog');
+      if (le) {
+        const logs = data.activityLog || [];
+        const icons = { cascade: '⚡', win: '💰', loss: '📉', info: 'ℹ️' };
+        const cls = { cascade: 'text-orange-400', win: 'text-emerald-400', loss: 'text-red-400' };
+        le.innerHTML = logs.length
+          ? logs.slice(0, 40).map(function(l) { return _logRow(l, icons[l.type] || 'ℹ️', cls[l.type]); }).join('')
+          : '<div class="px-4 py-8 text-center text-xs text-gray-600">Detecting cascade events every 60s</div>';
+      }
     }
-    LAB_TABS.crossex.render=renderCrossEx;
+    _labRender['liq'] = renderLiq;
 
-    // Fix _$ collision with existing $ helper
-    function _(id){return document.getElementById(id);}
+    // ── Cross-Exchange Render ────────────────────────────────────────────────
+    function renderCrossEx(data) {
+      const s = data.stats || {};
+      _set('crossBalance', '$' + (s.balance || 100).toFixed(2));
+      const pnlEl = _el('crossPnl');
+      if (pnlEl) { pnlEl.textContent = _fmtPnl(s.totalPnl); pnlEl.style.color = _pnlCl(s.totalPnl); }
+      _set('crossPnlSub', (s.totalTrades || 0) + ' trades');
+      _set('crossOpenPos', s.openPositions || 0);
+      if (s.maxSpread) {
+        _set('crossMaxSpread', (s.maxSpread.spreadPct * 100).toFixed(4) + '%');
+        _set('crossMaxSpreadSub', (s.maxSpread.symbol || '').replace('USDT', '') + ' · $' + (s.maxSpread.spread || 0).toFixed(2));
+      }
 
-    // ── Home Overview Dashboard ───────────────────────────────────────────────
+      const se = _el('crossExSpreads');
+      if (se && data.spreads) {
+        const entries = Object.entries(data.spreads);
+        se.innerHTML = entries.length === 0
+          ? '<div class="col-span-3 text-center text-xs text-gray-600 py-6">Fetching prices from Binance & Bybit…</div>'
+          : entries.map(function(entry) {
+              const sym = entry[0], sp = entry[1];
+              const border = sp.tradeable ? 'ring-emerald-500/40 bg-emerald-950/10' : sp.aboveThreshold ? 'ring-yellow-500/30 bg-yellow-950/10' : 'ring-white/5 bg-gray-800/80';
+              return '<div class="rounded-xl px-5 py-4 ring-1 ' + border + '">' +
+                '<div class="flex items-center justify-between mb-2"><span class="text-sm font-bold text-white">' + sym.replace('USDT', '') + '</span>' +
+                (sp.tradeable ? '<span class="text-[10px] font-bold text-emerald-400 bg-emerald-400/10 rounded-full px-2">TRADE</span>' :
+                 sp.aboveThreshold ? '<span class="text-[10px] text-yellow-400">notable</span>' : '') + '</div>' +
+                '<div class="text-2xl font-black ' + (sp.aboveThreshold ? 'text-emerald-400' : 'text-gray-400') + '">' + (sp.spreadPctStr || '0.0000%') + '</div>' +
+                '<div class="text-[11px] text-gray-500 mt-1">' + (sp.spreadUsdStr || '$0') + ' · buy ' + (sp.cheaperEx || '—') + '</div>' +
+                '<div class="text-[10px] text-gray-600 mt-0.5">B:$' + (sp.binance || 0).toLocaleString() + ' BB:$' + (sp.bybit || 0).toLocaleString() + '</div></div>';
+            }).join('');
+      }
+
+      const le = _el('crossLog');
+      if (le) {
+        const logs = data.activityLog || [];
+        const icons = { trade: '📊', signal: '🔍', win: '💰', loss: '📉', info: 'ℹ️' };
+        const cls = { trade: 'text-emerald-400', signal: 'text-yellow-400', loss: 'text-red-400' };
+        le.innerHTML = logs.length
+          ? logs.slice(0, 40).map(function(l) { return _logRow(l, icons[l.type] || '🔍', cls[l.type]); }).join('')
+          : '<div class="px-4 py-8 text-center text-xs text-gray-600">Comparing Binance vs Bybit every 10 seconds</div>';
+      }
+    }
+    _labRender['crossex'] = renderCrossEx;
+
+    // ── Home Dashboard ────────────────────────────────────────────────────────
     let _homeInterval = null;
 
-    const BOT_CONFIGS = [
-      { key:'kronos',    tab:'kronos',    icon:'⚡', name:'Kronos Scalper',     desc:'AI model · 15m candles · BTC/ETH/SOL',      color:'rgba(99,102,241,0.15)',  border:'rgba(99,102,241,0.4)' },
-      { key:'poly',      tab:'poly',      icon:'🎯', name:'Polymarket Arb',     desc:'YES+NO mispricing · $5K vol filter',         color:'rgba(16,185,129,0.10)', border:'rgba(16,185,129,0.35)' },
-      { key:'funding',   tab:'funding',   icon:'💰', name:'Funding Rate Arb',   desc:'Delta-neutral · perp vs spot',               color:'rgba(245,158,11,0.10)', border:'rgba(245,158,11,0.35)' },
-      { key:'feargreed', tab:'feargreed', icon:'📈', name:'Fear & Greed',       desc:'Contrarian BTC · extreme sentiment',         color:'rgba(239,68,68,0.10)',  border:'rgba(239,68,68,0.30)' },
-      { key:'depeg',     tab:'depeg',     icon:'🟡', name:'Depeg Watch',        desc:'USDC/DAI repeg · rare high-conviction',      color:'rgba(234,179,8,0.10)',  border:'rgba(234,179,8,0.30)' },
-      { key:'liq',       tab:'liq',       icon:'⚡', name:'Liquidation Scalper','desc':'Cascade mean-reversion · 1.5% target',    color:'rgba(249,115,22,0.10)', border:'rgba(249,115,22,0.30)' },
-      { key:'crossex',   tab:'crossex',   icon:'🔄', name:'Cross-Ex Spread',    desc:'Binance vs Bybit · every 10s',               color:'rgba(139,92,246,0.10)', border:'rgba(139,92,246,0.30)' },
-    ];
-
     async function pollHomeDashboard() {
-      const upEl = document.getElementById('homeLastUpdate');
+      const upEl = _el('homeLastUpdate');
       if (upEl) upEl.textContent = 'Refreshing…';
       try {
-        const [status, poly, funding, fg, depeg, liq, cross] = await Promise.allSettled([
-          fetch('/api/status').then(r=>r.json()),
-          fetch('/api/polymarket-arb/state').then(r=>r.json()),
-          fetch('/api/funding-rate/state').then(r=>r.json()),
-          fetch('/api/fear-greed/state').then(r=>r.json()),
-          fetch('/api/depeg/state').then(r=>r.json()),
-          fetch('/api/liquidation/state').then(r=>r.json()),
-          fetch('/api/cross-exchange/state').then(r=>r.json()),
+        const [status, poly, funding, fg, depeg, liq, cross] = await Promise.all([
+          fetch('/api/status').then(function(r) { return r.json(); }).catch(function() { return null; }),
+          fetch('/api/polymarket-arb/state').then(function(r) { return r.json(); }).catch(function() { return null; }),
+          fetch('/api/funding-rate/state').then(function(r) { return r.json(); }).catch(function() { return null; }),
+          fetch('/api/fear-greed/state').then(function(r) { return r.json(); }).catch(function() { return null; }),
+          fetch('/api/depeg/state').then(function(r) { return r.json(); }).catch(function() { return null; }),
+          fetch('/api/liquidation/state').then(function(r) { return r.json(); }).catch(function() { return null; }),
+          fetch('/api/cross-exchange/state').then(function(r) { return r.json(); }).catch(function() { return null; }),
         ]);
-
-        const get = (settled) => settled.status === 'fulfilled' ? settled.value : null;
-        renderHomeDashboard(get(status), get(poly), get(funding), get(fg), get(depeg), get(liq), get(cross));
+        renderHomeDashboard(status, poly, funding, fg, depeg, liq, cross);
         if (upEl) upEl.textContent = 'Updated ' + new Date().toLocaleTimeString();
       } catch(e) {
         if (upEl) upEl.textContent = 'Error refreshing';
@@ -2029,114 +2214,108 @@
     }
 
     function renderHomeDashboard(status, poly, funding, fg, depeg, liq, cross) {
-      // Extract balances
-      const kronosBalance = status?.status?.portfolioValue ?? 100;
-      const kronosPnl     = kronosBalance - 100;
-      const kronosWR      = null; // win rate from status
-      const kronosOpen    = 0;
+      const kronosBal = (status && status.status && status.status.portfolioValue) ? status.status.portfolioValue : 100;
+      const kronosPnl = kronosBal - 100;
 
       const bots = [
         {
-          key:'kronos', tab:'kronos', icon:'⚡', name:'Kronos Scalper', desc:'AI·15m·BTC/ETH/SOL',
-          balance: kronosBalance, pnl: kronosPnl,
-          metric: status?.scalper ? Object.values(status.scalper.positions||{}).filter(p=>p).length + ' open' : '—',
-          status2: status?.status?.isPaused ? 'Paused' : 'Live',
-          color:'rgba(99,102,241,0.15)', border:'rgba(99,102,241,0.4)',
+          tab:'kronos',    icon:'⚡', name:'Kronos Scalper',   desc:'AI · 15m · BTC/ETH/SOL',
+          balance: kronosBal, pnl: kronosPnl,
+          metric: status && status.scalper ? (Object.values(status.scalper.positions || {}).filter(Boolean).length + ' open positions') : 'Checking…',
+          badge: 'LIVE', border:'rgba(99,102,241,0.4)', bg:'rgba(99,102,241,0.08)',
         },
         {
-          key:'poly', tab:'poly', icon:'🎯', name:'Polymarket Arb', desc:'Mispricing·$5K vol',
-          balance: poly?.stats?.currentBalance ?? 100,
-          pnl:     poly?.stats?.realizedPnl    ?? 0,
-          metric:  (poly?.stats?.qualifiedGaps ?? 0) + ' qual. gaps',
-          status2: poly?.stats?.running ? 'Live' : 'Idle',
-          color:'rgba(16,185,129,0.10)', border:'rgba(16,185,129,0.35)',
+          tab:'poly',      icon:'🎯', name:'Polymarket Arb',   desc:'Mispricing · $5K vol filter',
+          balance: (poly && poly.stats ? poly.stats.currentBalance : null) || 100,
+          pnl:     (poly && poly.stats ? poly.stats.realizedPnl    : null) || 0,
+          metric: (poly && poly.stats ? (poly.stats.qualifiedGaps || 0) + ' qualified gaps' : 'Scanning…'),
+          badge: (poly && poly.stats && poly.stats.running) ? 'LIVE' : 'IDLE',
+          border:'rgba(16,185,129,0.4)', bg:'rgba(16,185,129,0.08)',
         },
         {
-          key:'funding', tab:'funding', icon:'💰', name:'Funding Rate', desc:'Delta-neutral perp',
-          balance: funding?.stats?.balance ?? 100,
-          pnl:     funding?.stats?.totalPnl ?? 0,
-          metric:  (funding?.stats?.openPositions ?? 0) + ' open',
-          status2: funding?.stats?.running ? 'Live' : 'Idle',
-          color:'rgba(245,158,11,0.10)', border:'rgba(245,158,11,0.35)',
+          tab:'funding',   icon:'💰', name:'Funding Rate',     desc:'Delta-neutral perp arb',
+          balance: (funding && funding.stats ? funding.stats.balance : null) || 100,
+          pnl:     (funding && funding.stats ? funding.stats.totalPnl : null) || 0,
+          metric: funding && funding.stats ? ((funding.stats.openPositions || 0) + ' open · ' + (funding.stats.totalSettlements || 0) + ' settled') : 'Scanning…',
+          badge: (funding && funding.stats && funding.stats.running) ? 'LIVE' : 'IDLE',
+          border:'rgba(245,158,11,0.4)', bg:'rgba(245,158,11,0.07)',
         },
         {
-          key:'feargreed', tab:'feargreed', icon:'📈', name:'Fear & Greed', desc:'Contrarian BTC',
-          balance: fg?.stats?.balance ?? 100,
-          pnl:     fg?.stats?.totalPnl ?? 0,
-          metric:  fg?.currentFG ? 'F&G: ' + fg.currentFG.value : '—',
-          status2: fg?.stats?.running ? 'Live' : 'Idle',
-          color:'rgba(239,68,68,0.10)', border:'rgba(239,68,68,0.30)',
+          tab:'feargreed',  icon:'📈', name:'Fear & Greed',    desc:'Contrarian BTC sentiment',
+          balance: (fg && fg.stats ? fg.stats.balance  : null) || 100,
+          pnl:     (fg && fg.stats ? fg.stats.totalPnl : null) || 0,
+          metric: fg && fg.currentFG ? 'F&G Index: ' + fg.currentFG.value + ' (' + fg.currentFG.classification + ')' : 'Checking…',
+          badge: (fg && fg.stats && fg.stats.running) ? 'LIVE' : 'IDLE',
+          border:'rgba(239,68,68,0.4)', bg:'rgba(239,68,68,0.07)',
         },
         {
-          key:'depeg', tab:'depeg', icon:'🟡', name:'Depeg Watch', desc:'USDC/DAI repeg',
-          balance: depeg?.stats?.balance ?? 100,
-          pnl:     depeg?.stats?.totalPnl ?? 0,
-          metric:  (depeg?.stats?.openPositions ?? 0) === 0 ? 'All pegged ✓' : (depeg.stats.openPositions) + ' depegged!',
-          status2: depeg?.stats?.running ? 'Live' : 'Idle',
-          color:'rgba(234,179,8,0.10)', border:'rgba(234,179,8,0.30)',
+          tab:'depeg',     icon:'🟡', name:'Depeg Watch',      desc:'USDC / DAI repeg trade',
+          balance: (depeg && depeg.stats ? depeg.stats.balance  : null) || 100,
+          pnl:     (depeg && depeg.stats ? depeg.stats.totalPnl : null) || 0,
+          metric: depeg && depeg.stats ? ((depeg.stats.openPositions || 0) === 0 ? 'All stables pegged ✓' : depeg.stats.openPositions + ' DEPEGGED!') : 'Checking…',
+          badge: (depeg && depeg.stats && depeg.stats.running) ? 'LIVE' : 'IDLE',
+          border:'rgba(234,179,8,0.4)', bg:'rgba(234,179,8,0.07)',
         },
         {
-          key:'liq', tab:'liq', icon:'⚡', name:'Liquidations', desc:'Cascade scalper',
-          balance: liq?.stats?.balance ?? 100,
-          pnl:     liq?.stats?.totalPnl ?? 0,
-          metric:  (liq?.stats?.openPositions ?? 0) + ' open · ' + (liq?.stats?.totalTrades ?? 0) + ' trades',
-          status2: liq?.stats?.running ? 'Live' : 'Idle',
-          color:'rgba(249,115,22,0.10)', border:'rgba(249,115,22,0.30)',
+          tab:'liq',       icon:'⚡', name:'Liquidation Scalper', desc:'Cascade mean-reversion',
+          balance: (liq && liq.stats ? liq.stats.balance  : null) || 100,
+          pnl:     (liq && liq.stats ? liq.stats.totalPnl : null) || 0,
+          metric: liq && liq.stats ? ((liq.stats.openPositions || 0) + ' open · ' + (liq.stats.totalTrades || 0) + ' trades') : 'Scanning…',
+          badge: (liq && liq.stats && liq.stats.running) ? 'LIVE' : 'IDLE',
+          border:'rgba(249,115,22,0.4)', bg:'rgba(249,115,22,0.07)',
         },
         {
-          key:'crossex', tab:'crossex', icon:'🔄', name:'Cross-Ex', desc:'Binance vs Bybit',
-          balance: cross?.stats?.balance ?? 100,
-          pnl:     cross?.stats?.totalPnl ?? 0,
-          metric:  cross?.stats?.maxSpread ? 'Max: ' + (cross.stats.maxSpread.spreadPct*100).toFixed(3)+'%' : 'Watching…',
-          status2: cross?.stats?.running ? 'Live' : 'Idle',
-          color:'rgba(139,92,246,0.10)', border:'rgba(139,92,246,0.30)',
+          tab:'crossex',   icon:'🔄', name:'Cross-Ex Spread',  desc:'Binance vs Bybit · 10s',
+          balance: (cross && cross.stats ? cross.stats.balance  : null) || 100,
+          pnl:     (cross && cross.stats ? cross.stats.totalPnl : null) || 0,
+          metric: cross && cross.stats && cross.stats.maxSpread ? 'Max spread: ' + (cross.stats.maxSpread.spreadPct * 100).toFixed(4) + '%' : 'Watching…',
+          badge: (cross && cross.stats && cross.stats.running) ? 'LIVE' : 'IDLE',
+          border:'rgba(139,92,246,0.4)', bg:'rgba(139,92,246,0.07)',
         },
       ];
 
-      // Total portfolio
-      const totalBal = bots.reduce((a,b) => a + (b.balance||100), 0);
-      const totalPnl = bots.reduce((a,b) => a + (b.pnl||0), 0);
-      const tBalEl = document.getElementById('homeTotalBalance');
-      const tPnlEl = document.getElementById('homeTotalPnl');
-      if (tBalEl) tBalEl.textContent = '$' + totalBal.toFixed(2);
-      if (tPnlEl) { tPnlEl.textContent = (totalPnl>=0?'+':'') + '$' + Math.abs(totalPnl).toFixed(2); tPnlEl.style.color = totalPnl>0?'#34d399':totalPnl<0?'#f87171':''; }
+      const totalBal = bots.reduce(function(a, b) { return a + b.balance; }, 0);
+      const totalPnl = bots.reduce(function(a, b) { return a + b.pnl; }, 0);
 
-      // Render bot cards
-      const grid = document.getElementById('homeBotGrid');
+      const tBalEl = _el('homeTotalBalance');
+      const tPnlEl = _el('homeTotalPnl');
+      if (tBalEl) tBalEl.textContent = '$' + totalBal.toFixed(2);
+      if (tPnlEl) { tPnlEl.textContent = (totalPnl >= 0 ? '+' : '') + '$' + Math.abs(totalPnl).toFixed(2); tPnlEl.style.color = _pnlCl(totalPnl); }
+
+      const grid = _el('homeBotGrid');
       if (!grid) return;
-      grid.innerHTML = bots.map(b => {
-        const pnlPositive = b.pnl > 0;
-        const pnlStr   = (b.pnl >= 0 ? '+' : '') + '$' + Math.abs(b.pnl).toFixed(2);
-        const pnlColor = pnlPositive ? '#34d399' : b.pnl < 0 ? '#f87171' : '#9ca3af';
-        const balStr   = '$' + (b.balance||100).toFixed(2);
-        return `<div class="relative rounded-2xl p-5 ring-1 hover:ring-2 transition-all cursor-pointer group" style="background:${b.color};border-color:${b.border};border-width:1px;border-style:solid;" onclick="switchTab('${b.tab}')">
-          <div class="flex items-start justify-between mb-4">
-            <div class="flex items-center gap-2.5">
-              <span class="text-2xl">${b.icon}</span>
-              <div>
-                <div class="text-sm font-bold text-white leading-tight">${b.name}</div>
-                <div class="text-[10px] text-gray-500 mt-0.5">${b.desc}</div>
-              </div>
-            </div>
-            <span class="text-[9px] font-bold px-2 py-0.5 rounded-full bg-profit/10 text-profit">${b.status2}</span>
-          </div>
-          <div class="mb-3">
-            <div class="text-2xl font-black text-white">${balStr}</div>
-            <div class="text-xs font-semibold mt-0.5" style="color:${pnlColor}">${pnlStr} P&L</div>
-          </div>
-          <div class="flex items-center justify-between">
-            <span class="text-[11px] text-gray-500">${b.metric}</span>
-            <span class="text-[11px] text-gray-600 group-hover:text-gray-400 transition-colors">Details →</span>
-          </div>
-        </div>`;
+
+      grid.innerHTML = bots.map(function(b) {
+        const pnlStr = (b.pnl >= 0 ? '+' : '') + '$' + Math.abs(b.pnl).toFixed(2);
+        const balStr = '$' + b.balance.toFixed(2);
+        return '<div onclick="switchTab('' + b.tab + '')" style="background:' + b.bg + ';border:1px solid ' + b.border + ';cursor:pointer;" ' +
+          'class="relative rounded-2xl p-5 hover:scale-[1.02] transition-all duration-200 group">' +
+          '<div class="flex items-start justify-between mb-4">' +
+            '<div class="flex items-center gap-2.5">' +
+              '<span class="text-2xl">' + b.icon + '</span>' +
+              '<div><div class="text-sm font-bold text-white leading-tight">' + b.name + '</div>' +
+              '<div class="text-[10px] text-gray-500 mt-0.5">' + b.desc + '</div></div>' +
+            '</div>' +
+            '<span class="text-[9px] font-bold px-2 py-0.5 rounded-full ' + (b.badge === 'LIVE' ? 'bg-emerald-400/10 text-emerald-400' : 'bg-gray-700 text-gray-500') + '">' + b.badge + '</span>' +
+          '</div>' +
+          '<div class="mb-3">' +
+            '<div class="text-2xl font-black text-white">' + balStr + '</div>' +
+            '<div class="text-xs font-semibold mt-0.5" style="color:' + _pnlCl(b.pnl) + '">' + pnlStr + ' P&L</div>' +
+          '</div>' +
+          '<div class="flex items-center justify-between">' +
+            '<span class="text-[11px] text-gray-500">' + b.metric + '</span>' +
+            '<span class="text-[11px] text-gray-600 group-hover:text-gray-300 transition-colors">Details →</span>' +
+          '</div></div>';
       }).join('');
     }
 
-    // Auto-start home dashboard on load
+    // Auto-poll home on load and every 30s
     pollHomeDashboard();
-    _homeInterval = setInterval(pollHomeDashboard, 30000);
-
+    if (!_homeInterval) {
+      _homeInterval = setInterval(pollHomeDashboard, 30000);
+    }
   </script>
+
 
 </body>
 </html>
