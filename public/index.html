@@ -219,7 +219,7 @@
 
         <!-- ── Tab: Kronos ──────────────────────────────────────── -->
         <div id="paneKronos" class="hidden">
-
+<div class="mt-4 mb-6 rounded-xl bg-white/[0.03] ring-1 ring-white/5 px-6 py-4 space-y-3"><p class="text-sm text-gray-400 leading-relaxed">This is the one I&#8217;ve been running the longest. It uses an AI model called Kronos to decide whether BTC, ETH, or SOL is likely to move up or down over the next 15 minutes. I set it to only fire a trade when the model is at least 65% confident — anything below that and it sits on its hands. Position sizing compounds at 10% of the current balance, so the stakes grow (slowly) with the portfolio.</p><p class="text-sm text-gray-400 leading-relaxed">The honest truth is it&#8217;s been cautious lately. The model has been mostly bearish, so it&#8217;s largely been holding rather than trading. I&#8217;d rather it pass on trades than force bad ones. The paper balance here shows exactly what a real &#163;100 would look like if I ran this live on Binance — no fantasy numbers.</p></div>
         <!-- ── Stats Grid ────────────────────────────────────── -->
         <dl class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
           <div class="relative overflow-hidden rounded-xl bg-gray-800/80 backdrop-blur-lg px-5 pt-5 pb-4 shadow-lg ring-1 ring-white/5">
@@ -532,7 +532,7 @@
 
         <!-- ── Tab: Polymarket Arb ────────────────────────────────── -->
         <div id="panePoly" class="hidden">
-
+<div class="mt-4 mb-6 rounded-xl bg-white/[0.03] ring-1 ring-white/5 px-6 py-4 space-y-3"><p class="text-sm text-gray-400 leading-relaxed">Prediction markets are strange. You can buy YES and NO on the same question, and if the two prices don&#8217;t add up to exactly &#36;1, there&#8217;s free money on the table &#8212; in theory. This scanner checks over 600 markets on Polymarket every 30 seconds looking for exactly that. I call it a gap.</p><p class="text-sm text-gray-400 leading-relaxed">I filter it down to markets with at least &#36;5,000 in volume, because thin markets can show prices that look wrong but can&#8217;t actually be filled. Any gap above 2 cents on a liquid market gets paper-traded automatically. So far the gaps exist but they&#8217;re small &#8212; the market is surprisingly efficient. I&#8217;m mainly running this to see if anything meaningful ever shows up.</p></div>
           <!-- ── Stats Grid (Kronos-style) ──────────────────── -->
           <dl class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 mb-6">
             <div class="relative overflow-hidden rounded-xl px-5 pt-5 pb-4 shadow-lg ring-1" style="background:rgba(31,41,55,0.85);border-color:rgba(52,211,153,0.3);backdrop-filter:blur(12px)">
@@ -662,8 +662,7 @@
         <!-- ══ STRATEGY LABS: FUNDING RATE ARB ══════════════════════════════ -->
         <div id="paneFunding" class="hidden">
           <div class="mb-6">
-            <h2 class="text-lg font-bold text-white">&#x1F4B0; Funding Rate Arbitrage</h2>
-            <p class="text-xs text-gray-500 mt-1">Delta-neutral: short perp + long spot when funding is extreme (&ge;0.03%). Paid every 8h. <span class="text-profit font-semibold">$100 paper balance &middot; 25% sizing.</span></p>
+            <h2 class="text-lg font-bold text-white">&#x1F4B0; Funding Rate Arbitrage</h2><div class="mt-4 mb-6 rounded-xl bg-white/[0.03] ring-1 ring-white/5 px-6 py-4 space-y-3"><p class="text-sm text-gray-400 leading-relaxed">Crypto perpetual futures charge a &#8220;funding rate&#8221; every 8 hours &#8212; basically, longs pay shorts or vice versa depending on which way the crowd is leaning. When this rate gets extreme, it means one side is so overcrowded they&#8217;re paying a premium just to hold their position.</p><p class="text-sm text-gray-400 leading-relaxed">The idea is simple: when funding is extreme, go delta-neutral &#8212; buy spot and short the perp simultaneously &#8212; and just collect the payment every 8 hours without taking any directional risk. I&#8217;ve set the trigger at 0.03% per 8h (roughly 3&#215; the normal rate). This one might sit idle for days, but when it fires it should be a clean collect. Paper balance &#36;100, 25% sizing.</p></div>
           </div>
           <!-- Stats -->
           <dl class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
@@ -713,8 +712,7 @@
         <!-- ══ STRATEGY LABS: FEAR & GREED ══════════════════════════════════ -->
         <div id="paneFG" class="hidden">
           <div class="mb-6">
-            <h2 class="text-lg font-bold text-white">&#x1F4C8; Fear &amp; Greed Contrarian</h2>
-            <p class="text-xs text-gray-500 mt-1">Buy BTC on Extreme Fear (&lt;20). Sell on Extreme Greed (&gt;80). Trades ~4&ndash;6x per year. <span class="text-profit font-semibold">$100 paper balance &middot; 25% sizing.</span></p>
+            <h2 class="text-lg font-bold text-white">&#x1F4C8; Fear &amp; Greed Contrarian</h2><div class="mt-4 mb-6 rounded-xl bg-white/[0.03] ring-1 ring-white/5 px-6 py-4 space-y-3"><p class="text-sm text-gray-400 leading-relaxed">The Crypto Fear &amp; Greed Index runs from 0 (pure panic) to 100 (pure euphoria). History shows that extreme fear is usually when you should be buying and extreme greed is when you should be selling &#8212; basically the opposite of what most people actually do in the moment.</p><p class="text-sm text-gray-400 leading-relaxed">This bot watches the index and buys BTC when it drops below 20 (Extreme Fear), then sells when it crosses back through 80 (Extreme Greed). It&#8217;s a slow strategy &#8212; maybe 4&#8211;6 trades a year &#8212; but the logic makes sense to me. The index right now is sitting in Fear territory but not extreme enough to trigger yet. Patience required. Paper balance &#36;100, 25% sizing.</p></div>
           </div>
           <!-- Gauge + Stats -->
           <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-6">
@@ -779,8 +777,7 @@
         <!-- ══ STRATEGY LABS: STABLECOIN DEPEG ══════════════════════════════ -->
         <div id="paneDepeg" class="hidden">
           <div class="mb-6">
-            <h2 class="text-lg font-bold text-white">&#x1F7E1; Stablecoin Depeg Monitor</h2>
-            <p class="text-xs text-gray-500 mt-1">Buy when USDC/USDT/DAI drops below $0.9950. Exit on repeg to $0.9990. Rare signal, high conviction. <span class="text-profit font-semibold">$100 paper balance &middot; 25% sizing.</span></p>
+            <h2 class="text-lg font-bold text-white">&#x1F7E1; Stablecoin Depeg Monitor</h2><div class="mt-4 mb-6 rounded-xl bg-white/[0.03] ring-1 ring-white/5 px-6 py-4 space-y-3"><p class="text-sm text-gray-400 leading-relaxed">Stablecoins are supposed to be worth exactly &#36;1. They usually are, but occasionally something spooks the market and USDC or DAI temporarily trades below peg &#8212; sometimes as low as &#36;0.96 in a real scare. We saw this with USDC during the SVB bank run in 2023.</p><p class="text-sm text-gray-400 leading-relaxed">When that happens there&#8217;s a straightforward trade: buy the depegged stable and wait for it to come back to &#36;1. The risk is it doesn&#8217;t, which would mean something seriously broken &#8212; but that&#8217;s never happened with the major stables. I&#8217;m checking USDC and DAI every 2 minutes, and I&#8217;ll paper-trade any depeg below &#36;0.995. This might go months without a signal, which is actually fine. Paper balance &#36;100, 25% sizing.</p></div>
           </div>
           <!-- Price cards -->
           <div id="depegPrices" class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6"></div>
@@ -819,8 +816,7 @@
         <!-- ══ STRATEGY LABS: LIQUIDATION SCALPER ═══════════════════════════ -->
         <div id="paneLiq" class="hidden">
           <div class="mb-6">
-            <h2 class="text-lg font-bold text-white">&#x26A1; Liquidation Cascade Scalper</h2>
-            <p class="text-xs text-gray-500 mt-1">Detects $5M+ liquidation cascades; counter-trades the mean reversion. 1.5% target, 1hr max hold. <span class="text-profit font-semibold">$100 paper balance &middot; 25% sizing.</span></p>
+            <h2 class="text-lg font-bold text-white">&#x26A1; Liquidation Cascade Scalper</h2><div class="mt-4 mb-6 rounded-xl bg-white/[0.03] ring-1 ring-white/5 px-6 py-4 space-y-3"><p class="text-sm text-gray-400 leading-relaxed">When markets move sharply, over-leveraged traders get liquidated automatically &#8212; their positions are force-closed, which often makes the move even more extreme. After a big cascade, the market tends to snap back once the forced selling or buying is done.</p><p class="text-sm text-gray-400 leading-relaxed">This bot looks for moments where a large volume of liquidations hits BTC, ETH, or SOL in a short window, then bets on the mean reversion: buy after a big flush of longs, short after a short squeeze. Target is 1.5% and I give it up to an hour to play out. Note: the raw liquidation feed requires a Binance Futures account, so right now it&#8217;s using a large 5-minute price move as a proxy &#8212; still valid logic, just slightly less precise. Paper balance &#36;100, 25% sizing.</p></div>
           </div>
           <!-- Stats -->
           <dl class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
@@ -863,8 +859,7 @@
         <!-- ══ STRATEGY LABS: CROSS-EXCHANGE SPREAD ══════════════════════════ -->
         <div id="paneCrossEx" class="hidden">
           <div class="mb-6">
-            <h2 class="text-lg font-bold text-white">&#x1F504; Cross-Exchange Spread</h2>
-            <p class="text-xs text-gray-500 mt-1">Compares BTC/ETH/SOL between Binance and Bybit every 10s. Paper-trades spreads &ge;0.5%. Shows you if real-money execution is feasible. <span class="text-profit font-semibold">$100 paper balance &middot; 25% sizing.</span></p>
+            <h2 class="text-lg font-bold text-white">&#x1F504; Cross-Exchange Spread</h2><div class="mt-4 mb-6 rounded-xl bg-white/[0.03] ring-1 ring-white/5 px-6 py-4 space-y-3"><p class="text-sm text-gray-400 leading-relaxed">The same asset can trade at slightly different prices across different exchanges at the same moment. Professional traders exploit this constantly with fast arb bots &#8212; buy cheap on one exchange, sell expensive on the other, pocket the difference. The catch is you need to be very fast and the spreads are tiny.</p><p class="text-sm text-gray-400 leading-relaxed">This is honestly more of a research tool than a live strategy. I compare BTC, ETH, and SOL between Binance and Bybit every 10 seconds to see what the spreads actually look like in practice. Anything above 0.1% gets logged; above 0.5% counts as a paper trade. My gut says realistic spreads will be around 0.01&#8211;0.05% which is too small to profit from after fees &#8212; but I want to see the real data before writing it off. Paper balance &#36;100, 25% sizing.</p></div>
           </div>
           <!-- Spread cards -->
           <div id="crossExSpreads" class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6"></div>
