@@ -129,4 +129,27 @@ export class ClaudeAgent {
   clearCache() {
     this._cache = null;
   }
+
+  // ── Bot explanation — simple (10 y/o) or technical ───────────────────────
+  async explain(bot, mode) {
+    const BOT_DESCRIPTIONS = {
+      kronos:    'The Kronos Scalper uses a specialised AI model called Kronos (trained on tick-level data from 45 global exchanges) to predict whether BTC, ETH or SOL will move up or down over the next 15 minutes. When confidence exceeds 60%, it places a market order with 10% of the paper portfolio. It scales up to 3x on strong signals, uses an ATR-based trailing stop, and exits when the model flips direction. No human decisions — entirely model-driven.',
+      poly:      'The Polymarket Arb bot scans prediction markets (binary YES/NO contracts on events like elections and economic outcomes). It looks for markets where YES price + NO price does not equal 100 cents — a pricing inefficiency. It simultaneously buys both sides of the gap, locking in the difference as risk-free profit regardless of outcome. It filters for at least £5,000 in volume to avoid illiquid traps.',
+      funding:   'The Funding Rate bot monitors perpetual futures funding rates on Binance — fees paid every 8 hours between long and short holders to keep the contract price close to spot. When a rate goes extreme (above 0.03% per 8h, which annualises to about 13%), it takes the opposite position to collect the funding payment. It holds until the rate normalises. This is a delta-neutral strategy — it hedges market direction risk.',
+      feargreed: 'The Fear & Greed Contrarian bot watches the Crypto Fear & Greed Index (0 = pure panic, 100 = pure euphoria), published daily by Alternative.me. When the index drops below 20 (Extreme Fear), it buys BTC with 25% of the portfolio. When the index exceeds 80 (Extreme Greed), it sells. The thesis: crypto crowds overreact to sentiment — markets tend to reverse from extremes. This is a slow strategy — maybe 4-6 signals per year.',
+      depeg:     'The Stablecoin Depeg bot monitors USDC and DAI prices on Binance every 30 seconds. These coins should always be worth exactly £1. When either drops below £0.995 (a 0.5% depeg), it buys on the assumption that the peg will be restored — either by market arbitrage or by the issuer. The profit is the recovery back to £1.00. A sanity guard rejects prices below £0.80 to avoid bad data feeds from triggering ghost trades.',
+      liq:       'The Liquidation Cascade bot monitors the Binance liquidation WebSocket feed in real-time. When leveraged traders get forcibly liquidated, they create a cascade of forced sells that temporarily pushes price below fair value. The bot detects large clusters (£500K+ liquidated in 60 seconds) and enters the opposite direction, betting on the snap-back once the cascade exhausts itself. High frequency — looks for 1-3% bounces.',
+      crossex:   'The Cross-Exchange Spread bot compares BTC, ETH and SOL prices between Binance and Bybit every 10 seconds. The same asset should trade at the same price across venues. When the spread exceeds 0.5%, it simultaneously buys on the cheaper exchange and short-sells on the more expensive one — locking in the gap as risk-free profit. The position closes when prices converge.',
+    };
+
+    const description = BOT_DESCRIPTIONS[bot];
+    if (!description) throw new Error('Unknown bot: ' + bot);
+
+    const prompt = mode === 'simple'
+      ? `Explain this trading bot to a curious 10-year-old using a simple everyday analogy. No jargon, no numbers you need to explain. Max 3 short, punchy sentences. Make it fun and relatable:\n\n${description}`
+      : `Give a precise, technically rigorous explanation of this trading strategy. Include: the specific market microstructure inefficiency being exploited, the exact signal thresholds, the execution mechanics, the edge hypothesis, and the key risks that could make this strategy fail. Be specific and quantitative. Max 150 words:\n\n${description}`;
+
+    const text = await this._callClaude(prompt, 250);
+    return { text };
+  }
 }

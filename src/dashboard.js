@@ -302,6 +302,19 @@ export class Dashboard {
         console.error('[Agent] ask error:', err.message);
         res.status(500).json({ error: err.message });
       }
+
+    // POST /api/agent/explain — dumb down or tech-up a bot description
+    this.app.post('/api/agent/explain', async (req, res) => {
+      if (!this._agent.apiKey) return res.status(500).json({ error: 'No ANTHROPIC_API_KEY set' });
+      const { bot, mode } = req.body || {};
+      if (!bot || !mode) return res.status(400).json({ error: 'bot and mode required' });
+      try {
+        const result = await this._agent.explain(bot, mode);
+        res.json(result);
+      } catch (err) {
+        console.error('[Agent] explain error:', err.message);
+        res.status(500).json({ error: err.message });
+      }
     });
   }
 
